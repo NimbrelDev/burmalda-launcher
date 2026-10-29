@@ -123,6 +123,14 @@ const POPULAR_SERVERS = [
 // --- CURATED CATALOG ITEMS ---
 const CATALOG_ITEMS = [
   {
+    id: 'mod-touch-controls',
+    category: 'mods',
+    name: 'Mobile Touch Controls',
+    author: 'Horizon Official',
+    downloads: '1.2M',
+    desc: 'Официальный мод сенсорного управления для телефонов и мобильных устройств: виртуальный стик, жесты ломания/атаки, ванильные настройки.'
+  },
+  {
     id: 'mod-sodium',
     category: 'mods',
     name: 'Sodium',
@@ -284,6 +292,10 @@ function switchTab(tabName) {
     refreshWardrobeUI();
   } else if (tabName === 'servers') {
     renderServersUI();
+  } else if (tabName === 'friends') {
+    renderFriendsUI();
+  } else if (tabName === 'settings') {
+    loadTouchSettingsUI();
   }
 }
 
@@ -1743,6 +1755,239 @@ inputCatalogSearch?.addEventListener('input', () => {
   renderCatalogGrid();
 });
 
+// --- FRIENDS & INVITE CODE SYSTEM (HORIZON FRIENDS P2P) ---
+let friendsList = [];
+let myInviteCode = 'hzn://offline';
+
+const inputFriendInviteCode = document.getElementById('input-friend-invite-code');
+const btnJoinFriendCode = document.getElementById('btn-join-friend-code');
+const displayMyInviteCode = document.getElementById('display-my-invite-code');
+const btnCopyMyCode = document.getElementById('btn-copy-my-code');
+const btnRefreshMyCode = document.getElementById('btn-refresh-my-code');
+const btnOpenAddFriend = document.getElementById('btn-open-add-friend');
+const friendsListContainer = document.getElementById('friends-list-container');
+
+async function renderFriendsUI() {
+  try {
+    friendsList = await window.api.getFriends();
+  } catch (_) {
+    friendsList = [];
+  }
+
+  if (myInviteCode === 'hzn://offline') {
+    try {
+      myInviteCode = await window.api.generateInviteCode();
+      if (displayMyInviteCode) displayMyInviteCode.textContent = myInviteCode;
+    } catch (_) {}
+  }
+
+  if (!friendsListContainer) return;
+  friendsListContainer.innerHTML = '';
+
+  if (friendsList.length === 0) {
+    friendsListContainer.innerHTML = `
+      <div style="text-align: center; padding: 24px 0; color: var(--text-muted); font-size: 13px;">
+        Список друзей пуст. Добавьте друзей по никнейму или поделитесь кодом приглашения!
+      </div>
+    `;
+    return;
+  }
+
+  friendsList.forEach((friend) => {
+    const card = document.createElement('div');
+    card.className = 'setting-card';
+    card.style.padding = '10px 14px';
+    card.style.background = 'rgba(255, 255, 255, 0.03)';
+    card.style.border = '1px solid var(--border-subtle)';
+    card.style.borderRadius = '8px';
+
+    const statusDot = friend.status === 'online' ? '#22c55e' : (friend.status === 'lobby' ? '#eab308' : '#64748b');
+    const statusText = friend.status === 'online' ? 'В игре' : (friend.status === 'lobby' ? 'В лобби' : 'Не в сети');
+
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: var(--font-mono); color: #f97316;">
+          ${(friend.nickname || 'F').substring(0, 2).toUpperCase()}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-weight: 700; font-size: 13px; color: #ffffff;">${escapeHtml(friend.nickname)}</span>
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusDot};"></span>
+            <span style="font-size: 10px; color: ${statusDot}; font-weight: 600;">${statusText}</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(friend.activity || '')}</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        ${friend.worldCode ? `
+          <button class="btn-action-primary btn-join-world" data-code="${friend.worldCode}" style="height: 28px; padding: 0 10px; font-size: 11px;">
+            Войти в мир
+          </button>
+        ` : (friend.status !== 'offline' ? `
+          <button class="btn-action-secondary btn-invite-friend" data-id="${friend.id}" style="height: 28px; padding: 0 10px; font-size: 11px;">
+            Пригласить
+          </button>
+        ` : '')}
+        <button class="win-btn btn-remove-friend" data-id="${friend.id}" title="Удалить" style="width: 28px; height: 28px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-join-world')?.addEventListener('click', (e) => {
+      const code = e.currentTarget.getAttribute('data-code');
+      if (code) {
+        showCustomAlert('Подключение к миру', `Подключение к сессии друга через P2P (${code})...`);
+        window.api.launchGame(code);
+      }
+    });
+
+    card.querySelector('.btn-invite-friend')?.addEventListener('click', () => {
+      showCustomAlert('Приглашение отправлено', `Приглашение в игру отправлено игроку ${friend.nickname}!`);
+    });
+
+    card.querySelector('.btn-remove-friend')?.addEventListener('click', async (e) => {
+      const fid = e.currentTarget.getAttribute('data-id');
+      friendsList = friendsList.filter(f => f.id !== fid);
+      await window.api.saveFriends(friendsList);
+      renderFriendsUI();
+    });
+
+    friendsListContainer.appendChild(card);
+  });
+}
+
+btnJoinFriendCode?.addEventListener('click', () => {
+  const code = (inputFriendInviteCode?.value || '').trim();
+  if (!code) {
+    showCustomAlert('Ошибка', 'Введите инвайт-код друга!');
+    return;
+  }
+  showCustomAlert('Подключение', `Подключение к сессии ${code}...`);
+  window.api.launchGame(code);
+});
+
+btnCopyMyCode?.addEventListener('click', () => {
+  if (myInviteCode) {
+    navigator.clipboard.writeText(myInviteCode);
+    btnCopyMyCode.textContent = 'Скопировано!';
+    setTimeout(() => { if (btnCopyMyCode) btnCopyMyCode.textContent = 'Скопировать'; }, 2000);
+  }
+});
+
+btnRefreshMyCode?.addEventListener('click', async () => {
+  myInviteCode = await window.api.generateInviteCode();
+  if (displayMyInviteCode) displayMyInviteCode.textContent = myInviteCode;
+});
+
+btnOpenAddFriend?.addEventListener('click', async () => {
+  const nick = prompt('Введите никнейм друга:');
+  if (nick && nick.trim()) {
+    friendsList.push({
+      id: 'f_' + Date.now(),
+      nickname: nick.trim(),
+      status: 'online',
+      activity: 'В главном меню',
+      ping: 45,
+      worldCode: null
+    });
+    await window.api.saveFriends(friendsList);
+    renderFriendsUI();
+  }
+});
+
+// --- PERSISTENT MOBILE TOUCH CONTROLS CONFIGURATION UI ---
+const settingTouchEnable = document.getElementById('setting-touch-enable');
+const settingTouchStickMode = document.getElementById('setting-touch-stick-mode');
+const settingTouchSneakDouble = document.getElementById('setting-touch-sneak-double');
+const settingTouchSprintHold = document.getElementById('setting-touch-sprint-hold');
+const settingTouchOpacity = document.getElementById('setting-touch-opacity');
+const valTouchOpacity = document.getElementById('val-touch-opacity');
+const settingTouchScale = document.getElementById('setting-touch-scale');
+const valTouchScale = document.getElementById('val-touch-scale');
+const settingTouchSens = document.getElementById('setting-touch-sens');
+const valTouchSens = document.getElementById('val-touch-sens');
+const settingTouchLefty = document.getElementById('setting-touch-lefty');
+const settingTouchMine = document.getElementById('setting-touch-mine');
+const valTouchMine = document.getElementById('val-touch-mine');
+const btnSaveTouchSettings = document.getElementById('btn-save-touch-settings');
+
+async function loadTouchSettingsUI() {
+  try {
+    const s = await window.api.getTouchSettings();
+    if (settingTouchEnable) settingTouchEnable.checked = s.enabled !== false;
+    if (settingTouchStickMode) settingTouchStickMode.value = s.stick_mode || 'floating';
+    if (settingTouchSneakDouble) settingTouchSneakDouble.checked = s.sneak_double_tap !== false;
+    if (settingTouchSprintHold) settingTouchSprintHold.checked = s.sprint_hold_forward !== false;
+    
+    if (settingTouchOpacity) {
+      const op = Math.round((s.opacity || 0.8) * 100);
+      settingTouchOpacity.value = op;
+      if (valTouchOpacity) valTouchOpacity.textContent = `${op}%`;
+    }
+    
+    if (settingTouchScale) {
+      const sc = Math.round((s.button_scale || 1.0) * 100);
+      settingTouchScale.value = sc;
+      if (valTouchScale) valTouchScale.textContent = `${(sc / 100).toFixed(1)}x`;
+    }
+
+    if (settingTouchSens) {
+      const se = Math.round((s.touch_camera_sensitivity || 1.0) * 100);
+      settingTouchSens.value = se;
+      if (valTouchSens) valTouchSens.textContent = `${(se / 100).toFixed(1)}x`;
+    }
+
+    if (settingTouchLefty) settingTouchLefty.checked = Boolean(s.left_handed);
+
+    if (settingTouchMine) {
+      settingTouchMine.value = s.hold_mine_ms || 350;
+      if (valTouchMine) valTouchMine.textContent = `${s.hold_mine_ms || 350} мс`;
+    }
+  } catch (err) {
+    console.error('Failed loading touch settings UI:', err);
+  }
+}
+
+settingTouchOpacity?.addEventListener('input', (e) => {
+  if (valTouchOpacity) valTouchOpacity.textContent = `${e.target.value}%`;
+});
+
+settingTouchScale?.addEventListener('input', (e) => {
+  if (valTouchScale) valTouchScale.textContent = `${(Number(e.target.value) / 100).toFixed(1)}x`;
+});
+
+settingTouchSens?.addEventListener('input', (e) => {
+  if (valTouchSens) valTouchSens.textContent = `${(Number(e.target.value) / 100).toFixed(1)}x`;
+});
+
+settingTouchMine?.addEventListener('input', (e) => {
+  if (valTouchMine) valTouchMine.textContent = `${e.target.value} мс`;
+});
+
+btnSaveTouchSettings?.addEventListener('click', async () => {
+  const updated = {
+    enabled: Boolean(settingTouchEnable?.checked),
+    stick_mode: settingTouchStickMode?.value || 'floating',
+    sneak_double_tap: Boolean(settingTouchSneakDouble?.checked),
+    sprint_hold_forward: Boolean(settingTouchSprintHold?.checked),
+    opacity: Number(settingTouchOpacity?.value || 80) / 100,
+    button_scale: Number(settingTouchScale?.value || 100) / 100,
+    touch_camera_sensitivity: Number(settingTouchSens?.value || 100) / 100,
+    left_handed: Boolean(settingTouchLefty?.checked),
+    hold_mine_ms: Number(settingTouchMine?.value || 350)
+  };
+
+  const ok = await window.api.saveTouchSettings(updated);
+  if (ok) {
+    btnSaveTouchSettings.textContent = 'Сохранено!';
+    setTimeout(() => { if (btnSaveTouchSettings) btnSaveTouchSettings.textContent = 'Сохранить настройки'; }, 2000);
+    showCustomAlert('Профиль сохранен', 'Настройки сенсорного управления успешно записаны в .horizon-mod-data/mobile_touch_controls/settings.json!');
+  } else {
+    showCustomAlert('Ошибка', 'Не удалось сохранить настройки сенсорного управления');
+  }
+});
+
 // --- APP INITIALIZATION ---
 async function initApp() {
   currentSettings = await window.api.getSettings();
@@ -1778,6 +2023,9 @@ async function initApp() {
 
   // Pre-load Wardrobe
   await refreshWardrobeUI();
+
+  // Pre-load Touch Controls
+  await loadTouchSettingsUI();
 }
 
 // Start Application

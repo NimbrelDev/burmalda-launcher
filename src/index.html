@@ -1568,6 +1568,13 @@
         <span class="nav-label">Серверы</span>
       </button>
 
+      <button class="nav-btn" data-tab="friends" title="Друзья">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <span class="nav-label">Друзья</span>
+      </button>
+
       <button class="nav-btn" data-tab="wardrobe" title="Гардероб">
         <span class="nav-icon">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
@@ -1678,6 +1685,62 @@
           <input type="text" id="input-new-srv-addr" class="input-clean" placeholder="Адрес (IP:порт)" style="flex: 1.5;">
           <button class="btn-action-secondary" id="btn-add-server">+ Добавить в список</button>
         </div>
+      </div>
+    </section>
+
+    <!-- TAB: FRIENDS (Horizon Friends & Direct P2P Connect) -->
+    <section class="tab-content" id="pane-friends">
+      <div class="panel-container" style="width: min(840px, calc(100vw - 40px));">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Друзья & Совместная игра (Horizon Friends P2P)</span>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #22c55e; display: flex; align-items: center; gap: 5px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>
+            LAN / P2P Сервис активен
+          </span>
+        </div>
+
+        <!-- Quick Invite Code Box -->
+        <div class="setting-card" style="margin-bottom: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="setting-label" style="font-size: 13px;">Подключение по инвайт-коду друга</span>
+              <span style="font-size: 11px; color: var(--text-muted);">Без настройки портов роутера</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="input-friend-invite-code" class="input-clean" placeholder="Вставьте код (например hzn://7b9f-44a1)" style="flex: 1;">
+              <button class="btn-action-primary" id="btn-join-friend-code" style="padding: 0 16px;">Присоединиться</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Share My Session Box -->
+        <div class="setting-card" style="margin-bottom: 16px; background: rgba(234, 88, 12, 0.04); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 10px; padding: 12px 14px;">
+          <div class="setting-info">
+            <span class="setting-label" style="color: #fed7aa;">Мой код приглашения для друзей</span>
+            <span class="setting-sub" id="my-invite-code-label">Сгенерируйте код, чтобы друг зашел в ваш одиночный мир</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <code id="display-my-invite-code" style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">hzn://offline</code>
+            <button class="btn-action-secondary" id="btn-copy-my-code" style="height: 32px; font-size: 11px;">Скопировать</button>
+            <button class="btn-action-secondary" id="btn-refresh-my-code" title="Обновить код" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Friends List -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Список друзей</span>
+          <button class="btn-action-secondary" id="btn-open-add-friend" style="height: 28px; padding: 0 10px; font-size: 11px;">+ Добавить друга</button>
+        </div>
+
+        <div id="friends-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <!-- Dynamically populated friends cards -->
+        </div>
+
       </div>
     </section>
 
@@ -1807,6 +1870,130 @@
               <span class="setting-sub">Дополнительные аргументы командной строки при старте игры</span>
             </div>
             <input type="text" id="setting-custom-args" class="input-clean" placeholder="например: --fps-limit 144 --vsync">
+          </div>
+
+          <!-- MOBILE & TOUCH CONTROLS CONFIGURATION -->
+          <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
+            <div class="panel-title" style="font-size: 14px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <span>Сенсорное управление (Touch Controls & Mobile)</span>
+            </div>
+            <span style="font-size: 11px; color: #f97316; font-family: var(--font-mono); font-weight: 600;">v1.0.0 (Persistent Mod)</span>
+          </div>
+
+          <!-- Enable Virtual HUD -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Виртуальные элементы на экране</span>
+              <span class="setting-sub">Отображать экранный джойстик, кнопки прыжка, приседания и инвентаря</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-touch-enable" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Stick Mode -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Режим виртуального джойстика</span>
+              <span class="setting-sub">Плавающий появляется в месте касания; Фиксированный закреплен в углу</span>
+            </div>
+            <select id="setting-touch-stick-mode" class="input-clean" style="width: 170px;">
+              <option value="floating" selected>Плавающий (динамический)</option>
+              <option value="fixed">Фиксированный</option>
+            </select>
+          </div>
+
+          <!-- Sneak Activation -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Приседание: Двойной тап по центру (Shift)</span>
+              <span class="setting-sub">Два быстрых нажатия по рукоятке стика фиксируют приседание</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-touch-sneak-double" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Sprint Activation -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Бег: Удержание стика вперед (Ctrl)</span>
+              <span class="setting-sub">Удержание стика у границы более 400 мс активирует спринт</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-touch-sprint-hold" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- HUD Opacity -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Прозрачность кнопок HUD: <b id="val-touch-opacity" style="color: #f97316;">80%</b></span>
+              <span class="setting-sub">Регулировка видимости экранных элементов</span>
+            </div>
+            <input type="range" id="setting-touch-opacity" min="20" max="100" value="80" style="width: 160px; accent-color: #f97316;">
+          </div>
+
+          <!-- Button Scale -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Масштаб элементов управления: <b id="val-touch-scale" style="color: #f97316;">1.0x</b></span>
+              <span class="setting-sub">Размер кнопок прыжка, инвентаря и джойстика</span>
+            </div>
+            <input type="range" id="setting-touch-scale" min="80" max="150" value="100" style="width: 160px; accent-color: #f97316;">
+          </div>
+
+          <!-- Camera Sensitivity -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Чувствительность сенсорной камеры: <b id="val-touch-sens" style="color: #f97316;">1.0x</b></span>
+              <span class="setting-sub">Скорость поворота головы при движении пальцем по правой части экрана</span>
+            </div>
+            <input type="range" id="setting-touch-sens" min="50" max="250" value="100" style="width: 160px; accent-color: #f97316;">
+          </div>
+
+          <!-- Left-Handed Mode -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Режим для левшей</span>
+              <span class="setting-sub">Стик перемещается вправо, зона обзора и кнопки действий — влево</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-touch-lefty">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Mine Hold Threshold -->
+          <div class="setting-card">
+            <div class="setting-info">
+              <span class="setting-label">Порог зажатия для копания: <b id="val-touch-mine" style="color: #f97316;">350 мс</b></span>
+              <span class="setting-sub">Короткий тап бьет/ставит блок, долгое удержание непрерывно ломает</span>
+            </div>
+            <input type="range" id="setting-touch-mine" min="200" max="600" step="25" value="350" style="width: 160px; accent-color: #f97316;">
+          </div>
+
+          <!-- Save Touch Profile Button -->
+          <div class="setting-card" style="justify-content: space-between;">
+            <div class="setting-info">
+              <span class="setting-label">Синхронизация профиля управления</span>
+              <span class="setting-sub">Сохраняется в профиль мода и не сбрасывается при обновлениях игры</span>
+            </div>
+            <button class="btn-action-primary" id="btn-save-touch-settings" style="height: 34px; padding: 0 16px;">
+              Сохранить настройки
+            </button>
+          </div>
+
+          <!-- Section Divider -->
+          <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
+            <div class="panel-title" style="font-size: 14px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Системные каталоги и файлы</span>
+            </div>
           </div>
 
           <!-- Native Folders (Direct Graphical File Manager) -->

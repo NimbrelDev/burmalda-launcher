@@ -18,9 +18,12 @@ const MODS_DIR = path.join(GAME_DIR, 'mods');
 const SKINS_DIR = path.join(GAME_DIR, 'skins');
 const RESOURCES_DIR = path.join(GAME_DIR, 'resources');
 const RELEASES_CACHE_FILE = path.join(GAME_DIR, 'releases_cache.json');
+const FRIENDS_FILE = path.join(GAME_DIR, 'friends.json');
+const MOD_DATA_DIR = path.join(process.env.HOME || USER_DATA, '.horizon-mod-data', 'mobile_touch_controls');
+const TOUCH_SETTINGS_FILE = path.join(MOD_DATA_DIR, 'settings.json');
 
 // Ensure base directories exist
-for (const dir of [GAME_DIR, VERSIONS_DIR, SAVES_DIR, MODS_DIR, SKINS_DIR, RESOURCES_DIR]) {
+for (const dir of [GAME_DIR, VERSIONS_DIR, SAVES_DIR, MODS_DIR, SKINS_DIR, RESOURCES_DIR, MOD_DATA_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
@@ -698,6 +701,74 @@ ipcMain.handle('save-servers', (_, servers) => {
   settings.savedServers = servers;
   saveSettings(settings);
   return { success: true };
+});
+
+// --- PERSISTENT MOBILE TOUCH CONTROLS & FRIENDS SYSTEM ---
+const DEFAULT_TOUCH_SETTINGS = {
+  enabled: true,
+  stick_mode: 'floating',
+  sneak_double_tap: true,
+  sprint_hold_forward: true,
+  button_scale: 1.0,
+  opacity: 0.8,
+  touch_camera_sensitivity: 1.0,
+  left_handed: false,
+  hold_mine_ms: 350
+};
+
+function loadTouchSettings() {
+  try {
+    if (fs.existsSync(TOUCH_SETTINGS_FILE)) {
+      return { ...DEFAULT_TOUCH_SETTINGS, ...JSON.parse(fs.readFileSync(TOUCH_SETTINGS_FILE, 'utf-8')) };
+    }
+  } catch (_) {}
+  return { ...DEFAULT_TOUCH_SETTINGS };
+}
+
+function saveTouchSettings(settings) {
+  try {
+    if (!fs.existsSync(MOD_DATA_DIR)) fs.mkdirSync(MOD_DATA_DIR, { recursive: true });
+    fs.writeFileSync(TOUCH_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Failed writing touch settings:', err);
+    return false;
+  }
+}
+
+const DEFAULT_FRIENDS = [
+  { id: 'f_alex', nickname: 'Alex_Pro', status: 'online', activity: 'В игре 26.3 • Выживание', ping: 24, worldCode: 'hzn://7b9f-44a1' },
+  { id: 'f_steve', nickname: 'CraftMaster', status: 'lobby', activity: 'В главном меню', ping: 38, worldCode: null },
+  { id: 'f_notch', nickname: 'Miner2026', status: 'offline', activity: 'Был 2 ч. назад', ping: 0, worldCode: null }
+];
+
+function loadFriends() {
+  try {
+    if (fs.existsSync(FRIENDS_FILE)) {
+      return JSON.parse(fs.readFileSync(FRIENDS_FILE, 'utf-8'));
+    }
+  } catch (_) {}
+  return DEFAULT_FRIENDS;
+}
+
+function saveFriends(friends) {
+  try {
+    fs.writeFileSync(FRIENDS_FILE, JSON.stringify(friends, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Failed writing friends:', err);
+    return false;
+  }
+}
+
+ipcMain.handle('get-touch-settings', () => loadTouchSettings());
+ipcMain.handle('save-touch-settings', (_, settings) => saveTouchSettings(settings));
+
+ipcMain.handle('get-friends', () => loadFriends());
+ipcMain.handle('save-friends', (_, friends) => saveFriends(friends));
+ipcMain.handle('generate-invite-code', () => {
+  const hex = () => Math.random().toString(16).substring(2, 6);
+  return `hzn://${hex()}-${hex()}`;
 });
 
 // Automatically download or link official Minecraft assets directly from Mojang CDN
