@@ -1965,6 +1965,48 @@ settingTouchMine?.addEventListener('input', (e) => {
   if (valTouchMine) valTouchMine.textContent = `${e.target.value} мс`;
 });
 
+// --- TOUCH PRESET SWITCHER ---
+document.querySelectorAll('.btn-touch-preset').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const preset = btn.getAttribute('data-preset');
+    if (preset === 'bedrock') {
+      if (settingTouchStickMode) settingTouchStickMode.value = 'fixed';
+      if (settingTouchScale) settingTouchScale.value = 100;
+      if (valTouchScale) valTouchScale.textContent = '1.0x';
+      if (settingTouchOpacity) settingTouchOpacity.value = 80;
+      if (valTouchOpacity) valTouchOpacity.textContent = '80%';
+      if (settingTouchSens) settingTouchSens.value = 100;
+      if (valTouchSens) valTouchSens.textContent = '1.0x';
+      if (settingTouchMine) settingTouchMine.value = 350;
+      if (valTouchMine) valTouchMine.textContent = '350 мс';
+      if (settingTouchLefty) settingTouchLefty.checked = false;
+      if (simFeedback) simFeedback.textContent = 'Применен пресет: Классика Bedrock';
+    } else if (preset === 'claw') {
+      if (settingTouchStickMode) settingTouchStickMode.value = 'floating';
+      if (settingTouchScale) settingTouchScale.value = 115;
+      if (valTouchScale) valTouchScale.textContent = '1.2x';
+      if (settingTouchOpacity) settingTouchOpacity.value = 65;
+      if (valTouchOpacity) valTouchOpacity.textContent = '65%';
+      if (settingTouchSens) settingTouchSens.value = 140;
+      if (valTouchSens) valTouchSens.textContent = '1.4x';
+      if (settingTouchMine) settingTouchMine.value = 250;
+      if (valTouchMine) valTouchMine.textContent = '250 мс';
+      if (simFeedback) simFeedback.textContent = 'Применен пресет: Клешня (PvP 3-4 пальца)';
+    } else if (preset === 'tablet') {
+      if (settingTouchStickMode) settingTouchStickMode.value = 'floating';
+      if (settingTouchScale) settingTouchScale.value = 135;
+      if (valTouchScale) valTouchScale.textContent = '1.4x';
+      if (settingTouchOpacity) settingTouchOpacity.value = 85;
+      if (valTouchOpacity) valTouchOpacity.textContent = '85%';
+      if (settingTouchSens) settingTouchSens.value = 90;
+      if (valTouchSens) valTouchSens.textContent = '0.9x';
+      if (settingTouchMine) settingTouchMine.value = 350;
+      if (valTouchMine) valTouchMine.textContent = '350 мс';
+      if (simFeedback) simFeedback.textContent = 'Применен пресет: Планшет / Большой экран';
+    }
+  });
+});
+
 btnSaveTouchSettings?.addEventListener('click', async () => {
   const updated = {
     enabled: Boolean(settingTouchEnable?.checked),
