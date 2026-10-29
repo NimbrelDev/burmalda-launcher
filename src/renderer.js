@@ -2070,6 +2070,7 @@ let simHoldStartTime = 0;
 let simMiningProgress = 0;
 let simRightClickPos = { x: 0, y: 0 };
 let simJumpDown = false;
+let simZoomDown = false;
 
 function drawSimHud() {
   if (!simCanvas || !simCtx) return;
@@ -2170,7 +2171,35 @@ function drawSimHud() {
   simCtx.fillStyle = '#ffffff';
   simCtx.fillText('SHIFT', sneakX + sneakSize / 2, sneakY + sneakSize / 2);
 
-  // 4. Pause button at top
+  // 4. Zoom Button (Above Jump)
+  const zoomSize = 32 * scale;
+  const zoomX = jumpX + (jumpSize - zoomSize) / 2;
+  const zoomY = jumpY - zoomSize - 8;
+
+  simCtx.fillStyle = simZoomDown ? 'rgba(59, 130, 246, 0.85)' : baseFill;
+  simCtx.beginPath();
+  simCtx.roundRect(zoomX, zoomY, zoomSize, zoomSize, 6);
+  simCtx.fill();
+  simCtx.strokeStyle = baseStroke;
+  simCtx.stroke();
+  simCtx.fillStyle = '#ffffff';
+  simCtx.fillText('ZOOM', zoomX + zoomSize / 2, zoomY + zoomSize / 2);
+
+  // 5. Drop Item Button (Above Sneak)
+  const dropSize = 32 * scale;
+  const dropX = sneakX;
+  const dropY = zoomY;
+
+  simCtx.fillStyle = baseFill;
+  simCtx.beginPath();
+  simCtx.roundRect(dropX, dropY, dropSize, dropSize, 6);
+  simCtx.fill();
+  simCtx.strokeStyle = baseStroke;
+  simCtx.stroke();
+  simCtx.fillStyle = '#ffffff';
+  simCtx.fillText('DROP', dropX + dropSize / 2, dropY + dropSize / 2);
+
+  // 6. Pause button at top
   simCtx.fillStyle = baseFill;
   simCtx.beginPath();
   simCtx.roundRect(w / 2 - 16, 8, 32, 20, 4);
@@ -2243,6 +2272,38 @@ if (simCanvas) {
         return;
       }
 
+      // Check sneak standalone button
+      const sneakSize = 32 * scale;
+      const sneakX = lefty ? (jumpX + jumpSize + 8) : (jumpX - sneakSize - 8);
+      const sneakY = jumpY + (jumpSize - sneakSize) / 2;
+      if (x >= sneakX && x <= sneakX + sneakSize && y >= sneakY && y <= sneakY + sneakSize) {
+        simIsSneaking = !simIsSneaking;
+        playUiClickSound();
+        if (simFeedback) simFeedback.textContent = simIsSneaking ? 'Скрытность: ВКЛ (Shift)' : 'Скрытность: ВЫКЛ';
+        return;
+      }
+
+      // Check zoom button
+      const zoomSize = 32 * scale;
+      const zoomX = jumpX + (jumpSize - zoomSize) / 2;
+      const zoomY = jumpY - zoomSize - 8;
+      if (x >= zoomX && x <= zoomX + zoomSize && y >= zoomY && y <= zoomY + zoomSize) {
+        simZoomDown = true;
+        playUiClickSound();
+        if (simFeedback) simFeedback.textContent = 'Оптика: ЗУМ 3.5x активен (FOV)';
+        return;
+      }
+
+      // Check drop item button
+      const dropSize = 32 * scale;
+      const dropX = sneakX;
+      const dropY = zoomY;
+      if (x >= dropX && x <= dropX + dropSize && y >= dropY && y <= dropY + dropSize) {
+        playUiClickSound();
+        if (simFeedback) simFeedback.textContent = 'Действие: Выбросить предмет (Q)';
+        return;
+      }
+
       simHoldingRight = true;
       simHoldStartTime = Date.now();
       simRightClickPos = { x, y };
@@ -2307,6 +2368,7 @@ if (simCanvas) {
       if (simFeedback) simFeedback.textContent = 'Готов к тестированию';
     }
     simJumpDown = false;
+    simZoomDown = false;
   });
 
   requestAnimationFrame(drawSimHud);
