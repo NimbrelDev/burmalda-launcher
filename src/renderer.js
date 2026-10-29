@@ -17,9 +17,7 @@ const skinViewerCanvas = document.getElementById('skin-viewer-3d');
 const btnStageWardrobe = document.getElementById('btn-stage-wardrobe');
 const btnStageSettings = document.getElementById('btn-stage-settings');
 const btnStageFolder = document.getElementById('btn-stage-folder');
-const steveHeartsBar = document.getElementById('steve-hearts-bar');
-const steveDeathOverlay = document.getElementById('steve-death-overlay');
-const btnSteveRespawn = document.getElementById('btn-steve-respawn');
+
 
 // Servers Tab
 const popularServersGrid = document.getElementById('popular-servers-grid');
@@ -238,9 +236,24 @@ let defaultSkinsList = [];
 let wardrobeList = [];
 let skinViewer = null;
 
-// Steve Interaction, Ragdoll & Health State
-let steveHp = 20; // Max 20 HP (10 hearts)
-let isSteveDead = false;
+// Steve Interaction & Physics State
+let isShotgunActive = false;
+let shotgunAnim = {
+  phase: 'idle', // 'aim', 'firing', 'flying', 'offscreen', 'falling'
+  startTime: 0,
+  offscreenStartTime: 0,
+  shotgunGroup: null,
+  pumpMesh: null,
+  flashGroup: null,
+  vx: 0,
+  vy: 0,
+  vz: 0,
+  rotVx: 0,
+  rotVy: 0,
+  rotVz: 0,
+  fallVy: 0
+};
+let lastPointerEvent = null;
 let targetHeadYaw = 0;
 let targetHeadPitch = 0;
 let currentHeadYaw = 0;
@@ -311,27 +324,69 @@ btnStageSettings?.addEventListener('click', () => switchTab('settings'));
 btnOpenNametag?.addEventListener('click', () => switchTab('wardrobe'));
 dockPlayerCard?.addEventListener('click', () => switchTab('wardrobe'));
 
-// --- STEVE 3D VIEWER WITH PHYSICS, DRAGGING & RAGDOLL ---
-const hitPhysics = {
-  headPitch: 0, headPitchVel: 0,
-  headYaw: 0, headYawVel: 0,
-  headRoll: 0, headRollVel: 0,
+// --- STEVE 3D PHYSICAL RAGDOLL & SPRING SIMULATION ---
+const stevePhysics = {
+  // Head degrees of freedom
+  headPitch: { x: 0, v: 0, k: 0.12, d: 0.82 },
+  headYaw:   { x: 0, v: 0, k: 0.12, d: 0.82 },
+  headRoll:  { x: 0, v: 0, k: 0.14, d: 0.78 },
 
-  torsoPitch: 0, torsoPitchVel: 0,
-  torsoRoll: 0, torsoRollVel: 0,
-  bodyTiltZ: 0, bodyTiltZVel: 0,
+  // Torso / Body degrees of freedom
+  bodyPitch: { x: 0, v: 0, k: 0.11, d: 0.79 },
+  bodyRoll:  { x: 0, v: 0, k: 0.11, d: 0.79 },
+  bodyYaw:   { x: 0, v: 0, k: 0.11, d: 0.79 },
 
-  recoilZ: 0, recoilZVel: 0,
-  recoilY: 0, recoilYVel: 0,
+  // Left Arm degrees of freedom
+  lArmPitch: { x: 0, v: 0, k: 0.08, d: 0.84 },
+  lArmRoll:  { x: 0, v: 0, k: 0.08, d: 0.84 },
+  lArmYaw:   { x: 0, v: 0, k: 0.08, d: 0.84 },
 
-  lArmPitch: 0, lArmPitchVel: 0,
-  lArmRoll: 0, lArmRollVel: 0,
-  rArmPitch: 0, rArmPitchVel: 0,
-  rArmRoll: 0, rArmRollVel: 0,
+  // Right Arm degrees of freedom
+  rArmPitch: { x: 0, v: 0, k: 0.08, d: 0.84 },
+  rArmRoll:  { x: 0, v: 0, k: 0.08, d: 0.84 },
+  rArmYaw:   { x: 0, v: 0, k: 0.08, d: 0.84 },
 
-  lLegPitch: 0, lLegPitchVel: 0,
-  rLegPitch: 0, rLegPitchVel: 0
+  // Left Leg degrees of freedom
+  lLegPitch: { x: 0, v: 0, k: 0.10, d: 0.81 },
+  lLegRoll:  { x: 0, v: 0, k: 0.10, d: 0.81 },
+
+  // Right Leg degrees of freedom
+  rLegPitch: { x: 0, v: 0, k: 0.10, d: 0.81 },
+  rLegRoll:  { x: 0, v: 0, k: 0.10, d: 0.81 },
+
+  // Global root displacement & tilt
+  recoilZ:   { x: 0, v: 0, k: 0.09, d: 0.82 },
+  recoilY:   { x: 0, v: 0, k: 0.10, d: 0.80 },
+  recoilX:   { x: 0, v: 0, k: 0.10, d: 0.80 },
+  tiltZ:     { x: 0, v: 0, k: 0.09, d: 0.80 }
 };
+
+// Step single degree of freedom with viscous damped harmonic motion
+function stepSpringDOF(dof) {
+  const force = -dof.k * dof.x - (1 - dof.d) * dof.v;
+  dof.v += force;
+  dof.x += dof.v;
+  if (Math.abs(dof.x) < 0.0001 && Math.abs(dof.v) < 0.0001) {
+    dof.x = 0;
+    dof.v = 0;
+  }
+}
+
+// Identify which limb was hit from normalized coordinates (-1..1 for X, 0..1 for Y)
+function identifyHitLimb(relX, relY) {
+  if (relY < 0.34 && Math.abs(relX) < 0.40) return 'head';
+  if (relY >= 0.34 && relY < 0.64) {
+    if (relX < -0.18) return 'rightArm';
+    if (relX > 0.18) return 'leftArm';
+    return 'torso';
+  }
+  if (relY >= 0.64 && relY <= 0.96) {
+    return relX < 0 ? 'rightLeg' : 'leftLeg';
+  }
+  if (relY < 0.34) return 'head';
+  if (relY < 0.64) return relX < 0 ? 'rightArm' : 'leftArm';
+  return relX < 0 ? 'rightLeg' : 'leftLeg';
+}
 
 // Web Audio API Sound Synthesizer (Realistic Minecraft sound effects)
 let audioCtx = null;
@@ -363,218 +418,235 @@ function playMinecraftHitSound() {
   } catch (_) {}
 }
 
-function playMinecraftDeathSound() {
+function playShotgunSound() {
+  try {
+    const ctx = getAudioCtx();
+    const t = ctx.currentTime;
+
+    // 1. Heavy bass blast boom
+    const boomOsc = ctx.createOscillator();
+    const boomGain = ctx.createGain();
+    boomOsc.type = 'sine';
+    boomOsc.frequency.setValueAtTime(170, t);
+    boomOsc.frequency.exponentialRampToValueAtTime(16, t + 0.38);
+    boomGain.gain.setValueAtTime(0.85, t);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+    boomOsc.connect(boomGain);
+    boomGain.connect(ctx.destination);
+    boomOsc.start(t);
+    boomOsc.stop(t + 0.44);
+
+    // 2. High-energy explosion noise burst (crack of gunshot)
+    const bufferSize = Math.floor(ctx.sampleRate * 0.32);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.045));
+    }
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(4800, t);
+    filter.frequency.exponentialRampToValueAtTime(260, t + 0.26);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.75, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
+
+    noiseSource.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noiseSource.start(t);
+
+    // 3. Mechanical pump-action reload sound (clack-clack)
+    setTimeout(() => {
+      try {
+        const t2 = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, t2);
+        osc.frequency.exponentialRampToValueAtTime(200, t2 + 0.04);
+        g.gain.setValueAtTime(0.2, t2);
+        g.gain.exponentialRampToValueAtTime(0.001, t2 + 0.045);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(t2);
+        osc.stop(t2 + 0.05);
+      } catch (_) {}
+    }, 450);
+
+    setTimeout(() => {
+      try {
+        const t3 = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(950, t3);
+        osc.frequency.exponentialRampToValueAtTime(240, t3 + 0.04);
+        g.gain.setValueAtTime(0.2, t3);
+        g.gain.exponentialRampToValueAtTime(0.001, t3 + 0.045);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(t3);
+        osc.stop(t3 + 0.05);
+      } catch (_) {}
+    }, 650);
+  } catch (_) {}
+}
+
+function playMinecraftLandingSound() {
   try {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, t);
-    osc.frequency.exponentialRampToValueAtTime(20, t + 0.45);
-
-    gain.gain.setValueAtTime(0.4, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(95, t);
+    osc.frequency.exponentialRampToValueAtTime(25, t + 0.16);
+    gain.gain.setValueAtTime(0.45, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     osc.start(t);
-    osc.stop(t + 0.46);
+    osc.stop(t + 0.18);
   } catch (_) {}
 }
 
-function playMinecraftTotemSound() {
-  try {
-    const ctx = getAudioCtx();
-    const t = ctx.currentTime;
-    const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
-    notes.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t + idx * 0.06);
-      gain.gain.setValueAtTime(0.2, t + idx * 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.06 + 0.25);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t + idx * 0.06);
-      osc.stop(t + idx * 0.06 + 0.26);
-    });
-  } catch (_) {}
-}
-
-// Spring step (Hooke's law with viscous damping)
-function stepSpring(posKey, velKey, stiffness = 0.14, damping = 0.82) {
-  const force = -stiffness * hitPhysics[posKey] - (1 - damping) * hitPhysics[velKey];
-  hitPhysics[velKey] += force;
-  hitPhysics[posKey] += hitPhysics[velKey];
-}
-
-// Render 10 authentic pixel-art Minecraft Hearts
-function renderSteveHearts() {
-  if (!steveHeartsBar) return;
-  steveHeartsBar.innerHTML = '';
-  steveHeartsBar.title = `Здоровье Стива: ${steveHp}/20 HP`;
-
-  for (let i = 0; i < 10; i++) {
-    const heartVal = steveHp - i * 2;
-    let heartType = 'empty';
-    if (heartVal >= 2) heartType = 'full';
-    else if (heartVal === 1) heartType = 'half';
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'heart-svg');
-    svg.setAttribute('viewBox', '0 0 9 9');
-
-    if (heartType === 'full') {
-      svg.innerHTML = `
-        <rect x="1" y="0" width="3" height="1" fill="#000"/>
-        <rect x="5" y="0" width="3" height="1" fill="#000"/>
-        <rect x="0" y="1" width="1" height="3" fill="#000"/>
-        <rect x="4" y="1" width="1" height="2" fill="#000"/>
-        <rect x="8" y="1" width="1" height="3" fill="#000"/>
-        <rect x="1" y="4" width="1" height="2" fill="#000"/>
-        <rect x="7" y="4" width="1" height="2" fill="#000"/>
-        <rect x="2" y="6" width="1" height="1" fill="#000"/>
-        <rect x="6" y="6" width="1" height="1" fill="#000"/>
-        <rect x="3" y="7" width="1" height="1" fill="#000"/>
-        <rect x="5" y="7" width="1" height="1" fill="#000"/>
-        <rect x="4" y="8" width="1" height="1" fill="#000"/>
-        <!-- Red Fill -->
-        <rect x="1" y="1" width="3" height="3" fill="#dc2626"/>
-        <rect x="5" y="1" width="3" height="3" fill="#dc2626"/>
-        <rect x="2" y="4" width="5" height="2" fill="#dc2626"/>
-        <rect x="3" y="6" width="3" height="1" fill="#dc2626"/>
-        <rect x="4" y="7" width="1" height="1" fill="#dc2626"/>
-        <!-- White Highlight -->
-        <rect x="2" y="1" width="1" height="1" fill="#ffffff"/>
-      `;
-    } else if (heartType === 'half') {
-      svg.innerHTML = `
-        <rect x="1" y="0" width="3" height="1" fill="#000"/>
-        <rect x="5" y="0" width="3" height="1" fill="#000"/>
-        <rect x="0" y="1" width="1" height="3" fill="#000"/>
-        <rect x="4" y="1" width="1" height="2" fill="#000"/>
-        <rect x="8" y="1" width="1" height="3" fill="#000"/>
-        <rect x="1" y="4" width="1" height="2" fill="#000"/>
-        <rect x="7" y="4" width="1" height="2" fill="#000"/>
-        <rect x="2" y="6" width="1" height="1" fill="#000"/>
-        <rect x="6" y="6" width="1" height="1" fill="#000"/>
-        <rect x="3" y="7" width="1" height="1" fill="#000"/>
-        <rect x="5" y="7" width="1" height="1" fill="#000"/>
-        <rect x="4" y="8" width="1" height="1" fill="#000"/>
-        <!-- Left Half Red -->
-        <rect x="1" y="1" width="3" height="3" fill="#dc2626"/>
-        <rect x="2" y="4" width="2" height="2" fill="#dc2626"/>
-        <rect x="3" y="6" width="1" height="1" fill="#dc2626"/>
-        <!-- Right Half Dark Empty -->
-        <rect x="5" y="1" width="3" height="3" fill="#1f2937"/>
-        <rect x="4" y="3" width="3" height="3" fill="#1f2937"/>
-        <rect x="4" y="6" width="2" height="1" fill="#1f2937"/>
-        <rect x="4" y="7" width="1" height="1" fill="#1f2937"/>
-        <!-- White Highlight -->
-        <rect x="2" y="1" width="1" height="1" fill="#ffffff"/>
-      `;
-    } else {
-      svg.innerHTML = `
-        <rect x="1" y="0" width="3" height="1" fill="#000"/>
-        <rect x="5" y="0" width="3" height="1" fill="#000"/>
-        <rect x="0" y="1" width="1" height="3" fill="#000"/>
-        <rect x="4" y="1" width="1" height="2" fill="#000"/>
-        <rect x="8" y="1" width="1" height="3" fill="#000"/>
-        <rect x="1" y="4" width="1" height="2" fill="#000"/>
-        <rect x="7" y="4" width="1" height="2" fill="#000"/>
-        <rect x="2" y="6" width="1" height="1" fill="#000"/>
-        <rect x="6" y="6" width="1" height="1" fill="#000"/>
-        <rect x="3" y="7" width="1" height="1" fill="#000"/>
-        <rect x="5" y="7" width="1" height="1" fill="#000"/>
-        <rect x="4" y="8" width="1" height="1" fill="#000"/>
-        <!-- Empty interior -->
-        <rect x="1" y="1" width="3" height="3" fill="#1e293b"/>
-        <rect x="5" y="1" width="3" height="3" fill="#1e293b"/>
-        <rect x="2" y="4" width="5" height="2" fill="#1e293b"/>
-        <rect x="3" y="6" width="3" height="1" fill="#1e293b"/>
-        <rect x="4" y="7" width="1" height="1" fill="#1e293b"/>
-      `;
-    }
-    steveHeartsBar.appendChild(svg);
-  }
-}
-
-// Deal damage to Steve
-function damageSteve(amount, relX, relY) {
-  if (isSteveDead) return;
-
-  steveHp = Math.max(0, steveHp - amount);
+// Gentle, neat physical tap reaction (small nod/recoil that quickly damps out)
+function nudgeStevePhysics(relX, relY) {
   playMinecraftHitSound();
 
-  // Shake hearts bar
-  if (steveHeartsBar) {
-    steveHeartsBar.classList.add('shaking');
-    setTimeout(() => steveHeartsBar.classList.remove('shaking'), 250);
-  }
+  const hitLimb = identifyHitLimb(relX, relY);
 
-  // Red damage flash on 3D canvas
-  if (skinViewerCanvas) {
-    skinViewerCanvas.style.filter = 'drop-shadow(0 0 20px rgba(239, 68, 68, 0.9)) brightness(1.3) sepia(0.6) hue-rotate(310deg)';
-    setTimeout(() => {
-      if (skinViewerCanvas) skinViewerCanvas.style.filter = '';
-    }, 130);
-  }
-
-  // Punch recoil impulse based on where hit landed
-  if (relY < 0.38) {
-    // Head hit
-    hitPhysics.headPitchVel -= 0.8;
-    hitPhysics.headYawVel -= relX * 0.9;
-    hitPhysics.recoilZVel -= 2.6;
-    hitPhysics.bodyTiltZVel += (relX >= 0 ? -0.22 : 0.22);
-  } else if (relY < 0.68) {
-    // Torso hit
-    hitPhysics.torsoPitchVel += 0.6;
-    hitPhysics.recoilZVel -= 3.8;
-    hitPhysics.recoilYVel += 1.2;
-    hitPhysics.bodyTiltZVel += (Math.random() > 0.5 ? 0.2 : -0.2);
+  if (hitLimb === 'head') {
+    stevePhysics.headPitch.v -= 0.28;
+    stevePhysics.headYaw.v += (relX || 0) * 0.20;
+    stevePhysics.bodyPitch.v -= 0.08;
+    stevePhysics.recoilZ.v -= 0.9;
+  } else if (hitLimb === 'leftArm') {
+    stevePhysics.lArmPitch.v -= 0.42;
+    stevePhysics.lArmRoll.v += 0.30;
+    stevePhysics.bodyRoll.v += 0.08;
+    stevePhysics.recoilZ.v -= 0.5;
+  } else if (hitLimb === 'rightArm') {
+    stevePhysics.rArmPitch.v -= 0.42;
+    stevePhysics.rArmRoll.v -= 0.30;
+    stevePhysics.bodyRoll.v -= 0.08;
+    stevePhysics.recoilZ.v -= 0.5;
+  } else if (hitLimb === 'leftLeg' || hitLimb === 'rightLeg') {
+    stevePhysics.lLegPitch.v -= 0.30;
+    stevePhysics.rLegPitch.v += 0.18;
+    stevePhysics.recoilY.v -= 0.5;
   } else {
-    // Legs hit
-    hitPhysics.recoilYVel -= 1.8;
-    hitPhysics.recoilZVel -= 2.0;
-  }
-
-  renderSteveHearts();
-
-  // Check death state
-  if (steveHp <= 0) {
-    triggerSteveDeath();
+    // Torso
+    stevePhysics.bodyPitch.v += 0.20;
+    stevePhysics.headPitch.v += 0.10;
+    stevePhysics.recoilZ.v -= 1.1;
+    stevePhysics.lArmPitch.v += 0.22;
+    stevePhysics.rArmPitch.v += 0.22;
   }
 }
 
-// Steve Ragdoll Death Collapse
-function triggerSteveDeath() {
-  isSteveDead = true;
-  playMinecraftDeathSound();
+// Build authentic 3D Voxel Shotgun using skinview3d Three.js primitives
+function createVoxelShotgun(viewer) {
+  if (!viewer || !viewer.playerObject || !viewer.playerObject.skin) return null;
+  const sampleMesh = viewer.playerObject.skin.head.children[0];
+  if (!sampleMesh) return null;
 
-  if (steveDeathOverlay) {
-    steveDeathOverlay.style.display = 'flex';
-  }
+  const BoxGeometry = sampleMesh.geometry.constructor;
+  const Mesh = sampleMesh.constructor;
+  const Material = sampleMesh.material.constructor;
+  const Group = viewer.playerWrapper.constructor;
+
+  const shotgun = new Group();
+  shotgun.name = 'voxel_shotgun';
+
+  // Materials
+  const woodMat = new Material({ color: 0x7c4722, roughness: 0.85 });
+  const metalMat = new Material({ color: 0x22262d, roughness: 0.35, metalness: 0.6 });
+  const barrelMat = new Material({ color: 0x181a1f, roughness: 0.3, metalness: 0.8 });
+  const pumpMat = new Material({ color: 0x543217, roughness: 0.9 });
+
+  // 1. Stock (wooden butt)
+  const stock = new Mesh(new BoxGeometry(1.6, 2.6, 5.2), woodMat);
+  stock.position.set(0, -0.6, 6.0);
+  stock.rotation.x = 0.12;
+  shotgun.add(stock);
+
+  // 2. Pistol grip
+  const grip = new Mesh(new BoxGeometry(1.3, 2.8, 1.8), woodMat);
+  grip.position.set(0, -1.8, 3.6);
+  grip.rotation.x = -0.35;
+  shotgun.add(grip);
+
+  // 3. Receiver (dark gunmetal)
+  const receiver = new Mesh(new BoxGeometry(1.8, 2.4, 4.6), metalMat);
+  receiver.position.set(0, 0, 1.6);
+  shotgun.add(receiver);
+
+  // 4. Barrels (twin steel tubes)
+  const barrelTop = new Mesh(new BoxGeometry(1.2, 1.2, 9.5), barrelMat);
+  barrelTop.position.set(0, 0.4, -5.2);
+  shotgun.add(barrelTop);
+
+  const barrelBtm = new Mesh(new BoxGeometry(1.0, 1.0, 9.0), barrelMat);
+  barrelBtm.position.set(0, -0.6, -5.0);
+  shotgun.add(barrelBtm);
+
+  // 5. Forend pump grip
+  const pump = new Mesh(new BoxGeometry(1.7, 1.6, 3.4), pumpMat);
+  pump.position.set(0, -0.6, -3.2);
+  shotgun.add(pump);
+
+  // 6. Muzzle Flash (voxel cubes: bright yellow, orange, white core. NO BLOOD!)
+  const flashGroup = new Group();
+  flashGroup.name = 'muzzle_flash';
+  flashGroup.position.set(0, 0.4, -10.5);
+  flashGroup.visible = false;
+
+  const flashMatY = new Material({ color: 0xfff040, roughness: 0.1 });
+  const flashMatO = new Material({ color: 0xff6600, roughness: 0.1 });
+  const flashMatW = new Material({ color: 0xffffff, roughness: 0.1 });
+
+  const f1 = new Mesh(new BoxGeometry(1.8, 1.8, 2.2), flashMatY);
+  const f2 = new Mesh(new BoxGeometry(2.4, 1.0, 1.4), flashMatO);
+  const f3 = new Mesh(new BoxGeometry(1.0, 2.4, 1.4), flashMatO);
+  const fCore = new Mesh(new BoxGeometry(1.0, 1.0, 1.6), flashMatW);
+  flashGroup.add(f1, f2, f3, fCore);
+  shotgun.add(flashGroup);
+
+  shotgun.scale.set(1.4, 1.4, 1.4);
+
+  return { shotgun, pumpMesh: pump, flashGroup };
 }
 
-// Respawn Steve back to life
-btnSteveRespawn?.addEventListener('click', () => {
-  isSteveDead = false;
-  steveHp = 20;
-  playMinecraftTotemSound();
+// Trigger Secret Easter Egg: Shotgun Fire & 10s Orbit
+function triggerShotgunEasterEgg() {
+  if (isShotgunActive || !skinViewer || !skinViewer.playerObject || !skinViewer.scene) return;
 
-  if (steveDeathOverlay) {
-    steveDeathOverlay.style.display = 'none';
+  const parts = createVoxelShotgun(skinViewer);
+  if (!parts) return;
+
+  isShotgunActive = true;
+  shotgunAnim.phase = 'aim';
+  shotgunAnim.startTime = Date.now();
+  shotgunAnim.shotgunGroup = parts.shotgun;
+  shotgunAnim.pumpMesh = parts.pumpMesh;
+  shotgunAnim.flashGroup = parts.flashGroup;
+
+  parts.shotgun.position.set(16, -10, 32);
+  skinViewer.scene.add(parts.shotgun);
+}
+
+// Global hook for easy testing and debugging
+window.__triggerShotgunEasterEgg = triggerShotgunEasterEgg;
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'F8' || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'x')) {
+    triggerShotgunEasterEgg();
   }
-
-  // Reset ragdoll velocities
-  Object.keys(hitPhysics).forEach((k) => (hitPhysics[k] = 0));
-
-  renderSteveHearts();
 });
 
 // Initialize 3D Steve SkinViewer (ZERO jitter, custom unified physics)
@@ -584,10 +656,14 @@ function initSkinViewer(skinSrc) {
 
   try {
     if (window.skinview3d && !skinViewer) {
+      const rect = skinViewerCanvas.getBoundingClientRect();
+      const initialWidth = rect.width > 0 ? rect.width : 360;
+      const initialHeight = rect.height > 0 ? rect.height : 440;
+
       skinViewer = new window.skinview3d.SkinViewer({
         canvas: skinViewerCanvas,
-        width: 360,
-        height: 440,
+        width: initialWidth,
+        height: initialHeight,
         skin: resolved
       });
 
@@ -602,6 +678,16 @@ function initSkinViewer(skinSrc) {
       skinViewer.animation = null;
 
       setupSteveInteractiveControls();
+
+      // Responsive canvas resizing
+      const resizeObserver = new ResizeObserver(() => {
+        if (!skinViewer || !skinViewerCanvas) return;
+        const r = skinViewerCanvas.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          skinViewer.setSize(Math.round(r.width), Math.round(r.height));
+        }
+      });
+      resizeObserver.observe(skinViewerCanvas);
     } else if (skinViewer) {
       skinViewer.loadSkin(resolved);
     }
@@ -610,13 +696,13 @@ function initSkinViewer(skinSrc) {
   }
 }
 
-// Setup Dragging, Pushing & Punching on Steve
+// Setup Dragging, Pushing & Punching on Steve (Mouse & Touch)
 function setupSteveInteractiveControls() {
   if (!skinViewerCanvas) return;
 
   // Track cursor across window for natural head orientation
   window.addEventListener('mousemove', (e) => {
-    if (isSteveDead || !skinViewer || !skinViewer.playerObject) return;
+    if (isShotgunActive || !skinViewer || !skinViewer.playerObject) return;
     const rect = skinViewerCanvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height * 0.3;
@@ -634,65 +720,105 @@ function setupSteveInteractiveControls() {
     }
   });
 
-  // Mouse Down: Start drag
-  skinViewerCanvas.addEventListener('mousedown', (e) => {
+  // Pointer input unified handlers (Mouse & Touch)
+  function handlePointerDown(clientX, clientY) {
+    if (isShotgunActive) return;
     isDraggingSteve = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    dragLastX = e.clientX;
-    dragLastY = e.clientY;
+    dragStartX = clientX;
+    dragStartY = clientY;
+    dragLastX = clientX;
+    dragLastY = clientY;
     dragDistance = 0;
     dragVelX = 0;
     dragVelY = 0;
-  });
+  }
 
-  // Window Mouse Move while dragging
-  window.addEventListener('mousemove', (e) => {
-    if (!isDraggingSteve || isSteveDead) return;
-    const dx = e.clientX - dragLastX;
-    const dy = e.clientY - dragLastY;
+  function handlePointerMove(clientX, clientY) {
+    if (!isDraggingSteve || isShotgunActive) return;
+    const dx = clientX - dragLastX;
+    const dy = clientY - dragLastY;
 
     dragDistance += Math.hypot(dx, dy);
     dragVelX = dx;
     dragVelY = dy;
-    dragLastX = e.clientX;
-    dragLastY = e.clientY;
+    dragLastX = clientX;
+    dragLastY = clientY;
 
-    // Direct physical body pull during drag
-    hitPhysics.bodyTiltZVel -= dx * 0.008;
-    hitPhysics.recoilZVel += dy * 0.04;
-    hitPhysics.headYawVel += dx * 0.012;
-    hitPhysics.torsoRollVel -= dx * 0.006;
-  });
+    // Physical body response during active drag
+    stevePhysics.tiltZ.v -= dx * 0.007;
+    stevePhysics.recoilZ.v += dy * 0.035;
+    stevePhysics.headYaw.v += dx * 0.010;
+    stevePhysics.bodyRoll.v -= dx * 0.005;
+  }
 
-  // Window Mouse Up: End drag, trigger hit or fling push!
-  window.addEventListener('mouseup', (e) => {
+  function handlePointerUp(clientX, clientY) {
     if (!isDraggingSteve) return;
     isDraggingSteve = false;
 
-    if (dragDistance < 7) {
-      // Short click on canvas: Punch / Hit!
+    if (dragDistance < 8) {
+      // Short click/tap: Punch & hit detection
       const rect = skinViewerCanvas.getBoundingClientRect();
       if (
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
       ) {
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
+        const clickX = clientX - rect.left;
+        const clickY = clientY - rect.top;
         const relX = (clickX - rect.width / 2) / (rect.width / 2);
         const relY = clickY / rect.height;
 
-        const damage = Math.floor(Math.random() * 3) + 2; // 2 to 4 HP
-        damageSteve(damage, relX, relY);
+        // Easter Egg chance: 1% OR secret Shift-Click / flag
+        const isShift = !!(lastPointerEvent && lastPointerEvent.shiftKey);
+        const isSecretTrigger = window.__forceShotgunEasterEgg || isShift;
+        const isEasterEgg = isSecretTrigger || (Math.random() < 0.01);
+
+        if (isEasterEgg) {
+          triggerShotgunEasterEgg();
+        } else {
+          nudgeStevePhysics(relX, relY);
+        }
       }
-    } else if (!isSteveDead) {
-      // Drag released with velocity: Fling / Push Steve!
-      hitPhysics.bodyTiltZVel = -dragVelX * 0.04;
-      hitPhysics.headYawVel = -dragVelX * 0.06;
-      hitPhysics.recoilZVel = dragVelY * 0.12;
-      hitPhysics.torsoRollVel = -dragVelX * 0.025;
+    } else if (!isShotgunActive) {
+      // Released with fling velocity: Ragdoll push impulse!
+      stevePhysics.tiltZ.v = -dragVelX * 0.04;
+      stevePhysics.headYaw.v = -dragVelX * 0.06;
+      stevePhysics.recoilZ.v = dragVelY * 0.12;
+      stevePhysics.lArmRoll.v = dragVelX * 0.025;
+      stevePhysics.rArmRoll.v = -dragVelX * 0.025;
+      stevePhysics.bodyRoll.v = -dragVelX * 0.02;
+    }
+  }
+
+  // Mouse Listeners
+  skinViewerCanvas.addEventListener('mousedown', (e) => {
+    lastPointerEvent = e;
+    handlePointerDown(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', (e) => handlePointerUp(e.clientX, e.clientY));
+
+  // Touch Listeners for Mobile
+  skinViewerCanvas.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches[0]) {
+      lastPointerEvent = e;
+      e.preventDefault();
+      handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (isDraggingSteve && e.touches && e.touches[0]) {
+      e.preventDefault();
+      handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchend', (e) => {
+    if (isDraggingSteve) {
+      const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      handlePointerUp(touch ? touch.clientX : dragLastX, touch ? touch.clientY : dragLastY);
     }
   });
 
@@ -703,110 +829,229 @@ function setupSteveInteractiveControls() {
     if (skinViewer && skinViewer.playerObject && skinViewer.playerObject.skin) {
       const skin = skinViewer.playerObject.skin;
       const head = skin.head;
-      const torso = skin.torso;
+      const torso = skin.body || skin.torso;
       const leftArm = skin.leftArm;
       const rightArm = skin.rightArm;
       const leftLeg = skin.leftLeg;
       const rightLeg = skin.rightLeg;
 
-      if (isSteveDead) {
-        // --- DEAD RAGDOLL COLLAPSE STATE ---
-        // Steve lies collapsed 90 degrees on floor
-        skinViewer.playerObject.position.y += (-16 - skinViewer.playerObject.position.y) * 0.15;
-        skinViewer.playerObject.position.x += (6 - skinViewer.playerObject.position.x) * 0.15;
-        skinViewer.playerObject.position.z += (0 - skinViewer.playerObject.position.z) * 0.15;
-        skinViewer.playerObject.rotation.z += (Math.PI / 2 - skinViewer.playerObject.rotation.z) * 0.18;
+      if (isShotgunActive) {
+        const now = Date.now();
 
-        if (head) {
-          head.rotation.x = 0.25;
-          head.rotation.y = 0.45;
-          head.rotation.z = 0.1;
-        }
-        if (torso) {
-          torso.rotation.x = 0.05;
-          torso.rotation.z = 0;
-        }
-        if (leftArm) {
-          leftArm.rotation.x = 1.2;
-          leftArm.rotation.z = 0.4;
-        }
-        if (rightArm) {
-          rightArm.rotation.x = -0.7;
-          rightArm.rotation.z = -0.3;
-        }
-        if (leftLeg) {
-          leftLeg.rotation.x = -0.4;
-        }
-        if (rightLeg) {
-          rightLeg.rotation.x = 0.5;
+        if (shotgunAnim.phase === 'aim') {
+          // Shotgun sliding smoothly up from bottom-right to aim at Steve
+          const elapsed = now - shotgunAnim.startTime;
+          const t = Math.min(1, elapsed / 260); // 260ms aim-in duration
+          const ease = 1 - Math.pow(1 - t, 3);
+
+          if (shotgunAnim.shotgunGroup) {
+            shotgunAnim.shotgunGroup.position.x = 16 - 3.5 * ease;
+            shotgunAnim.shotgunGroup.position.y = -10 + 13 * ease;
+            shotgunAnim.shotgunGroup.position.z = 32 - 4 * ease;
+            shotgunAnim.shotgunGroup.lookAt(0, 8, 0);
+          }
+
+          // Steve slightly looks toward the gun in shock
+          targetHeadYaw = 0.35;
+          targetHeadPitch = -0.15;
+
+          if (elapsed >= 260) {
+            // FIRE SHOTGUN!
+            shotgunAnim.phase = 'firing';
+            shotgunAnim.fireTime = now;
+
+            // 1. Audio blast
+            playShotgunSound();
+
+            // 2. Muzzle flash on
+            if (shotgunAnim.flashGroup) {
+              shotgunAnim.flashGroup.visible = true;
+            }
+
+            // 3. Screen shake & flash
+            if (skinViewerCanvas) {
+              skinViewerCanvas.style.filter = 'brightness(2.2) drop-shadow(0 0 20px rgba(251, 191, 36, 0.85))';
+              skinViewerCanvas.style.transform = 'translate(6px, -4px) rotate(1deg)';
+              setTimeout(() => {
+                if (skinViewerCanvas) skinViewerCanvas.style.filter = '';
+              }, 70);
+              setTimeout(() => {
+                if (skinViewerCanvas) skinViewerCanvas.style.transform = '';
+              }, 180);
+            }
+
+            // 4. Shotgun kickback
+            if (shotgunAnim.shotgunGroup) {
+              shotgunAnim.shotgunGroup.position.z += 5.0;
+              shotgunAnim.shotgunGroup.position.y += 1.5;
+              shotgunAnim.shotgunGroup.rotation.x -= 0.4;
+            }
+
+            // 5. Shotgun pump reload animation
+            if (shotgunAnim.pumpMesh) {
+              shotgunAnim.pumpMesh.position.z += 2.0;
+              setTimeout(() => {
+                if (shotgunAnim.pumpMesh) shotgunAnim.pumpMesh.position.z -= 2.0;
+              }, 450);
+            }
+
+            // Hide flash after 80ms
+            setTimeout(() => {
+              if (shotgunAnim.flashGroup) shotgunAnim.flashGroup.visible = false;
+            }, 80);
+
+            // Slide gun away and remove after 900ms
+            setTimeout(() => {
+              if (shotgunAnim.shotgunGroup && skinViewer && skinViewer.scene) {
+                skinViewer.scene.remove(shotgunAnim.shotgunGroup);
+                shotgunAnim.shotgunGroup = null;
+              }
+            }, 900);
+
+            // 6. Launch Steve at extreme velocity into outer space!
+            stevePhysics.headPitch.v = -4.5;
+            stevePhysics.headRoll.v = 2.5;
+            stevePhysics.bodyPitch.v = -3.2;
+            stevePhysics.bodyRoll.v = 1.8;
+            stevePhysics.lArmPitch.v = 5.0;
+            stevePhysics.rArmPitch.v = 5.0;
+            stevePhysics.lLegPitch.v = -4.0;
+            stevePhysics.rLegPitch.v = 4.0;
+
+            shotgunAnim.vx = -14 - Math.random() * 6; // Blasts left
+            shotgunAnim.vy = 26 + Math.random() * 8;   // Blasts high up
+            shotgunAnim.vz = -55 - Math.random() * 15; // Blasts deep away from camera
+            shotgunAnim.rotVx = 0.35;
+            shotgunAnim.rotVy = 0.28;
+            shotgunAnim.rotVz = 0.45;
+            shotgunAnim.phase = 'flying';
+          }
+        } else if (shotgunAnim.phase === 'flying') {
+          // Ultra-speed flight trajectory
+          skinViewer.playerObject.position.x += shotgunAnim.vx;
+          skinViewer.playerObject.position.y += shotgunAnim.vy;
+          skinViewer.playerObject.position.z += shotgunAnim.vz;
+          skinViewer.playerObject.rotation.x += shotgunAnim.rotVx;
+          skinViewer.playerObject.rotation.y += shotgunAnim.rotVy;
+          skinViewer.playerObject.rotation.z += shotgunAnim.rotVz;
+
+          shotgunAnim.vy -= 0.6; // Gravity curve
+
+          // Check if off-screen beyond frustum
+          if (
+            skinViewer.playerObject.position.z < -250 ||
+            skinViewer.playerObject.position.y > 200 ||
+            skinViewer.playerObject.position.x < -160
+          ) {
+            // He is completely off-screen!
+            skinViewer.playerObject.visible = false;
+            shotgunAnim.phase = 'offscreen';
+            shotgunAnim.offscreenStartTime = Date.now();
+          }
+        } else if (shotgunAnim.phase === 'offscreen') {
+          // Steve remains off-screen for EXACTLY 10 seconds (10,000 ms)
+          skinViewer.playerObject.visible = false;
+
+          if (now - shotgunAnim.offscreenStartTime >= 10000) {
+            // 10 SECONDS HAVE PASSED! Steve drops from the sky!
+            shotgunAnim.phase = 'falling';
+            shotgunAnim.fallVy = -2.0;
+
+            skinViewer.playerObject.position.set(0, 160, 0);
+            skinViewer.playerObject.rotation.set(0, 0, 0);
+            skinViewer.playerObject.visible = true;
+
+            Object.keys(stevePhysics).forEach((k) => {
+              stevePhysics[k].x = 0;
+              stevePhysics[k].v = 0;
+            });
+          }
+        } else if (shotgunAnim.phase === 'falling') {
+          // Falling downwards with acceleration due to gravity
+          shotgunAnim.fallVy -= 2.6;
+          skinViewer.playerObject.position.y += shotgunAnim.fallVy;
+
+          // Arms flail slightly up in the wind
+          if (leftArm) leftArm.rotation.z = 0.8;
+          if (rightArm) rightArm.rotation.z = -0.8;
+          if (head) head.rotation.x = -0.4;
+          if (leftLeg) leftLeg.rotation.x = -0.3;
+          if (rightLeg) rightLeg.rotation.x = 0.3;
+
+          if (skinViewer.playerObject.position.y <= 0) {
+            // HIT THE PEDESTAL!
+            skinViewer.playerObject.position.y = 0;
+            shotgunAnim.phase = 'idle';
+            isShotgunActive = false;
+
+            // Classic soft landing sound
+            playMinecraftLandingSound();
+
+            // Soft spring rebound landing!
+            stevePhysics.recoilY.v = -3.8;
+            stevePhysics.bodyPitch.v = 0.45;
+            stevePhysics.lLegPitch.v = -0.55;
+            stevePhysics.rLegPitch.v = -0.55;
+            stevePhysics.lArmRoll.v = 0.6;
+            stevePhysics.rArmRoll.v = -0.6;
+            stevePhysics.headPitch.v = 0.3;
+          }
         }
       } else {
-        // --- ALIVE PHYSICS & BREATHING STATE ---
-        // Return whole player root smoothly
+        // --- NATURAL BREATHING & SPRING PHYSICS SIMULATION ---
         skinViewer.playerObject.position.x += (0 - skinViewer.playerObject.position.x) * 0.15;
 
-        // 1. Natural mouse-follow interpolation
+        // 1. Natural cursor-follow interpolation
         currentHeadYaw += (targetHeadYaw - currentHeadYaw) * 0.12;
         currentHeadPitch += (targetHeadPitch - currentHeadPitch) * 0.12;
 
-        // 2. Step spring-damper physics simulation
-        stepSpring('headPitch', 'headPitchVel', 0.16, 0.82);
-        stepSpring('headYaw', 'headYawVel', 0.16, 0.82);
-        stepSpring('headRoll', 'headRollVel', 0.16, 0.82);
-
-        stepSpring('torsoPitch', 'torsoPitchVel', 0.14, 0.80);
-        stepSpring('torsoRoll', 'torsoRollVel', 0.14, 0.80);
-        stepSpring('bodyTiltZ', 'bodyTiltZVel', 0.15, 0.78);
-
-        stepSpring('recoilZ', 'recoilZVel', 0.13, 0.82);
-        stepSpring('recoilY', 'recoilYVel', 0.14, 0.80);
-
-        stepSpring('lArmPitch', 'lArmPitchVel', 0.12, 0.83);
-        stepSpring('lArmRoll', 'lArmRollVel', 0.12, 0.83);
-        stepSpring('rArmPitch', 'rArmPitchVel', 0.12, 0.83);
-        stepSpring('rArmRoll', 'rArmRollVel', 0.12, 0.83);
-
-        stepSpring('lLegPitch', 'lLegPitchVel', 0.12, 0.82);
-        stepSpring('rLegPitch', 'rLegPitchVel', 0.12, 0.82);
+        // 2. Step all spring degrees of freedom
+        Object.keys(stevePhysics).forEach((k) => stepSpringDOF(stevePhysics[k]));
 
         // 3. Gentle sinusoidal idle breathing
-        const breath = Math.sin(simTime * 1.6) * 0.022;
-        const armSway = Math.sin(simTime * 1.2) * 0.035;
+        const breath = Math.sin(simTime * 1.5) * 0.024;
+        const armSway = Math.sin(simTime * 1.1) * 0.032;
 
-        // 4. Apply calculated positions to 3D bones
+        // 4. Apply spring displacement + breathing to 3D bones
         if (head) {
-          head.rotation.y = currentHeadYaw + hitPhysics.headYaw;
-          head.rotation.x = currentHeadPitch + hitPhysics.headPitch;
-          head.rotation.z = hitPhysics.headRoll;
+          head.rotation.y = currentHeadYaw + stevePhysics.headYaw.x;
+          head.rotation.x = currentHeadPitch + stevePhysics.headPitch.x;
+          head.rotation.z = stevePhysics.headRoll.x;
         }
 
         if (torso) {
-          torso.rotation.x = breath + hitPhysics.torsoPitch;
-          torso.rotation.z = hitPhysics.torsoRoll;
+          torso.rotation.x = breath + stevePhysics.bodyPitch.x;
+          torso.rotation.y = stevePhysics.bodyYaw.x;
+          torso.rotation.z = stevePhysics.bodyRoll.x;
         }
 
         if (leftArm) {
-          leftArm.rotation.x = armSway + hitPhysics.lArmPitch;
-          leftArm.rotation.z = Math.abs(breath) * 0.5 + hitPhysics.lArmRoll;
+          leftArm.rotation.x = armSway + stevePhysics.lArmPitch.x;
+          leftArm.rotation.y = stevePhysics.lArmYaw.x;
+          leftArm.rotation.z = Math.abs(breath) * 0.5 + stevePhysics.lArmRoll.x;
         }
 
         if (rightArm) {
-          rightArm.rotation.x = -armSway + hitPhysics.rArmPitch;
-          rightArm.rotation.z = -Math.abs(breath) * 0.5 + hitPhysics.rArmRoll;
+          rightArm.rotation.x = -armSway + stevePhysics.rArmPitch.x;
+          rightArm.rotation.y = stevePhysics.rArmYaw.x;
+          rightArm.rotation.z = -Math.abs(breath) * 0.5 + stevePhysics.rArmRoll.x;
         }
 
         if (leftLeg) {
-          leftLeg.rotation.x = hitPhysics.lLegPitch;
+          leftLeg.rotation.x = stevePhysics.lLegPitch.x;
+          leftLeg.rotation.z = stevePhysics.lLegRoll.x;
         }
 
         if (rightLeg) {
-          rightLeg.rotation.x = hitPhysics.rLegPitch;
+          rightLeg.rotation.x = stevePhysics.rLegPitch.x;
+          rightLeg.rotation.z = stevePhysics.rLegRoll.x;
         }
 
-        // 5. Whole body position and tilt
-        skinViewer.playerObject.position.z = hitPhysics.recoilZ;
-        skinViewer.playerObject.position.y = hitPhysics.recoilY;
-        skinViewer.playerObject.rotation.z = hitPhysics.bodyTiltZ;
+        // 5. Whole body translation and tilt
+        skinViewer.playerObject.position.x = stevePhysics.recoilX.x;
+        skinViewer.playerObject.position.y = stevePhysics.recoilY.x;
+        skinViewer.playerObject.position.z = stevePhysics.recoilZ.x;
+        skinViewer.playerObject.rotation.z = stevePhysics.tiltZ.x;
       }
     }
 
@@ -2082,7 +2327,7 @@ btnExportApk?.addEventListener('click', async () => {
 });
 
 // --- AUDIO & HAPTIC FEEDBACK SYNTHESIZER ---
-let audioCtx = null;
+// audioCtx already declared above
 function triggerHapticFeedback() {
   if (settingTouchHaptic && !settingTouchHaptic.checked) return;
   try {
@@ -2469,8 +2714,7 @@ async function initApp() {
   // Populate Nickname
   updateNicknameUI(currentSettings.nickname || 'Player');
 
-  // Populate Health Hearts (Full 20 HP)
-  renderSteveHearts();
+
 
   // Populate Settings
   if (settingRamSelect) settingRamSelect.value = String(currentSettings.ramMb || 4096);

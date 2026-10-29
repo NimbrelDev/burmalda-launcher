@@ -6,29 +6,39 @@
   <title>R-Launcher</title>
   <style>
     :root {
-      --bg-app: #0a0e14;
-      --bg-dock: rgba(14, 19, 28, 0.94);
-      --bg-card: rgba(18, 25, 36, 0.92);
-      --bg-card-inner: #131a26;
-      --bg-pill: rgba(255, 255, 255, 0.06);
-      --bg-pill-hover: rgba(255, 255, 255, 0.12);
+      /* Authentic Gaming Palette: Deep Obsidian, Dark Slate, Minecraft Stone */
+      --bg-app: #0c1017;
+      --bg-dock: rgba(15, 22, 34, 0.95);
+      --bg-card: rgba(21, 28, 40, 0.94);
+      --bg-card-inner: #151c28;
+      --bg-pill: rgba(255, 255, 255, 0.05);
+      --bg-pill-hover: rgba(255, 255, 255, 0.10);
       
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.18);
-      --border-dock: rgba(255, 255, 255, 0.10);
+      --border-stone: #2d3748;
+      --border-subtle: #2d3748;
+      --border-hover: #475569;
+      --border-dock: #2d3748;
       
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
       
       /* Pure Minecraft Emerald Green */
+      --mc-emerald: #10b981;
+      --mc-emerald-hover: #059669;
+      --mc-emerald-dark: #047857;
+      --mc-emerald-glow: rgba(16, 185, 129, 0.35);
+
+      /* Rust Cogwheel & Minecraft Redstone Accents */
       --rust-orange: #ea580c;
-    --rust-orange-hover: #f97316;
-    --rust-orange-active: #c2410c;
-    --rust-orange-glow: rgba(234, 88, 12, 0.4);
+      --rust-orange-hover: #f97316;
+      --rust-orange-active: #c2410c;
+      --rust-orange-glow: rgba(234, 88, 12, 0.4);
+      --mc-redstone: #ef4444;
+      --mc-redstone-dark: #b91c1c;
+      
       --rust-amber: #f59e0b;
       --rust-amber-hover: #fbbf24;
-      
       
       --mc-amber: #eab308;
       --mc-amber-hover: #ca8a04;
@@ -42,6 +52,7 @@
       margin: 0;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
     }
 
     body {
@@ -65,7 +76,7 @@
       height: 100vh;
       object-fit: cover;
       z-index: -2;
-      filter: brightness(0.55) contrast(1.1);
+      filter: brightness(0.50) contrast(1.15);
       pointer-events: none;
     }
 
@@ -75,7 +86,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle at 50% 40%, rgba(10, 14, 20, 0.4) 0%, rgba(6, 9, 14, 0.88) 100%);
+      background: radial-gradient(circle at 50% 40%, rgba(12, 16, 23, 0.50) 0%, rgba(8, 11, 16, 0.94) 100%);
       z-index: -1;
       pointer-events: none;
     }
@@ -87,10 +98,10 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 16px 0 20px;
-      background: rgba(10, 14, 20, 0.85);
+      background: rgba(12, 16, 23, 0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-stone);
       -webkit-app-region: drag;
       z-index: 100;
     }
@@ -137,10 +148,10 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(12, 16, 23, 0.75);
       padding: 3px;
       border-radius: 8px;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid var(--border-stone);
       -webkit-app-region: no-drag;
     }
 
@@ -150,24 +161,30 @@
       gap: 6px;
       padding: 5px 14px;
       border-radius: 6px;
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--text-secondary);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
     }
 
     .nav-btn:hover {
       color: var(--text-primary);
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .nav-btn.active {
-      background: rgba(234, 88, 12, 0.2);
-      color: #fed7aa;
-      border: 1px solid rgba(249, 115, 22, 0.4);
+      background: #151c28;
+      color: #ffffff;
+      border: 1px solid var(--border-stone);
+      border-bottom: 2px solid var(--mc-emerald);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .nav-btn:active {
+      transform: translateY(1px);
     }
 
     /* Window Controls */
@@ -182,23 +199,29 @@
       width: 28px;
       height: 28px;
       border-radius: 6px;
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--text-muted);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
     }
 
     .win-btn:hover {
       background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-stone);
       color: var(--text-primary);
+    }
+
+    .win-btn:active {
+      transform: translateY(1px);
     }
 
     .win-btn.close:hover {
       background: #dc2626;
+      border-color: #ef4444;
       color: #ffffff;
     }
 
@@ -1049,80 +1072,7 @@
       margin-left: 8px;
     }
 
-    /* --- MINECRAFT HEALTH HEARTS BAR --- */
-    .steve-hearts-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      margin-top: -2px;
-      margin-bottom: 6px;
-      height: 18px;
-      cursor: default;
-      transition: transform 0.1s ease;
-    }
 
-    .steve-hearts-bar.shaking {
-      animation: heartBarShake 0.24s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-    }
-
-    @keyframes heartBarShake {
-      10%, 90% { transform: translate3d(-2px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-      40%, 60% { transform: translate3d(3px, 0, 0); }
-    }
-
-    .heart-svg {
-      width: 15px;
-      height: 14px;
-      display: block;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
-    }
-
-    /* Steve Death Banner & Respawn */
-    .steve-death-overlay {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-      animation: fadeInDeath 0.25s ease-out;
-    }
-
-    @keyframes fadeInDeath {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .death-title {
-      font-size: 13px;
-      font-weight: 800;
-      color: #ef4444;
-      letter-spacing: 0.5px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.85);
-    }
-
-    .btn-respawn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border-radius: 6px;
-      background: rgba(239, 68, 68, 0.25);
-      border: 1px solid rgba(239, 68, 68, 0.55);
-      color: #fca5a5;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .btn-respawn:hover {
-      background: rgba(239, 68, 68, 0.45);
-      color: #ffffff;
-      transform: scale(1.04);
-    }
 
     /* --- STACKED DOCK VERSION PILLS --- */
     .dock-version-stack {
@@ -1214,15 +1164,18 @@
       text-overflow: ellipsis;
     }
 
-    /* --- HERO LAUNCH BUTTON (BLUE DOWNLOAD / GREEN PLAY) --- */
+    /* --- HERO LAUNCH BUTTON (TACTILE MINECRAFT EMERALD) --- */
     .btn-hero-launch {
       height: 44px;
       min-width: 130px;
-      background: #16a34a !important; /* Green for play */
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--mc-emerald) !important;
+      border: 1px solid #34d399;
+      border-bottom: 3px solid var(--mc-emerald-dark) !important;
       border-radius: 10px;
       color: #ffffff;
-      font-size: 13px; letter-spacing: 0.5px; white-space: nowrap;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
       font-weight: 800;
       letter-spacing: 1px;
       cursor: pointer;
@@ -1230,40 +1183,55 @@
       align-items: center;
       justify-content: center;
       gap: 9px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      transition: transform 0.08s ease, border-bottom-width 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
     }
 
     .btn-hero-launch:hover {
-      background: #15803d !important;
-      transform: translateY(-1px);
+      background: var(--mc-emerald-hover) !important;
+      border-color: #6ee7b7;
     }
 
     .btn-hero-launch:active {
-      background: #166534 !important;
-      transform: translateY(1px);
+      transform: translateY(2px);
+      border-bottom-width: 1px !important;
+      box-shadow: 0 1px 4px rgba(16, 185, 129, 0.2);
     }
 
-    /* Download mode: Solid Royal Blue */
+    /* Download mode: Blue tactile */
     .btn-hero-launch.download-mode {
-      background: #2563eb !important;
-      border-color: rgba(96, 165, 250, 0.4);
+      background: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      border-bottom: 3px solid #0369a1 !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
     }
 
     .btn-hero-launch.download-mode:hover {
-      background: #1d4ed8 !important;
+      background: #0369a1 !important;
     }
 
     .btn-hero-launch.download-mode:active {
-      background: #1e40af !important;
+      transform: translateY(2px);
+      border-bottom-width: 1px !important;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.2);
     }
 
+    /* Running mode: Red tactile */
     .btn-hero-launch.running-mode {
-      background: #dc2626 !important;
+      background: var(--mc-redstone) !important;
+      border-color: #f87171 !important;
+      border-bottom: 3px solid var(--mc-redstone-dark) !important;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
     }
 
     .btn-hero-launch.running-mode:hover {
-      background: #b91c1c !important;
+      background: #dc2626 !important;
+    }
+
+    .btn-hero-launch.running-mode:active {
+      transform: translateY(2px);
+      border-bottom-width: 1px !important;
+      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.2);
     }
 
     /* --- MODAL DIALOGS --- */
@@ -1542,14 +1510,30 @@
   <header class="app-header">
     <div class="brand-section">
       <div class="brand-logo-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="brand-vector-logo">
+          <!-- Outer Rust Cogwheel Teeth & Ferris Crab Silhouette -->
+          <path d="M10 1h4v2.5h-4V1zM10 20.5h4V23h-4v-2.5zM1 10h2.5v4H1v-4zM20.5 10H23v4h-2.5v-4z" fill="#ea580c"/>
+          <path d="M4.2 4.2l2.6 1.3-1.2 2.4-2.6-1.3 1.2-2.4zM18.4 16.2l2.6 1.3-1.2 2.4-2.6-1.3 1.2-2.4zM4.2 19.8l1.2-2.4 2.6 1.3-1.2 2.4-2.6-1.3zM18.4 7.8l1.2-2.4 2.6 1.3-1.2 2.4-2.6-1.3z" fill="#f97316"/>
+          <!-- Rust Crab Claws Accent Arcs -->
+          <path d="M2.2 7.5C1.4 8.8 1 10.3 1 12c0 1.7.4 3.2 1.2 4.5" stroke="#ea580c" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M21.8 7.5c.8 1.3 1.2 2.8 1.2 4.5 0 1.7-.4 3.2-1.2 4.5" stroke="#ea580c" stroke-width="1.4" stroke-linecap="round"/>
+          <!-- Isometric Minecraft Obsidian/Slate Block -->
+          <!-- Top Face (Refined Slate with Stone highlight) -->
+          <polygon points="12,3.8 19,7.8 12,11.8 5,7.8" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
+          <!-- Left Face (Deep Obsidian Shadow) -->
+          <polygon points="5,7.8 12,11.8 12,19.8 5,15.8" fill="#0c1017" stroke="#1e293b" stroke-width="0.8"/>
+          <!-- Right Face (Dark Slate) -->
+          <polygon points="12,11.8 19,7.8 19,15.8 12,19.8" fill="#151c28" stroke="#2d3748" stroke-width="0.8"/>
+          <!-- Mechanical Center Core: Rust Cogwheel Hub & Glowing Eye -->
+          <circle cx="12" cy="11.8" r="2.8" fill="#c2410c" stroke="#ea580c" stroke-width="0.8"/>
+          <circle cx="12" cy="11.8" r="1.3" fill="#fbbf24"/>
+          <!-- Minecraft Emerald Inset Pixel on Top Face -->
+          <rect x="11.2" y="5.6" width="1.6" height="1.6" fill="#10b981" rx="0.3"/>
         </svg>
       </div>
       <div class="brand-title-wrap">
-        <span class="brand-title" id="header-brand-title">R-LAUNCHER</span>
+        <span class="brand-title" id="header-brand-title">BURMALDA</span>
+        <span class="brand-tag">ENGINE</span>
       </div>
     </div>
 
@@ -1615,17 +1599,7 @@
           <span class="nametag-text" id="stage-player-nick">Player</span>
         </div>
 
-        <!-- Authentic Minecraft Health Hearts Bar -->
-        <div class="steve-hearts-bar" id="steve-hearts-bar" title="Здоровье Стива: 20/20 HP"></div>
 
-        <!-- Steve Death Banner & Respawn Button -->
-        <div class="steve-death-overlay" id="steve-death-overlay" style="display: none;">
-          <span class="death-title">💀 Стив погиб!</span>
-          <button class="btn-respawn" id="btn-steve-respawn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span>Возродиться</span>
-          </button>
-        </div>
 
         <!-- 3D Steve Canvas -->
         <div class="stage-viewport">
