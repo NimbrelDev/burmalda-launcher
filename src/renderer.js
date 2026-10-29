@@ -2037,6 +2037,47 @@ btnSaveTouchSettings?.addEventListener('click', async () => {
   }
 });
 
+// --- ANDROID APK EXPORT HANDLER ---
+const btnExportApk = document.getElementById('btn-export-apk');
+
+btnExportApk?.addEventListener('click', async () => {
+  playUiClickSound();
+  if (btnExportApk) {
+    btnExportApk.disabled = true;
+    btnExportApk.textContent = 'Сборка APK...';
+  }
+  try {
+    const res = await window.api.exportAndroidApk();
+    if (res.success) {
+      if (btnExportApk) {
+        btnExportApk.textContent = 'Готово!';
+        setTimeout(() => { if (btnExportApk) { btnExportApk.disabled = false; btnExportApk.textContent = 'Собрать APK'; } }, 3000);
+      }
+      if (res.adbDevice) {
+        showCustomAlert('APK успешно собран!', `Пакет сохранен в ${res.path}\n\nОбнаружено Android устройство (${res.adbDevice}). Нажмите "ОК" для установки.`);
+        const installRes = await window.api.installAdbApk();
+        if (installRes.success) {
+          showCustomAlert('Успешно установлено!', `Игра успешно установлена на устройство ${res.adbDevice} через ADB!`);
+        }
+      } else {
+        showCustomAlert('APK успешно собран!', `Пакет с предустановленным сенсорным управлением сохранен в:\n${res.path}\n\nВы можете скопировать его на телефон или установить через adb install.`);
+      }
+    } else {
+      if (btnExportApk) {
+        btnExportApk.disabled = false;
+        btnExportApk.textContent = 'Собрать APK';
+      }
+      showCustomAlert('Ошибка сборки', res.error || 'Не удалось скомпилировать APK');
+    }
+  } catch (err) {
+    if (btnExportApk) {
+      btnExportApk.disabled = false;
+      btnExportApk.textContent = 'Собрать APK';
+    }
+    showCustomAlert('Ошибка', err.message);
+  }
+});
+
 // --- AUDIO FEEDBACK SYNTHESIZER ---
 let audioCtx = null;
 function playUiClickSound() {

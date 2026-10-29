@@ -766,6 +766,57 @@ function saveFriends(friends) {
 ipcMain.handle('get-touch-settings', () => loadTouchSettings());
 ipcMain.handle('save-touch-settings', (_, settings) => saveTouchSettings(settings));
 
+ipcMain.handle('export-android-apk', async () => {
+  const { execSync } = require('child_process');
+  try {
+    const homeDir = process.env.HOME || USER_DATA;
+    const hmodSrc = path.join(MODS_DIR, 'mobile_touch_controls.hmod');
+    const hmodDist = path.join(homeDir, 'horizon/horizon-main/android/assets/mods/mobile_touch_controls.hmod');
+    if (fs.existsSync(hmodSrc)) {
+      const hmodDistDir = path.dirname(hmodDist);
+      if (!fs.existsSync(hmodDistDir)) fs.mkdirSync(hmodDistDir, { recursive: true });
+      fs.copyFileSync(hmodSrc, hmodDist);
+    }
+
+    execSync('/home/roman/horizon/horizon-main/android/package-apk.sh', { stdio: 'pipe' });
+    const apkSrc = path.join(homeDir, 'horizon/horizon-main/android/dist/horizon-mobile-26.3.apk');
+    const apkDst = path.join(homeDir, 'Downloads/horizon-mobile-26.3.apk');
+    if (fs.existsSync(apkSrc)) {
+      fs.copyFileSync(apkSrc, apkDst);
+    }
+
+    let adbDevice = null;
+    try {
+      const adbOut = execSync('/home/roman/Android/Sdk/platform-tools/adb devices', { encoding: 'utf-8' });
+      const lines = adbOut.trim().split('\n').slice(1).map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        const [id, status] = line.split(/\s+/);
+        if (status === 'device') {
+          adbDevice = id;
+          break;
+        }
+      }
+    } catch (_) {}
+
+    return { success: true, path: apkDst, adbDevice };
+  } catch (err) {
+    console.error('Failed exporting APK:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('install-adb-apk', async () => {
+  const { execSync } = require('child_process');
+  try {
+    const homeDir = process.env.HOME || USER_DATA;
+    const apk = path.join(homeDir, 'Downloads/horizon-mobile-26.3.apk');
+    const out = execSync(`/home/roman/Android/Sdk/platform-tools/adb install -r "${apk}"`, { encoding: 'utf-8' });
+    return { success: true, output: out };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('get-friends', () => loadFriends());
 ipcMain.handle('save-friends', (_, friends) => saveFriends(friends));
 ipcMain.handle('generate-invite-code', () => {

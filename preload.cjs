@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('api', {
   saveServers: (servers) => ipcRenderer.invoke('save-servers', servers),
   getTouchSettings: () => ipcRenderer.invoke('get-touch-settings'),
   saveTouchSettings: (settings) => ipcRenderer.invoke('save-touch-settings', settings),
+  exportAndroidApk: () => ipcRenderer.invoke('export-android-apk'),
+  installAdbApk: () => ipcRenderer.invoke('install-adb-apk'),
   getFriends: () => ipcRenderer.invoke('get-friends'),
   saveFriends: (friends) => ipcRenderer.invoke('save-friends', friends),
   generateInviteCode: () => ipcRenderer.invoke('generate-invite-code'),
