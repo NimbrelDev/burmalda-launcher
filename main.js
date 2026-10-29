@@ -713,7 +713,8 @@ const DEFAULT_TOUCH_SETTINGS = {
   opacity: 0.8,
   touch_camera_sensitivity: 1.0,
   left_handed: false,
-  hold_mine_ms: 350
+  hold_mine_ms: 350,
+  sound_feedback: true
 };
 
 function loadTouchSettings() {

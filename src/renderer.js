@@ -1908,6 +1908,7 @@ const valTouchScale = document.getElementById('val-touch-scale');
 const settingTouchSens = document.getElementById('setting-touch-sens');
 const valTouchSens = document.getElementById('val-touch-sens');
 const settingTouchLefty = document.getElementById('setting-touch-lefty');
+const settingTouchSound = document.getElementById('setting-touch-sound');
 const settingTouchMine = document.getElementById('setting-touch-mine');
 const valTouchMine = document.getElementById('val-touch-mine');
 const btnSaveTouchSettings = document.getElementById('btn-save-touch-settings');
@@ -1939,6 +1940,7 @@ async function loadTouchSettingsUI() {
     }
 
     if (settingTouchLefty) settingTouchLefty.checked = Boolean(s.left_handed);
+    if (settingTouchSound) settingTouchSound.checked = s.sound_feedback !== false;
 
     if (settingTouchMine) {
       settingTouchMine.value = s.hold_mine_ms || 350;
@@ -1968,6 +1970,7 @@ settingTouchMine?.addEventListener('input', (e) => {
 // --- TOUCH PRESET SWITCHER ---
 document.querySelectorAll('.btn-touch-preset').forEach((btn) => {
   btn.addEventListener('click', () => {
+    playUiClickSound();
     const preset = btn.getAttribute('data-preset');
     if (preset === 'bedrock') {
       if (settingTouchStickMode) settingTouchStickMode.value = 'fixed';
@@ -2017,6 +2020,7 @@ btnSaveTouchSettings?.addEventListener('click', async () => {
     button_scale: Number(settingTouchScale?.value || 100) / 100,
     touch_camera_sensitivity: Number(settingTouchSens?.value || 100) / 100,
     left_handed: Boolean(settingTouchLefty?.checked),
+    sound_feedback: Boolean(settingTouchSound?.checked),
     hold_mine_ms: Number(settingTouchMine?.value || 350)
   };
 
@@ -2029,6 +2033,27 @@ btnSaveTouchSettings?.addEventListener('click', async () => {
     showCustomAlert('Ошибка', 'Не удалось сохранить настройки сенсорного управления');
   }
 });
+
+// --- AUDIO FEEDBACK SYNTHESIZER ---
+let audioCtx = null;
+function playUiClickSound() {
+  if (settingTouchSound && !settingTouchSound.checked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.04);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.04);
+  } catch (_) {}
+}
 
 // --- TOUCH HUD SIMULATOR PREVIEW ---
 const simCanvas = document.getElementById('touch-hud-sim-canvas');
@@ -2202,6 +2227,7 @@ if (simCanvas) {
       const now = Date.now();
       if (now - simLastCenterClick < 320) {
         simIsSneaking = !simIsSneaking;
+        playUiClickSound();
         if (simFeedback) simFeedback.textContent = simIsSneaking ? 'Скрытность: ВКЛ (Shift)' : 'Скрытность: ВЫКЛ';
       }
       simLastCenterClick = now;
@@ -2212,6 +2238,7 @@ if (simCanvas) {
       const jumpY = simCanvas.height - 55 * scale;
       if (x >= jumpX && x <= jumpX + jumpSize && y >= jumpY && y <= jumpY + jumpSize) {
         simJumpDown = true;
+        playUiClickSound();
         if (simFeedback) simFeedback.textContent = 'Действие: ПРЫЖОК (Пробел)';
         return;
       }
@@ -2220,6 +2247,7 @@ if (simCanvas) {
       simHoldStartTime = Date.now();
       simRightClickPos = { x, y };
       simMiningProgress = 0;
+      playUiClickSound();
       if (simFeedback) simFeedback.textContent = 'Действие: Удар / Подготовка к копанию...';
     }
   });
