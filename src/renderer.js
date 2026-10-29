@@ -1909,6 +1909,7 @@ const settingTouchSens = document.getElementById('setting-touch-sens');
 const valTouchSens = document.getElementById('val-touch-sens');
 const settingTouchLefty = document.getElementById('setting-touch-lefty');
 const settingTouchSound = document.getElementById('setting-touch-sound');
+const settingTouchSplit = document.getElementById('setting-touch-split');
 const settingTouchMine = document.getElementById('setting-touch-mine');
 const valTouchMine = document.getElementById('val-touch-mine');
 const btnSaveTouchSettings = document.getElementById('btn-save-touch-settings');
@@ -1941,6 +1942,7 @@ async function loadTouchSettingsUI() {
 
     if (settingTouchLefty) settingTouchLefty.checked = Boolean(s.left_handed);
     if (settingTouchSound) settingTouchSound.checked = s.sound_feedback !== false;
+    if (settingTouchSplit) settingTouchSplit.checked = s.split_controls !== false;
 
     if (settingTouchMine) {
       settingTouchMine.value = s.hold_mine_ms || 350;
@@ -2021,6 +2023,7 @@ btnSaveTouchSettings?.addEventListener('click', async () => {
     touch_camera_sensitivity: Number(settingTouchSens?.value || 100) / 100,
     left_handed: Boolean(settingTouchLefty?.checked),
     sound_feedback: Boolean(settingTouchSound?.checked),
+    split_controls: Boolean(settingTouchSplit?.checked),
     hold_mine_ms: Number(settingTouchMine?.value || 350)
   };
 
@@ -2092,13 +2095,15 @@ function drawSimHud() {
   simCtx.moveTo(w / 2, 0); simCtx.lineTo(w / 2, h);
   simCtx.stroke();
 
-  // Minecraft crosshair
-  simCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-  simCtx.lineWidth = 2;
-  simCtx.beginPath();
-  simCtx.moveTo(w / 2 - 6, h / 2); simCtx.lineTo(w / 2 + 6, h / 2);
-  simCtx.moveTo(w / 2, h / 2 - 6); simCtx.lineTo(w / 2, h / 2 + 6);
-  simCtx.stroke();
+  // Minecraft crosshair (Split Controls)
+  if (settingTouchSplit?.checked !== false) {
+    simCtx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    simCtx.lineWidth = 2;
+    simCtx.beginPath();
+    simCtx.moveTo(w / 2 - 6, h / 2); simCtx.lineTo(w / 2 + 6, h / 2);
+    simCtx.moveTo(w / 2, h / 2 - 6); simCtx.lineTo(w / 2, h / 2 + 6);
+    simCtx.stroke();
+  }
 
   const opacity = Number(settingTouchOpacity?.value || 80) / 100;
   const scale = Number(settingTouchScale?.value || 100) / 100;

@@ -714,7 +714,8 @@ const DEFAULT_TOUCH_SETTINGS = {
   touch_camera_sensitivity: 1.0,
   left_handed: false,
   hold_mine_ms: 350,
-  sound_feedback: true
+  sound_feedback: true,
+  split_controls: true
 };
 
 function loadTouchSettings() {
