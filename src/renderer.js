@@ -2229,7 +2229,22 @@ function drawSimHud() {
     simCtx.strokeRect(hotbarX + i * slotW, hotbarY, slotW, hotbarH);
   }
 
-  // 6. Mining circular indicator if holding right side
+  // 6. Off-hand SWAP Button beside Hotbar
+  const swapSize = 18 * scale;
+  const swapX = hotbarX - swapSize - 6;
+  const swapY = hotbarY;
+
+  simCtx.fillStyle = baseFill;
+  simCtx.beginPath();
+  simCtx.roundRect(swapX, swapY, swapSize, swapSize, 4);
+  simCtx.fill();
+  simCtx.strokeStyle = baseStroke;
+  simCtx.stroke();
+  simCtx.fillStyle = '#ffffff';
+  simCtx.font = `bold ${Math.round(8 * scale)}px sans-serif`;
+  simCtx.fillText('⇄', swapX + swapSize / 2, swapY + swapSize / 2);
+
+  // 7. Mining circular indicator if holding right side
   if (simHoldingRight && simMiningProgress > 0) {
     simCtx.beginPath();
     simCtx.arc(simRightClickPos.x, simRightClickPos.y, 14, 0, Math.PI * 2 * simMiningProgress);
@@ -2306,6 +2321,20 @@ if (simCanvas) {
       if (x >= dropX && x <= dropX + dropSize && y >= dropY && y <= dropY + dropSize) {
         playUiClickSound();
         if (simFeedback) simFeedback.textContent = 'Действие: Выбросить предмет (Q)';
+        return;
+      }
+
+      // Check off-hand swap button
+      const hotbarW = 160 * scale;
+      const hotbarH = 18 * scale;
+      const hotbarX = (simCanvas.width - hotbarW) / 2;
+      const hotbarY = simCanvas.height - hotbarH - 4;
+      const swapSize = 18 * scale;
+      const swapX = hotbarX - swapSize - 6;
+      const swapY = hotbarY;
+      if (x >= swapX && x <= swapX + swapSize && y >= swapY && y <= swapY + swapSize) {
+        playUiClickSound();
+        if (simFeedback) simFeedback.textContent = 'Действие: Смена руки (F / Вторая рука)';
         return;
       }
 
