@@ -1988,6 +1988,25 @@
             </button>
           </div>
 
+          <!-- Interactive HUD Simulator Preview -->
+          <div class="setting-card" style="flex-direction: column; align-items: stretch; gap: 10px; padding: 14px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div class="setting-info">
+                <span class="setting-label">Интерактивный симулятор сенсорного экрана</span>
+                <span class="setting-sub">Проверьте отклик джойстика, двойной тап и тайминг зажатия прямо сейчас</span>
+              </div>
+              <span id="touch-sim-feedback" style="font-family: var(--font-mono); font-size: 11px; color: #22c55e; font-weight: 600;">Готов к тестированию</span>
+            </div>
+
+            <div style="position: relative; width: 100%; height: 200px; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <canvas id="touch-hud-sim-canvas" width="600" height="200" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+              <span>💡 Двигайте курсор по левой части для джойстика</span>
+              <span>Двойной клик = Shift • Зажатие справа = Ломание</span>
+            </div>
+          </div>
+
           <!-- Section Divider -->
           <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
             <div class="panel-title" style="font-size: 14px;">
