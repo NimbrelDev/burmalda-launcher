@@ -1909,6 +1909,7 @@ const settingTouchSens = document.getElementById('setting-touch-sens');
 const valTouchSens = document.getElementById('val-touch-sens');
 const settingTouchLefty = document.getElementById('setting-touch-lefty');
 const settingTouchSound = document.getElementById('setting-touch-sound');
+const settingTouchHaptic = document.getElementById('setting-touch-haptic');
 const settingTouchSplit = document.getElementById('setting-touch-split');
 const settingTouchMine = document.getElementById('setting-touch-mine');
 const valTouchMine = document.getElementById('val-touch-mine');
@@ -1942,6 +1943,7 @@ async function loadTouchSettingsUI() {
 
     if (settingTouchLefty) settingTouchLefty.checked = Boolean(s.left_handed);
     if (settingTouchSound) settingTouchSound.checked = s.sound_feedback !== false;
+    if (settingTouchHaptic) settingTouchHaptic.checked = s.haptic_feedback !== false;
     if (settingTouchSplit) settingTouchSplit.checked = s.split_controls !== false;
 
     if (settingTouchMine) {
@@ -2023,6 +2025,7 @@ btnSaveTouchSettings?.addEventListener('click', async () => {
     touch_camera_sensitivity: Number(settingTouchSens?.value || 100) / 100,
     left_handed: Boolean(settingTouchLefty?.checked),
     sound_feedback: Boolean(settingTouchSound?.checked),
+    haptic_feedback: Boolean(settingTouchHaptic?.checked),
     split_controls: Boolean(settingTouchSplit?.checked),
     hold_mine_ms: Number(settingTouchMine?.value || 350)
   };
@@ -2078,9 +2081,19 @@ btnExportApk?.addEventListener('click', async () => {
   }
 });
 
-// --- AUDIO FEEDBACK SYNTHESIZER ---
+// --- AUDIO & HAPTIC FEEDBACK SYNTHESIZER ---
 let audioCtx = null;
+function triggerHapticFeedback() {
+  if (settingTouchHaptic && !settingTouchHaptic.checked) return;
+  try {
+    if (navigator && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(15);
+    }
+  } catch (_) {}
+}
+
 function playUiClickSound() {
+  triggerHapticFeedback();
   if (settingTouchSound && !settingTouchSound.checked) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();

@@ -715,7 +715,8 @@ const DEFAULT_TOUCH_SETTINGS = {
   left_handed: false,
   hold_mine_ms: 350,
   sound_feedback: true,
-  split_controls: true
+  split_controls: true,
+  haptic_feedback: true
 };
 
 function loadTouchSettings() {
