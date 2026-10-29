@@ -1,0 +1,55 @@
+{
+  "name": "r-launcher",
+  "version": "1.0.0",
+  "description": "R-Launcher — Быстрый лаунчер для Minecraft на Rust",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --windows",
+    "dist:all": "electron-builder --linux && electron-builder --windows"
+  },
+  "build": {
+    "appId": "ru.rlauncher.client",
+    "productName": "R-Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.cjs",
+      "src/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "artifactName": "R-Launcher-${version}.${ext}"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "R-Launcher-${version}.${ext}"
+    }
+  },
+  "keywords": [
+    "minecraft",
+    "r-launcher",
+    "rust",
+    "launcher"
+  ],
+  "author": "R-Launcher Team",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "skinview3d": "^3.4.2"
+  }
+}

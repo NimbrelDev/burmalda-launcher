@@ -1,0 +1,4220 @@
+[
+  {
+    "id": "v0.2.97",
+    "tag": "v0.2.97",
+    "name": "Horizon 0.2.97: Prepare, signs and 16 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33468900,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29490171,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32768247,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31775574,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.97/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.96",
+    "tag": "v0.2.96",
+    "name": "Horizon 0.2.96: F1 hides the HUD only with no screen open, as key.toggleGui does and 24 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33461209,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29479794,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32760345,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31767600,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 185,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.96/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.95",
+    "tag": "v0.2.95",
+    "name": "Horizon 0.2.95: Zip and 6 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33415690,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29427834,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32712690,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31719977,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 185,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.95/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.94",
+    "tag": "v0.2.94",
+    "name": "Horizon 0.2.94: Keep the animated textures on in every graphics preset and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33408790,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29425028,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32706907,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31715120,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 185,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.94/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.93",
+    "tag": "v0.2.93",
+    "name": "Horizon 0.2.93: Server lag in new forests, subtitles",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33392460,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29404466,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32688733,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31690610,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.93/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.92",
+    "tag": "v0.2.92",
+    "name": "Horizon 0.2.92: feat, fix, books and 22 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33404062,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29411881,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32701546,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31703435,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 177,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.92/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "nightly-2026-10-28",
+    "tag": "nightly-2026-10-28",
+    "name": "Nightly 2026-10-28 · 9b772b2",
+    "mcVersion": "26.3",
+    "prerelease": true,
+    "channel": "nightly",
+    "status": "Тестовая (Nightly)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33893947,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29875532,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 33192128,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 32183104,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-28/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "nightly",
+    "tag": "nightly",
+    "name": "Nightly 2026-10-28 · 9669600",
+    "mcVersion": "26.3",
+    "prerelease": true,
+    "channel": "nightly",
+    "status": "Тестовая (Nightly)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33478827,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29498519,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32777542,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-source.tar.gz",
+        "size": 20687465,
+        "sizeFormatted": "20 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-source.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31787557,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 463,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 185,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.91",
+    "tag": "v0.2.91",
+    "name": "Horizon 0.2.91: Add the spectator menu with Teleport to Player and Teleport to Team Member and 10 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33366437,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29371005,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32665871,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31661906,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.91/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.90",
+    "tag": "v0.2.90",
+    "name": "Horizon 0.2.90: Decorated pot and 5 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33249647,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29271262,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32549048,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31554671,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.90/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.89",
+    "tag": "v0.2.89",
+    "name": "Horizon 0.2.89: Launch a Riptide trident on a server's client when the use is released and 35 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33245757,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29269372,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32545334,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31553647,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.89/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.88",
+    "tag": "v0.2.88",
+    "name": "Horizon 0.2.88: Make Frost Walker freeze water and protect from magma and 15 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33169914,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29205466,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32466871,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31477875,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.88/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.87",
+    "tag": "v0.2.87",
+    "name": "Horizon 0.2.87: Block ambient effects and 28 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33106542,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29147516,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32404010,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31413658,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.87/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.86",
+    "tag": "v0.2.86",
+    "name": "Horizon 0.2.86: Pick blocks and entities on the server like vanilla and 35 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33065371,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29107819,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32363858,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31369329,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.86/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.85",
+    "tag": "v0.2.85",
+    "name": "Horizon 0.2.85: Nightly builds name themselves on the title screen and in reports and 8 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32951619,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28994321,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32251326,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31262477,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 180,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.85/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.84",
+    "tag": "v0.2.84",
+    "name": "Horizon 0.2.84: Credit the player who kills the ender dragon and 17 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32930380,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28968170,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32231152,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31236104,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.84/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.83",
+    "tag": "v0.2.83",
+    "name": "Horizon 0.2.83: Mobs killed by a wither leave a wither rose and 31 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32909438,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28950506,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32204766,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31212484,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.83/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.82",
+    "tag": "v0.2.82",
+    "name": "Horizon 0.2.82: Push players and entities with moving pistons and 6 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32808930,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28846619,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32111092,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31119509,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.82/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.81",
+    "tag": "v0.2.81",
+    "name": "Horizon 0.2.81: Fire item_used_on_block for block transforms, waxing, jukebox discs and vault keys and 77 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32746297,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28789982,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32049412,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31058380,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 188,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.81/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.80",
+    "tag": "v0.2.80",
+    "name": "Horizon 0.2.80: A potion from the creative inventory keeps its contents in the hotbar and 24 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32642506,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28693972,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31941764,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30951588,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.80/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.79",
+    "tag": "v0.2.79",
+    "name": "Horizon 0.2.79: Play mining hit sounds once, from the server's destroy level events and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32605389,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28661778,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31904634,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30899315,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.79/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.78",
+    "tag": "v0.2.78",
+    "name": "Horizon 0.2.78: Name the potion, cloud or thrower in magic death messages and 23 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32591152,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28648529,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31892624,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30888244,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.78/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.77",
+    "tag": "v0.2.77",
+    "name": "Horizon 0.2.77: Send swimming, gliding, fire, invisible and glowing for LAN players and 20 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32539948,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28600377,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31844736,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30839716,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.77/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.76",
+    "tag": "v0.2.76",
+    "name": "Horizon 0.2.76: Game and 5 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-27",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32438894,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28496882,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31742825,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30735242,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.76/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "nightly-2026-10-27",
+    "tag": "nightly-2026-10-27",
+    "name": "Nightly 2026-10-27 · 7954902",
+    "mcVersion": "26.3",
+    "prerelease": true,
+    "channel": "nightly",
+    "status": "Тестовая (Nightly)",
+    "publishedAt": "2026-10-28",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 33386853,
+        "sizeFormatted": "32 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 29398418,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 32688094,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 31689326,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/nightly-2026-10-27/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.75",
+    "tag": "v0.2.75",
+    "name": "Horizon 0.2.75: Let turtles lay eggs that hatch into baby turtles and 30 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32211435,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28310744,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31515099,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30528399,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.75/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.74",
+    "tag": "v0.2.74",
+    "name": "Horizon 0.2.74: Launcher downloads go through the proxy the player sets and 54 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 32093916,
+        "sizeFormatted": "31 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28201738,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31396319,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30395298,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.74/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.73",
+    "tag": "v0.2.73",
+    "name": "Horizon 0.2.73: Launcher, mod registry, bundles show what they hold and 2 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31833756,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 28005176,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31131388,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30139875,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.73/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.72",
+    "tag": "v0.2.72",
+    "name": "Horizon 0.2.72: Mod registry and 9 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31801639,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27972429,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31100035,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30106362,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 179,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.72/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.71",
+    "tag": "v0.2.71",
+    "name": "Horizon 0.2.71: Horizon shader packs and 20 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31790239,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27962928,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31090921,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30092726,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 189,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.71/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.70",
+    "tag": "v0.2.70",
+    "name": "Horizon 0.2.70: launcher, registry, Horizon shader packs and 17 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31759004,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27930663,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 31052226,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 30055706,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.70/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.69",
+    "tag": "v0.2.69",
+    "name": "Horizon 0.2.69: Options > Horizon Settings > Shader Packs and 5 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31579538,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27760256,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 30878620,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 29911136,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.69/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.68",
+    "tag": "v0.2.68",
+    "name": "Horizon 0.2.68: cargo horizon-mod test, Horizon shader packs and 3 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 31548394,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27733041,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 30849218,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 29885492,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 189,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.68/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.67",
+    "tag": "v0.2.67",
+    "name": "Horizon 0.2.67: Server dialogs and 43 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-26",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30951867,
+        "sizeFormatted": "30 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 27164144,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 30252465,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 29341590,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.67/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.66",
+    "tag": "v0.2.66",
+    "name": "Horizon 0.2.66: Fix/client mods server thread, client, multiplayer and 2 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29856254,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26119644,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29129326,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28175864,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.66/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.65",
+    "tag": "v0.2.65",
+    "name": "Horizon 0.2.65: OpenGL 3.3, furnace, server, localization and 1 more fix",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29838641,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26121460,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29116346,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28159609,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.65/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.64",
+    "tag": "v0.2.64",
+    "name": "Horizon 0.2.64: Creative, fix, openGL and 2 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29826567,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26102322,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29101766,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28139066,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.64/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.63",
+    "tag": "v0.2.63",
+    "name": "Horizon 0.2.63: OpenGL and 2 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29823684,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26098444,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29097348,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28136133,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.63/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.62",
+    "tag": "v0.2.62",
+    "name": "Horizon 0.2.62: Keep shulker boxes out of shulker boxes on the server and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29503753,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26062948,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28782925,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27882094,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 179,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.62/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.61",
+    "tag": "v0.2.61",
+    "name": "Horizon 0.2.61: Make hardcore players spectators when they respawn and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29499951,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26056150,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28778038,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27875893,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 179,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.61/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.60",
+    "tag": "v0.2.60",
+    "name": "Horizon 0.2.60: A tool that changes a block ends the click on a server's client and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29495580,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26065770,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28772727,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27872231,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.60/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.59",
+    "tag": "v0.2.59",
+    "name": "Horizon 0.2.59: Surface and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29489477,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26063562,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28767876,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27867296,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.59/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.58",
+    "tag": "v0.2.58",
+    "name": "Horizon 0.2.58: Discord Rich Presence, multiplayer, client and 2 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29480217,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26052871,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28760930,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27859189,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.58/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.57",
+    "tag": "v0.2.57",
+    "name": "Horizon 0.2.57: Discord Rich Presence and 9 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29443873,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26016545,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28717333,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27828266,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.57/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.56",
+    "tag": "v0.2.56",
+    "name": "Horizon 0.2.56: Save, packs, clippy, client mods, multiplayer and 2 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29030712,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25636472,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28308459,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27445961,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 180,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.56/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.55",
+    "tag": "v0.2.55",
+    "name": "Horizon 0.2.55: Separate world entry from authoritative world loading and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 29010724,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25618771,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28285643,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27423009,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 189,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.55/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.54",
+    "tag": "v0.2.54",
+    "name": "Horizon 0.2.54: Client, trading, /tp",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28984461,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25587359,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28266487,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27401224,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.54/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.53",
+    "tag": "v0.2.53",
+    "name": "Horizon 0.2.53: Server thread and 3 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28964188,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25559640,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28238885,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27374251,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.53/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.52",
+    "tag": "v0.2.52",
+    "name": "Horizon 0.2.52: crops remaining after server-side farmland trampling and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28944143,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25539121,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28224392,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27355341,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 178,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.52/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.51",
+    "tag": "v0.2.51",
+    "name": "Horizon 0.2.51: Connect to a server's IPv4 address first, as vanilla does and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-25",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28935618,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25531956,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28214917,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27347959,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.51/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.50",
+    "tag": "v0.2.50",
+    "name": "Horizon 0.2.50: Remove unused saved-chunk section loader and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28929610,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25537514,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28207761,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27337385,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 188,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.50/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.49",
+    "tag": "v0.2.49",
+    "name": "Horizon 0.2.49: Language and 4 more fixes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28913465,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25504882,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28189959,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27321444,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.49/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.48",
+    "tag": "v0.2.48",
+    "name": "Horizon 0.2.48: Server resource packs, resource Packs screen and 2 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28908098,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25500217,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28187009,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27315073,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.48/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.47",
+    "tag": "v0.2.47",
+    "name": "Horizon 0.2.47: Dedicated server and 4 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 28898004,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 25522192,
+        "sizeFormatted": "24 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 28174357,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 27326066,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.47/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.46",
+    "tag": "v0.2.46",
+    "name": "Horizon 0.2.46: Launcher adds Programmer Art and High Contrast to older prepared resources and 1 more change",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30327617,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26606026,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29604143,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28666216,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.46/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.45",
+    "tag": "v0.2.45",
+    "name": "Horizon 0.2.45: Aim extra knockback with Mth's sine table",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30328550,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26785881,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29603590,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28664341,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 189,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.45/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.44",
+    "tag": "v0.2.44",
+    "name": "Horizon 0.2.44: Stop a guest's sprint when its hit knocks back and 1 more fix",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30327841,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26606748,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29602727,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28665315,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.44/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.43",
+    "tag": "v0.2.43",
+    "name": "Horizon 0.2.43: Java shader packs",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30314459,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26771107,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29588512,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28652403,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 181,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.43/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.42",
+    "tag": "v0.2.42",
+    "name": "Horizon 0.2.42: Villagers open and close doors on their paths",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30315832,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26771773,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29588013,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28652265,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.42/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.41",
+    "tag": "v0.2.41",
+    "name": "Horizon 0.2.41: Villagers summon iron golems the vanilla way and remember them",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30306479,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26587067,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29583513,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28644680,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.41/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.40",
+    "tag": "v0.2.40",
+    "name": "Horizon 0.2.40: Villagers, llamas, bees, allays and copper golems search the full path budget",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30304559,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26762338,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29580253,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28643447,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.40/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.39",
+    "tag": "v0.2.39",
+    "name": "Horizon 0.2.39: Single player runs on its server thread by default again and 7 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30304958,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26762744,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29578874,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28642511,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.39/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.38",
+    "tag": "v0.2.38",
+    "name": "Horizon 0.2.38: Creative search tab",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30283705,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26745441,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29562814,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28625192,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.38/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.37",
+    "tag": "v0.2.37",
+    "name": "Horizon 0.2.37: Programmer Art and High Contrast",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30282435,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26566088,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29561748,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28625687,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.37/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.36",
+    "tag": "v0.2.36",
+    "name": "Horizon 0.2.36: Java shader packs",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30281544,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26744020,
+        "sizeFormatted": "26 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29560462,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28624829,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.36/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.35",
+    "tag": "v0.2.35",
+    "name": "Horizon 0.2.35: Java shader packs",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30260706,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26721724,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29536193,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28603120,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.35/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.34",
+    "tag": "v0.2.34",
+    "name": "Horizon 0.2.34: Servers wait for the player's client to finish breaking a block",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30260447,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26720123,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29532121,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28600797,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.34/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.33",
+    "tag": "v0.2.33",
+    "name": "Horizon 0.2.33: Wind charges push a server's players",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30258864,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26719126,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29533203,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28600773,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 189,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.33/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.32",
+    "tag": "v0.2.32",
+    "name": "Horizon 0.2.32: Shields, tridents, crossbows and spyglasses work on a server's players and 1 more change",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30258449,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26717193,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29531775,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28597864,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.32/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.31",
+    "tag": "v0.2.31",
+    "name": "Horizon 0.2.31: Books open on a server's players, and what they write and sign reaches the server and 2 more changes",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30256751,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26714657,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29531574,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28585919,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.31/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.30",
+    "tag": "v0.2.30",
+    "name": "Horizon 0.2.30: Java shader packs",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30245494,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26698423,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29519438,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28575727,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.30/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.29",
+    "tag": "v0.2.29",
+    "name": "Horizon 0.2.29: Maps in one hand, prepare",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30192645,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26475442,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29470969,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28523929,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.29/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.28",
+    "tag": "v0.2.28",
+    "name": "Horizon 0.2.28: Chat",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-24",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30186584,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26648359,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29465517,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28519227,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 183,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.28/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.27",
+    "tag": "v0.2.27",
+    "name": "Horizon 0.2.27: Bundles take and give items in inventories and containers",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-23",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30182800,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26464288,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29458455,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28514726,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 178,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.27/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.26",
+    "tag": "v0.2.26",
+    "name": "Horizon 0.2.26: Entity use with either hand",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-23",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30168718,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26634462,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29441949,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28491530,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.26/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.25",
+    "tag": "v0.2.25",
+    "name": "Horizon 0.2.25: In-frame single player slows down instead of dropping to 2 FPS when its ticks overrun",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-23",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30165937,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26629474,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29438630,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28488387,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.25/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.24",
+    "tag": "v0.2.24",
+    "name": "Horizon 0.2.24: Totems save a server's players",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-23",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30162929,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26627574,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29437603,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28487069,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.24/smoke-test.json"
+      }
+    ]
+  },
+  {
+    "id": "v0.2.23",
+    "tag": "v0.2.23",
+    "name": "Horizon 0.2.23: Particles from a server",
+    "mcVersion": "26.3",
+    "prerelease": false,
+    "channel": "stable",
+    "status": "Релиз (Stable)",
+    "publishedAt": "2026-10-23",
+    "assets": [
+      {
+        "name": "horizon-linux-x86_64.tar.gz",
+        "size": 30157701,
+        "sizeFormatted": "29 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/horizon-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-macos-arm64.zip",
+        "size": 26621476,
+        "sizeFormatted": "25 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/horizon-macos-arm64.zip"
+      },
+      {
+        "name": "horizon-server-linux-x86_64.tar.gz",
+        "size": 29436477,
+        "sizeFormatted": "28 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/horizon-server-linux-x86_64.tar.gz"
+      },
+      {
+        "name": "horizon-windows-x64.zip",
+        "size": 28481999,
+        "sizeFormatted": "27 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/horizon-windows-x64.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 375,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/SHA256SUMS"
+      },
+      {
+        "name": "SHA256SUMS.sig",
+        "size": 89,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/SHA256SUMS.sig"
+      },
+      {
+        "name": "smoke-test.json",
+        "size": 182,
+        "sizeFormatted": "0 МБ",
+        "downloadUrl": "https://github.com/horizon-rust/horizon/releases/download/v0.2.23/smoke-test.json"
+      }
+    ]
+  }
+]
