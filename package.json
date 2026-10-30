@@ -1,24 +1,25 @@
 {
-  "name": "r-launcher",
+  "name": "burmalda-launcher",
   "version": "1.0.0",
-  "description": "R-Launcher — Быстрый лаунчер для Minecraft на Rust",
-  "main": "main.js",
+  "description": "Burmalda Launcher — Быстрый модульный лаунчер для Minecraft / Horizon",
+  "main": "desktop/main.js",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist:linux": "electron-builder --linux",
-    "dist:win": "electron-builder --windows",
-    "dist:all": "electron-builder --linux && electron-builder --windows"
+    "start": "electron desktop/main.js",
+    "dev": "electron desktop/main.js",
+    "build:linux": "electron-builder --linux --config.directories.output=dist/linux",
+    "build:win": "electron-builder --windows --config.directories.output=dist/windows",
+    "build:android": "bash android/package-apk.sh",
+    "build:all": "npm run build:linux && npm run build:win && npm run build:android",
+    "clean": "rm -rf dist/linux/* dist/windows/* dist/android/* android/build"
   },
   "build": {
-    "appId": "ru.rlauncher.client",
-    "productName": "R-Launcher",
+    "appId": "ru.burmalda.launcher",
+    "productName": "Burmalda Launcher",
     "directories": {
       "output": "dist"
     },
     "files": [
-      "main.js",
-      "preload.cjs",
+      "desktop/**/*",
       "src/**/*",
       "package.json"
     ],
@@ -27,13 +28,13 @@
         "AppImage"
       ],
       "category": "Game",
-      "artifactName": "R-Launcher-${version}.${ext}"
+      "artifactName": "${productName}-${version}.${ext}"
     },
     "win": {
       "target": [
         "portable"
       ],
-      "artifactName": "R-Launcher-${version}.${ext}"
+      "artifactName": "${productName}-${version}.${ext}"
     }
   },
   "keywords": [

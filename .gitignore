@@ -1,4 +1,6 @@
 node_modules/
 dist/
+android/build/
+android/compiled_res/
 *.log
 .DS_Store

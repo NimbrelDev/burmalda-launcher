@@ -1,0 +1,8 @@
+{
+  "id": "telegram_announcement_1",
+  "title": "Официальный Telegram",
+  "message": "Подписывайтесь на наш Telegram канал, чтобы первыми узнавать об обновлениях, новостях серверов и участвовать в розыгрышах!",
+  "buttonText": "Перейти в Telegram",
+  "buttonUrl": "https://t.me/burmalda",
+  "canClose": true
+}

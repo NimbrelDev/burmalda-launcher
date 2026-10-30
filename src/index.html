@@ -4,20 +4,36 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>R-Launcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&family=JetBrains+Mono:wght@400;500;600;700&display=swap&subset=cyrillic,latin" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'Minecraft Rus';
+      src: url('assets/fonts/minecraft.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Minecraftia';
+      src: url('assets/fonts/Minecraftia-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
     :root {
-      /* Authentic Gaming Palette: Deep Obsidian, Dark Slate, Minecraft Stone */
-      --bg-app: #0c1017;
-      --bg-dock: rgba(15, 22, 34, 0.95);
-      --bg-card: rgba(21, 28, 40, 0.94);
-      --bg-card-inner: #151c28;
-      --bg-pill: rgba(255, 255, 255, 0.05);
-      --bg-pill-hover: rgba(255, 255, 255, 0.10);
+      --bg-app: #0a0e14;
+      --bg-dock: rgba(14, 19, 28, 0.94);
+      --bg-card: rgba(18, 25, 36, 0.92);
+      --bg-card-inner: #131a26;
+      --bg-pill: rgba(255, 255, 255, 0.06);
+      --bg-pill-hover: rgba(255, 255, 255, 0.12);
       
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --border-dock: rgba(255, 255, 255, 0.10);
       --border-stone: #2d3748;
-      --border-subtle: #2d3748;
-      --border-hover: #475569;
-      --border-dock: #2d3748;
       
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
@@ -27,24 +43,27 @@
       --mc-emerald: #10b981;
       --mc-emerald-hover: #059669;
       --mc-emerald-dark: #047857;
-      --mc-emerald-glow: rgba(16, 185, 129, 0.35);
+      --mc-emerald-glow: none;
 
-      /* Rust Cogwheel & Minecraft Redstone Accents */
+      /* Rust Accents */
       --rust-orange: #ea580c;
       --rust-orange-hover: #f97316;
       --rust-orange-active: #c2410c;
-      --rust-orange-glow: rgba(234, 88, 12, 0.4);
-      --mc-redstone: #ef4444;
-      --mc-redstone-dark: #b91c1c;
-      
+      --rust-orange-glow: none;
       --rust-amber: #f59e0b;
       --rust-amber-hover: #fbbf24;
       
       --mc-amber: #eab308;
       --mc-amber-hover: #ca8a04;
-      
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
-      --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+      --mc-redstone: #ef4444;
+      --mc-redstone-dark: #b91c1c;
+
+      /* 100% Cyrillic Russian Pixel Fonts */
+      --font-minecraft: 'Minecraft Rus', 'Minecraftia', monospace;
+      --font-pixel: 'Minecraft Rus', 'Press Start 2P', monospace, sans-serif;
+      --font-pixel-sub: 'Minecraft Rus', 'Tiny5', monospace, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     * {
@@ -67,124 +86,188 @@
       position: relative;
     }
 
-    /* Cinematic Looping Video Background */
-    .bg-video {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      z-index: -2;
-      filter: brightness(0.50) contrast(1.15);
-      pointer-events: none;
-    }
-
+    /* Clean Dark Atmospheric Background */
     .bg-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle at 50% 40%, rgba(12, 16, 23, 0.50) 0%, rgba(8, 11, 16, 0.94) 100%);
+      background: radial-gradient(circle at 50% 35%, #0f1520 0%, #070a0f 100%);
       z-index: -1;
       pointer-events: none;
     }
 
     /* Minimalist Window Header */
     .app-header {
-      height: 44px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px 0 20px;
-      background: rgba(12, 16, 23, 0.92);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-stone);
+      padding: 0 16px;
+      background: #090e15;
+      border-bottom: 1px solid #1a2332;
       -webkit-app-region: drag;
       z-index: 100;
     }
 
     .brand-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: none !important;
     }
 
-    .brand-logo-icon {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--rust-orange);
-    }
-
-    .brand-title-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-    }
-
-    .brand-title {
-      font-size: 13px; letter-spacing: 0.5px; white-space: nowrap;
-      font-weight: 900;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: #ffffff;
-    }
-
-    .brand-tag {
-      font-size: 10px;
-      font-weight: 700;
-      color: #f97316;
-      letter-spacing: 0.5px;
-      font-family: var(--font-mono);
-    }
-
-    /* Header Navigation Tabs */
+    /* Expanding Sliding Accordion Navigation Tabs */
     .header-nav {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: rgba(12, 16, 23, 0.75);
-      padding: 3px;
+      gap: 6px;
+      background: #0d141e;
+      padding: 4px;
       border-radius: 8px;
-      border: 1px solid var(--border-stone);
+      border: 1px solid #1e293b;
       -webkit-app-region: no-drag;
     }
 
     .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid #28374a;
+      border-bottom: 3px solid #0d131c; /* 3D tactile bevel */
+      background: #141c28;
+      color: #94a3b8;
+      box-shadow: 0 2px 0 #080d14;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .nav-btn .nav-icon {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.12s ease;
+      justify-content: center;
+      flex-shrink: 0;
+      color: currentColor;
+    }
+
+    .nav-btn .nav-label {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin-left: 0;
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      transition: max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, margin-left 0.28s ease;
     }
 
     .nav-btn:hover {
-      color: var(--text-primary);
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .nav-btn.active {
-      background: #151c28;
-      color: #ffffff;
-      border: 1px solid var(--border-stone);
-      border-bottom: 2px solid var(--mc-emerald);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      background: #1c2738;
+      color: #f8fafc;
+      border-color: #3b506b;
     }
 
     .nav-btn:active {
-      transform: translateY(1px);
+      transform: translateY(2px);
+      box-shadow: 0 0 0 #080d14;
+    }
+
+    /* Active expanded state: reveals label smoothly */
+    .nav-btn.active {
+      background: #1d2a3d;
+      color: #ffffff;
+      border-color: #3b82f6;
+      border-bottom: 3px solid #1d4ed8;
+      box-shadow: 0 2px 0 #132034;
+    }
+
+    .nav-btn.active .nav-icon {
+      color: #60a5fa;
+    }
+
+    .nav-btn.active .nav-label {
+      max-width: 120px;
+      opacity: 1;
+      margin-left: 7px;
+    }
+
+    /* Blocked / In Development Tabs */
+    .nav-btn.btn-inactive {
+      opacity: 0.55;
+      cursor: pointer;
+    }
+    .nav-btn.btn-inactive:hover {
+      opacity: 0.85;
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+
+    /* Floating Toast Notifications System */
+    .toast-container {
+      position: fixed;
+      top: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 10000;
+      pointer-events: none;
+    }
+
+    .toast-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: #131a26;
+      border: 1px solid #2a384e;
+      border-bottom: 4px solid #0c121b; /* 3D tactile bevel */
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+      color: #ffffff;
+      font-family: var(--font-minecraft);
+      font-size: 14px;
+      pointer-events: auto;
+      animation: toastDrop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      white-space: nowrap;
+    }
+
+    .toast-pill .toast-icon {
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+    }
+
+    .toast-pill.toast-leaving {
+      animation: toastFade 0.2s ease forwards;
+    }
+
+    @keyframes toastDrop {
+      from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes toastFade {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.95);
+      }
     }
 
     /* Window Controls */
@@ -211,7 +294,7 @@
 
     .win-btn:hover {
       background: rgba(255, 255, 255, 0.08);
-      border-color: var(--border-stone);
+      border-color: var(--border-subtle);
       color: var(--text-primary);
     }
 
@@ -231,8 +314,8 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow-y: auto;
-      padding-bottom: 96px;
+      overflow: hidden;
+      height: calc(100vh - 46px);
     }
 
     .tab-content {
@@ -254,119 +337,207 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* --- TAB 1: HERO STAGE --- */
+    /* --- TAB 1: HERO STAGE (COMPLETELY DECOUPLED & RESPONSIVE LAYOUT) --- */
     .hero-stage {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      margin-top: 10px;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 10;
     }
 
+    /* 1. Authentic 1:1 Vanilla Minecraft nametag plate with in-place editing */
     .player-nametag-float {
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(8px);
-      padding: 5px 18px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      margin-bottom: 8px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      background: rgba(0, 0, 0, 0.40);
+      padding: 3px 6px;
+      border-radius: 0;
+      border: 1px solid transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease;
+      pointer-events: auto;
+      transition: background 0.1s ease, padding 0.12s ease;
+      z-index: 20;
+      white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .player-nametag-float:hover {
-      transform: scale(1.03);
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.65);
+    }
+
+    .player-nametag-float.editing {
+      background: #000000 !important;
+      border: 2px solid #ffffff !important;
+      padding: 5px 12px !important;
+      box-shadow: 0 0 0 1px #000000, 0 10px 24px rgba(0, 0, 0, 0.8) !important;
+      cursor: text;
+    }
+
+    .nametag-hidden-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      cursor: text;
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      z-index: 5;
+    }
+
+    .player-nametag-float.editing .nametag-hidden-input {
+      pointer-events: auto;
+    }
+
+    .nametag-cursor {
+      font-family: 'Minecraft Rus', 'Minecraftia', monospace;
+      font-size: 16px;
+      line-height: 1;
+      color: #ffffff;
+      text-shadow: 2px 2px 0px #3f3f3f;
+      display: inline-block;
+      margin-left: 2px;
+      animation: mcCursorBlink 0.75s step-start infinite;
+    }
+
+    @keyframes mcCursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
     }
 
     .nametag-text {
-      font-size: 14px;
-      font-weight: 700;
+      font-family: 'Minecraft Rus', 'Minecraftia', monospace;
+      font-size: 16px;
+      line-height: 1;
+      letter-spacing: 0;
       color: #ffffff;
-      letter-spacing: 0.5px;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+      text-shadow: 2px 2px 0px #3f3f3f;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+      image-rendering: pixelated;
+      text-rendering: geometricPrecision;
+      display: block;
     }
 
+    /* 2. Independent interactive touch/drag zone over hero stage (hitbox calculated via 3D meshes) */
+    .steve-interactive-zone {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: default;
+      pointer-events: auto;
+      z-index: 5;
+    }
+
+    /* Fullscreen 3D Viewport: Steve and debris fly across the entire window without invisible walls */
     .stage-viewport {
-      position: relative;
-      width: 360px;
-      height: 440px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
     }
 
     #skin-viewer-3d {
-      width: 360px !important;
-      height: 440px !important;
-      cursor: grab;
-      outline: none;
-      z-index: 2;
-    }
-
-    #skin-viewer-3d:active {
-      cursor: grabbing;
+      width: 100vw !important;
+      height: 100vh !important;
+      display: block;
+      pointer-events: none;
     }
 
     .stage-shadow-pedestal {
-      position: absolute;
-      bottom: 22px;
-      width: 230px;
-      height: 40px;
-      border-radius: 50%;
-      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 70%);
-      pointer-events: none;
-      z-index: 1;
+      display: none !important; /* Authentic 3D shadows rendered directly inside Three.js */
     }
 
-    /* 3 Clean Icon Buttons under Steve */
+    /* 3. Independent action buttons under Steve's pedestal strictly above bottom dock */
     .stage-icon-bar {
+      position: absolute;
+      bottom: clamp(100px, 14vh, 125px);
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-top: 14px;
-      z-index: 5;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    @media (max-height: 680px) {
+      .stage-icon-bar {
+        bottom: 96px;
+      }
     }
 
     .btn-stage-icon {
       width: 44px;
       height: 44px;
-      border-radius: 50%;
-      background: rgba(18, 25, 36, 0.75);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      background: #141c28;
+      border: 1px solid #28374a;
+      border-bottom: 4px solid #0c121b; /* 3D tactile bevel */
       color: var(--text-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 0 #080d14;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
     }
 
     .btn-stage-icon:hover {
-      background: rgba(30, 42, 60, 0.9);
+      background: #1b2637;
       color: #ffffff;
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+      border-color: #3b506d;
     }
 
     .btn-stage-icon:active {
-      transform: translateY(1px);
+      transform: translateY(3px);
+      box-shadow: 0 0 0 #080d14;
     }
 
-    /* --- PANELS (SERVERS, WARDROBE, SETTINGS) --- */
+    .btn-stage-icon.btn-inactive {
+      opacity: 0.55;
+      cursor: pointer;
+    }
+
+    .btn-stage-icon.btn-inactive:hover {
+      opacity: 0.85;
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+
+    /* --- PANELS (SERVERS, WARDROBE, FRIENDS, SETTINGS) --- */
     .panel-container {
-      width: min(860px, calc(100vw - 40px));
+      width: min(880px, calc(100vw - 40px));
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: 14px;
       padding: 24px;
       margin: 20px auto;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      overflow-y: auto;
+      max-height: calc(100vh - 100px);
     }
 
     .panel-header {
@@ -379,8 +550,9 @@
     }
 
     .panel-title {
-      font-size: 13px; letter-spacing: 0.5px; white-space: nowrap;
-      font-weight: 700;
+      font-family: var(--font-pixel);
+      font-size: 11px;
+      letter-spacing: 0.5px;
       color: #ffffff;
       display: flex;
       align-items: center;
@@ -417,8 +589,8 @@
     }
 
     .srv-name {
-      font-size: 13px;
-      font-weight: 700;
+      font-family: var(--font-pixel);
+      font-size: 10px;
       color: #ffffff;
     }
 
@@ -443,32 +615,19 @@
       gap: 6px;
       padding: 6px 10px;
       border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
+      font-family: var(--font-pixel);
+      font-size: 9px;
       cursor: pointer;
       border: 1px solid transparent;
       transition: all 0.12s ease;
     }
 
     .btn-srv-act.play {
-      background: var(--rust-orange);
+      background: var(--mc-emerald);
       color: #ffffff;
     }
-
     .btn-srv-act.play:hover {
-      background: var(--rust-orange-hover);
-    }
-
-    .btn-srv-act.copy {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--border-subtle);
-      color: var(--text-secondary);
-      flex: 0.8;
-    }
-
-    .btn-srv-act.copy:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
+      background: var(--mc-emerald-hover);
     }
 
     .btn-srv-act.del {
@@ -477,12 +636,11 @@
       flex: 0.3;
       padding: 6px 6px;
     }
-
     .btn-srv-act.del:hover {
       color: #ef4444;
     }
 
-    /* Wardrobe (Гардероб) Layout */
+    /* Wardrobe Layout */
     .wardrobe-layout {
       display: grid;
       grid-template-columns: 240px 1fr;
@@ -509,13 +667,12 @@
     }
 
     .wardrobe-active-name {
-      font-size: 13px;
-      font-weight: 700;
+      font-family: var(--font-pixel);
+      font-size: 10px;
       color: #ffffff;
       text-align: center;
     }
 
-    /* Grid of Default Skins */
     .default-skins-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -543,8 +700,8 @@
     }
 
     .skin-thumbnail-card.selected {
-      border-color: var(--rust-orange);
-      background: rgba(234, 88, 12, 0.15);
+      border-color: var(--mc-emerald);
+      background: rgba(16, 185, 129, 0.15);
     }
 
     .skin-thumb-canvas {
@@ -554,13 +711,12 @@
     }
 
     .skin-thumb-name {
-      font-size: 10px;
-      font-weight: 600;
+      font-family: var(--font-pixel);
+      font-size: 8px;
       color: var(--text-secondary);
       text-align: center;
     }
 
-    /* Custom Wardrobe List */
     .custom-skins-strip {
       display: flex;
       gap: 8px;
@@ -568,7 +724,6 @@
       padding: 4px 2px 10px 2px;
     }
 
-    /* Input Controls */
     .input-clean {
       width: 100%;
       background: #101620;
@@ -576,13 +731,13 @@
       border-radius: 8px;
       padding: 9px 12px;
       color: #ffffff;
+      font-family: var(--font-mono);
       font-size: 12px;
       outline: none;
       transition: border-color 0.15s ease;
     }
-
     .input-clean:focus {
-      border-color: #3b82f6;
+      border-color: var(--mc-emerald);
     }
 
     .btn-action-primary {
@@ -592,17 +747,16 @@
       gap: 6px;
       padding: 8px 16px;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
+      font-family: var(--font-pixel);
+      font-size: 9px;
       cursor: pointer;
-      background: var(--rust-orange);
+      background: var(--mc-emerald);
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: #ffffff;
       transition: background 0.12s ease;
     }
-
     .btn-action-primary:hover {
-      background: var(--rust-orange-hover);
+      background: var(--mc-emerald-hover);
     }
 
     .btn-action-secondary {
@@ -612,21 +766,20 @@
       gap: 6px;
       padding: 8px 14px;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
+      font-family: var(--font-pixel);
+      font-size: 9px;
       cursor: pointer;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-subtle);
       color: var(--text-primary);
       transition: all 0.12s ease;
     }
-
     .btn-action-secondary:hover {
       background: rgba(255, 255, 255, 0.1);
       border-color: var(--border-hover);
     }
 
-    /* Settings Group */
+    /* Settings Components */
     .settings-group {
       display: flex;
       flex-direction: column;
@@ -650,13 +803,15 @@
     }
 
     .setting-label {
-      font-size: 13px;
-      font-weight: 700;
+      font-family: var(--font-pixel);
+      font-size: 10px;
       color: #ffffff;
+      line-height: 1.5;
     }
 
     .setting-sub {
       font-size: 11px;
+      font-family: var(--font-mono);
       color: var(--text-muted);
     }
 
@@ -667,26 +822,20 @@
       width: 44px;
       height: 24px;
     }
-
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
-
     .slider {
       position: absolute;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-color: #1e2838;
       border: 1px solid var(--border-subtle);
       transition: .2s;
       border-radius: 24px;
     }
-
     .slider:before {
       position: absolute;
       content: "";
@@ -698,11 +847,9 @@
       transition: .2s;
       border-radius: 50%;
     }
-
     input:checked + .slider {
-      background-color: var(--rust-orange);
+      background-color: var(--mc-emerald);
     }
-
     input:checked + .slider:before {
       transform: translateX(20px);
       background-color: #ffffff;
@@ -715,424 +862,165 @@
       left: 50%;
       transform: translateX(-50%);
       width: min(880px, calc(100vw - 40px));
-      height: 70px;
-      background: var(--bg-dock);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-dock);
-      border-radius: 16px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px; gap: 8px;
-      z-index: 100;
-    }
-
-    /* Player Profile Pill with Authentic Steve Head */
-    .dock-player-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 10px;
-      transition: background 0.15s ease;
-      min-width: 130px;
-    }
-
-    .dock-player-card:hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .player-avatar-box {
-      width: 42px;
-      height: 42px;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #111620;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      height: 68px;
+      background: #0d131c;
+      border: 1px solid #1e2838;
+      border-bottom: 4px solid #080c12; /* 3D tactile dock base */
+      border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 20px;
+      padding: 0 16px;
+      z-index: 100;
     }
 
-    .player-avatar-canvas {
-      width: 42px;
-      height: 42px;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
+    @media (max-width: 960px) {
+      .launch-dock {
+        height: 58px;
+        bottom: 12px;
+        width: min(840px, calc(100vw - 20px));
+        padding: 0 10px;
+        gap: 12px;
+      }
+      .dock-version-pill {
+        padding: 4px 10px;
+        font-size: 10px;
+      }
+      .dock-modpack-btn {
+        padding: 5px 10px;
+      }
+      .btn-hero-launch {
+        min-width: 140px;
+        height: 42px;
+        font-size: 12px;
+      }
     }
 
-    .player-meta {
+    @media (max-height: 640px) {
+      .launch-dock {
+        height: 54px;
+        bottom: 8px;
+      }
+      .btn-hero-launch {
+        height: 38px;
+      }
+    }
+
+    /* Version Selectors: Minecraft placed before Horizon horizontally */
+    .dock-version-stack {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .player-name-text {
-      font-size: 14px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .player-status-subtitle {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    /* Two-Tier Version Selector in Dock */
-    .dock-versions-wrapper {
-      display: flex;
+      flex-direction: row;
       align-items: center;
-      gap: 12px;
-    }
-
-    .dock-version-col {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      position: relative;
-    }
-
-    .version-field-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .version-field-label {
-      font-size: 9px;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    /* Yellow Update Available Badge Indicator */
-    .badge-update-indicator {
-      display: none;
-      align-items: center;
-      gap: 4px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: rgba(234, 179, 8, 0.2);
-      border: 1px solid rgba(234, 179, 8, 0.45);
-      color: #fde047;
-      font-size: 9px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      animation: pulseUpdate 1.8s infinite ease-in-out;
-      cursor: pointer;
-    }
-
-    .badge-update-indicator.show {
-      display: inline-flex;
-    }
-
-    @keyframes pulseUpdate {
-      0%, 100% { opacity: 0.85; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.05); }
-    }
-
-    /* Custom Clickable Dropdown Trigger */
-    .custom-select-trigger {
-      background: #131a24;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 6px 12px;
-      color: #e2e8f0;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       gap: 8px;
-      min-width: 130px;
-      user-select: none;
-      transition: all 0.15s ease;
     }
 
-    .custom-select-trigger:hover {
-      border-color: rgba(255, 255, 255, 0.22);
-      background: #17202c;
+    .dock-version-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #141c28;
+      border: 1px solid #28374a;
+      border-bottom: 3px solid #0c121b; /* 3D tactile bevel */
+      border-radius: 6px;
+      padding: 5px 12px;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #080d14;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
     }
 
-    .custom-select-trigger.wide {
-      min-width: 210px;
+    .dock-version-pill:hover {
+      background: #1b2637;
+      border-color: #3b506d;
     }
 
-    /* Popover Menu: exactly 5 items visible, rest scrolls */
+    .dock-version-pill:active {
+      transform: translateY(2px);
+      box-shadow: 0 0 0 #080d14;
+    }
+
     .custom-select-menu {
       position: absolute;
       bottom: calc(100% + 8px);
       left: 0;
-      width: 100%;
-      min-width: 260px;
-      max-height: 195px; /* exactly 5 items at ~39px each */
+      min-width: 250px;
+      max-height: 290px;
       overflow-y: auto;
-      overflow-x: hidden;
-      background: #0f1622;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 10px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
-      z-index: 200;
+      background: #121926;
+      border: 1px solid #233144;
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.75);
       display: none;
-      padding: 4px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+      flex-direction: column;
+      z-index: 200;
     }
-
     .custom-select-menu.open {
-      display: block;
-      animation: popoverFadeIn 0.14s ease-out;
-    }
-
-    @keyframes popoverFadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      display: flex;
     }
 
     .select-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 7px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      color: #cbd5e1;
-      margin-bottom: 2px;
-      transition: all 0.1s ease;
-      border: 1px solid transparent;
-    }
-
-    /* Stable releases: authentic subtle emerald accent */
-    .select-item.type-stable {
-      background: rgba(234, 88, 12, 0.06);
-      border-color: rgba(234, 88, 12, 0.12);
-    }
-    .select-item.type-stable:hover {
-      background: rgba(234, 88, 12, 0.18);
-      color: #ffffff;
-    }
-
-    /* Questionable/Nightly/Prerelease: amber/dark accent */
-    .select-item.type-prerelease {
-      background: rgba(234, 179, 8, 0.05);
-      border-color: rgba(234, 179, 8, 0.14);
-      color: #eab308;
-    }
-    .select-item.type-prerelease:hover {
-      background: rgba(234, 179, 8, 0.16);
-      color: #fef08a;
-    }
-
-    /* Highlighted latest release */
-    .select-item.is-latest {
-      border: 1px solid rgba(234, 88, 12, 0.4);
-      background: rgba(234, 88, 12, 0.14);
-      box-shadow: 0 0 10px rgba(234, 88, 12, 0.15) inset;
-    }
-
-    .select-item.active {
-      border-color: #f97316;
-      background: rgba(234, 88, 12, 0.25);
-      color: #ffffff;
-    }
-
-    .select-item-empty {
-      padding: 14px 10px;
-      text-align: center;
+      padding: 8px 12px;
       font-size: 11px;
-      color: var(--text-muted);
-      font-style: normal;
-    }
-
-    /* Main Big Action Button */
-    .dock-action-wrap {
-      flex-shrink: 0;
-      min-width: 140px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    /* Clean Action Button */
-
-    /* Download Progress Strip */
-    .download-strip {
-      display: none;
-      position: fixed;
-      bottom: 96px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(880px, calc(100vw - 40px));
-      background: #141b24;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 10px 16px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-      z-index: 95;
-    }
-
-    .download-strip-head {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 600;
-      color: #cbd5e1;
-      margin-bottom: 6px;
-    }
-
-    .download-track {
-      height: 6px;
-      background: #0b0f14;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .download-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--rust-orange);
-      transition: width 0.2s ease;
-    }
-  
-    /* --- MORPHING ICON-PILL NAVIGATION --- */
-    .header-nav {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(10, 14, 22, 0.7);
-      padding: 4px;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      -webkit-app-region: no-drag;
-    }
-
-    .nav-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 36px;
-      padding: 0 12px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: transparent;
       color: var(--text-secondary);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    .nav-btn .nav-icon {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .nav-btn .nav-label {
-      display: inline-block;
-      max-width: 0;
-      opacity: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      margin-left: 0;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, margin-left 0.2s ease;
-    }
-
-    .nav-btn:hover {
-      color: var(--text-primary);
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .nav-btn.active {
-      background: rgba(255, 255, 255, 0.09);
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      padding: 0 16px 0 12px;
-    }
-
-    .nav-btn.active .nav-label {
-      max-width: 140px;
-      opacity: 1;
-      margin-left: 8px;
-    }
-
-
-
-    /* --- STACKED DOCK VERSION PILLS --- */
-    .dock-version-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      position: relative;
-    }
-
-    .dock-version-pill {
-      background: #121824;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 7px;
-      padding: 5px 10px;
-      color: #cbd5e1;
-      font-size: 12px;
-      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      min-width: 145px;
-      transition: all 0.15s ease;
-      user-select: none;
+      transition: background 0.1s ease;
     }
-
-    .dock-version-pill:hover {
-      background: #172030;
-      border-color: rgba(255, 255, 255, 0.2);
+    .select-item:hover {
+      background: rgba(255, 255, 255, 0.08);
       color: #ffffff;
     }
+    .select-item.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--mc-emerald);
+    }
 
-    /* --- MODPACK / ASSEMBLY DOCK BUTTON --- */
+    /* Modpack Selector */
     .dock-modpack-btn {
-      flex: 1;
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: #121824;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 10px;
+      gap: 12px;
       padding: 6px 14px;
+      background: #141c28;
+      border: 1px solid #28374a;
+      border-bottom: 4px solid #0c121b; /* 3D tactile bevel */
+      border-radius: 8px;
+      box-shadow: 0 2px 0 #080d14;
       cursor: pointer;
-      transition: all 0.15s ease;
-      min-width: 140px;
-      user-select: none;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
     }
 
     .dock-modpack-btn:hover {
-      background: #172030;
-      border-color: rgba(255, 255, 255, 0.22);
+      background: #1b2637;
+      border-color: #3b506d;
+    }
+
+    .dock-modpack-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 #080d14;
+    }
+
+    .dock-modpack-btn.btn-inactive {
+      opacity: 0.7;
+    }
+
+    .dock-modpack-btn.btn-inactive:hover {
+      border-color: #ea580c;
     }
 
     .dock-modpack-icon {
       width: 28px;
       height: 28px;
       border-radius: 6px;
-      background: rgba(37, 99, 235, 0.15);
-      color: #60a5fa;
+      background: rgba(234, 88, 12, 0.12);
+      color: var(--rust-orange);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1143,104 +1031,124 @@
       display: flex;
       flex-direction: column;
       gap: 1px;
-      flex: 1;
-      overflow: hidden;
     }
 
     .dock-modpack-label {
-      font-size: 10px;
-      font-weight: 700;
+      font-family: var(--font-pixel);
+      font-size: 8px;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .dock-modpack-name {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    /* --- HERO LAUNCH BUTTON (TACTILE MINECRAFT EMERALD) --- */
+    /* Pure 3D Minecraft Emerald Launch Button («В БОЙ») */
     .btn-hero-launch {
-      height: 44px;
-      min-width: 130px;
-      background: var(--mc-emerald) !important;
+      height: 48px;
+      min-width: 170px;
+      background: #10b981 !important;
       border: 1px solid #34d399;
-      border-bottom: 3px solid var(--mc-emerald-dark) !important;
-      border-radius: 10px;
+      border-bottom: 5px solid #047857 !important; /* Authentic 3D solid edge */
+      border-radius: 8px;
       color: #ffffff;
-      font-size: 13px;
+      font-family: var(--font-minecraft);
+      font-size: 15px;
       letter-spacing: 0.5px;
       white-space: nowrap;
-      font-weight: 800;
-      letter-spacing: 1px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 9px;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-      transition: transform 0.08s ease, border-bottom-width 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+      gap: 10px;
+      box-shadow: 0 3px 0 #023829;
+      transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.06s ease;
+      user-select: none;
     }
 
     .btn-hero-launch:hover {
-      background: var(--mc-emerald-hover) !important;
-      border-color: #6ee7b7;
+      filter: brightness(1.08);
+      background: #10b981 !important;
     }
 
     .btn-hero-launch:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px !important;
-      box-shadow: 0 1px 4px rgba(16, 185, 129, 0.2);
+      transform: translateY(4px);
+      border-bottom: 1px solid #047857 !important;
+      box-shadow: 0 0 0 #023829;
     }
 
-    /* Download mode: Blue tactile */
     .btn-hero-launch.download-mode {
       background: #0284c7 !important;
       border-color: #38bdf8 !important;
-      border-bottom: 3px solid #0369a1 !important;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-    }
-
-    .btn-hero-launch.download-mode:hover {
-      background: #0369a1 !important;
+      border-bottom: 5px solid #0369a1 !important;
+      box-shadow: 0 3px 0 #02486f;
     }
 
     .btn-hero-launch.download-mode:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px !important;
-      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.2);
+      transform: translateY(4px);
+      border-bottom: 1px solid #0369a1 !important;
+      box-shadow: 0 0 0 #02486f;
     }
 
-    /* Running mode: Red tactile */
     .btn-hero-launch.running-mode {
-      background: var(--mc-redstone) !important;
+      background: #ef4444 !important;
       border-color: #f87171 !important;
-      border-bottom: 3px solid var(--mc-redstone-dark) !important;
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
-    }
-
-    .btn-hero-launch.running-mode:hover {
-      background: #dc2626 !important;
+      border-bottom: 5px solid #b91c1c !important;
+      box-shadow: 0 3px 0 #7f1d1d;
     }
 
     .btn-hero-launch.running-mode:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px !important;
-      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.2);
+      transform: translateY(4px);
+      border-bottom: 1px solid #b91c1c !important;
+      box-shadow: 0 0 0 #7f1d1d;
     }
 
-    /* --- MODAL DIALOGS --- */
+    /* Download progress strip */
+    .download-strip {
+      display: none;
+      width: min(880px, calc(100vw - 40px));
+      position: fixed;
+      bottom: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111722;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 12px;
+      z-index: 90;
+    }
+
+    .download-strip-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .download-track {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .download-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--mc-emerald);
+      border-radius: 3px;
+      transition: width 0.15s ease;
+    }
+
+    /* Modal Dialogs */
     .modal-backdrop {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(4, 7, 12, 0.78);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -1248,16 +1156,9 @@
       display: none;
       align-items: center;
       justify-content: center;
-      animation: modalFadeIn 0.2s ease-out;
     }
-
     .modal-backdrop.open {
       display: flex;
-    }
-
-    @keyframes modalFadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
 
     .modal-dialog {
@@ -1266,7 +1167,7 @@
       background: #0f1522;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1287,7 +1188,6 @@
       background: rgba(0, 0, 0, 0.35);
       padding: 3px;
       border-radius: 8px;
-      border: 1px solid var(--border-subtle);
     }
 
     .modal-nav-btn {
@@ -1296,16 +1196,10 @@
       border: none;
       background: transparent;
       color: var(--text-secondary);
-      font-size: 12px;
-      font-weight: 600;
+      font-family: var(--font-pixel);
+      font-size: 9px;
       cursor: pointer;
-      transition: all 0.15s ease;
     }
-
-    .modal-nav-btn:hover {
-      color: #ffffff;
-    }
-
     .modal-nav-btn.active {
       background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
@@ -1314,263 +1208,483 @@
     .modal-body {
       padding: 20px 24px;
       overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
       flex: 1;
     }
 
-    /* Modpack list cards */
+    /* FULLSCREEN-LIKE SPACIOUS MODPACKS MODAL */
+    #modal-modpacks .modal-dialog {
+      width: min(1360px, 94vw);
+      height: min(840px, 88vh);
+      max-height: 90vh;
+      background: #0d121c;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 4px solid #06090e;
+      border-radius: 12px;
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #modal-modpacks .modal-body {
+      padding: 22px 26px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 5 CARDS IN A ROW GRID */
     .modpack-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+      gap: 16px;
       margin-bottom: 20px;
     }
 
+    /* SOLID RECTANGLE ASSEMBLY CARD */
     .modpack-card {
-      background: #141c2a;
+      background: #131a26;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 16px;
+      border-bottom: 3px solid #0b0f16;
+      border-radius: 8px;
+      padding: 18px 16px;
+      height: 280px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      transition: all 0.15s ease;
+      justify-content: space-between;
+      transition: transform 0.12s ease, border-color 0.12s ease;
       position: relative;
     }
-
     .modpack-card:hover {
-      border-color: rgba(255, 255, 255, 0.2);
       transform: translateY(-2px);
-      background: #182234;
+      border-color: rgba(255, 255, 255, 0.2);
     }
-
     .modpack-card.active-pack {
       border-color: #2563eb;
-      background: rgba(37, 99, 235, 0.08);
-      box-shadow: 0 0 0 1px #2563eb;
-    }
-
-    .modpack-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .modpack-card-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #ffffff;
+      border-bottom-color: #1d4ed8;
+      background: #141f32;
     }
 
     .modpack-card-badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      padding: 3px 6px;
       border-radius: 4px;
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      align-self: flex-start;
+      letter-spacing: 0.5px;
+    }
+    .modpack-card.active-pack .modpack-card-badge {
+      background: rgba(37, 99, 235, 0.25);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.4);
     }
 
-    .modpack-card-desc {
+    .modpack-card-title {
+      font-family: var(--font-minecraft);
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .modpack-card-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
       font-size: 11px;
       color: var(--text-secondary);
-      line-height: 1.4;
-      min-height: 32px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 10px;
+      flex: 1;
     }
-
-    .modpack-card-meta {
+    .modpack-card-stat-line {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: var(--text-muted);
     }
 
     .modpack-card-actions {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-top: 6px;
-    }
-
-    .card-create-category {
-      background: #141c2a;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .badge-cat-count {
-      font-size: 11px;
-      font-weight: 700;
-      background: rgba(37, 99, 235, 0.2);
-      color: #93c5fd;
-      padding: 2px 7px;
-      border-radius: 10px;
-    }
-
-    .chips-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-top: 8px;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    .chip-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 5px;
-      padding: 4px 8px;
-      font-size: 11px;
-      color: #e2e8f0;
-    }
-
-    .chip-item .chip-del {
-      cursor: pointer;
-      color: var(--text-muted);
-      font-weight: bold;
-      margin-left: 6px;
-    }
-    .chip-item .chip-del:hover {
-      color: #ef4444;
-    }
-
-    /* Catalog Grid */
-    .catalog-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-      gap: 12px;
-    }
-
-    .catalog-card {
-      background: #141c2a;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
       gap: 8px;
-      transition: all 0.15s ease;
+      margin-top: 12px;
     }
-
-    .catalog-card:hover {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: #172132;
-    }
-
-    .catalog-header {
+    .btn-pack-select {
+      flex: 1;
+      height: 34px;
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      background: #2563eb;
+      color: #ffffff;
+      border-bottom: 3px solid #1d4ed8;
+      transition: background 0.12s, transform 0.08s;
+    }
+    .btn-pack-select:hover {
+      background: #3b82f6;
+    }
+    .btn-pack-select:active {
+      transform: translateY(2px);
+      border-bottom-width: 1px;
+    }
+    .btn-pack-select.is-active {
+      background: #15803d;
+      border-bottom: 3px solid #0f582a;
+      color: #dcfce7;
+      cursor: default;
+    }
+    .btn-pack-delete {
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s;
+    }
+    .btn-pack-delete:hover {
+      background: #dc2626;
+      color: #ffffff;
     }
 
-    .catalog-title {
-      font-size: 13px;
+    /* "+" CARD (SAME RECTANGULAR SIZE) */
+    .modpack-add-card {
+      background: #111722;
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 20px;
+      text-align: center;
+      transition: border-color 0.14s ease, background 0.14s ease;
+      user-select: none;
+    }
+    .modpack-add-card:hover {
+      background: rgba(59, 130, 246, 0.05);
+      border-color: #3b82f6;
+    }
+    .add-card-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #182234;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #60a5fa;
+      transition: background 0.12s, color 0.12s;
+    }
+    .modpack-add-card:hover .add-card-icon-box {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .add-card-title {
+      font-family: var(--font-minecraft);
+      font-size: 14px;
       font-weight: 700;
       color: #ffffff;
     }
 
-    .catalog-author {
-      font-size: 11px;
-      color: var(--text-muted);
+    /* ASSEMBLY CREATION WORKBENCH */
+    .creation-workbench {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+      height: 100%;
+    }
+    .creation-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .creation-tabs-row {
+      display: flex;
+      gap: 8px;
+    }
+    .create-cat-tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #121824;
+      color: var(--text-secondary);
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.12s, color 0.12s;
+    }
+    .create-cat-tab:hover {
+      color: #ffffff;
+      background: #1a2334;
+    }
+    .create-cat-tab.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+    .create-cat-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #93c5fd;
+    }
+    .create-cat-tab.active .create-cat-badge {
+      background: #1d4ed8;
+      color: #ffffff;
     }
 
-    .catalog-desc {
+    /* SINGLE UNIFIED WORKBENCH BODY */
+    .creation-unified-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      background: #111722;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .workbench-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .drag-drop-box {
+      border: 2px dashed rgba(96, 165, 250, 0.35);
+      background: rgba(30, 41, 59, 0.25);
+      border-radius: 6px;
+      padding: 18px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .drag-drop-box.drag-over {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: #60a5fa;
+    }
+    .drag-drop-box:hover {
+      border-color: #60a5fa;
+      background: rgba(30, 41, 59, 0.4);
+    }
+
+    /* REORDERABLE ADDONS QUEUE LIST */
+    .file-items-scroll {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+      min-height: 120px;
+    }
+
+    .file-addon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #161e2c;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 6px;
+      padding: 8px 12px;
       font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.4;
+      user-select: none;
+      cursor: grab;
+      transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+    }
+    .file-addon-row:active {
+      cursor: grabbing;
+    }
+    .file-addon-row.dragging {
+      opacity: 0.4;
+      background: #1e293b;
+      border-color: #3b82f6;
+    }
+    .file-addon-row.drag-target {
+      border-top: 2px solid #3b82f6;
+    }
+
+    .drag-handle-btn {
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      cursor: grab;
+    }
+    .file-addon-row:hover .drag-handle-btn {
+      color: #94a3b8;
+    }
+
+    .file-addon-queue-num {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: var(--text-muted);
+      min-width: 28px;
+    }
+
+    .file-addon-name {
+      color: #e2e8f0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       flex: 1;
     }
-
-    .active-cat {
-      background: rgba(37, 99, 235, 0.25) !important;
-      border-color: rgba(37, 99, 235, 0.5) !important;
-      color: #ffffff !important;
+    .file-addon-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #93c5fd;
+      background: rgba(37, 99, 235, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .file-addon-del {
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      transition: all 0.12s;
+    }
+    .file-addon-del:hover {
+      color: #ffffff;
+      background: #dc2626;
+      border-color: #dc2626;
     }
 
+    /* FOOTER BAR OF WORKBENCH */
+    .creation-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: auto;
+    }
+    .creation-summary-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+      font-size: 10px;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Background Video -->
-  <video class="bg-video" autoplay loop muted playsinline>
-    <source src="assets/bg.mp4" type="video/mp4">
-  </video>
+  <!-- Floating Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Clean Dark Background Overlay -->
   <div class="bg-overlay"></div>
 
-  <!-- Minimalist Top Window Header -->
+  <!-- Header with Expanding Tabs & Window Controls -->
   <header class="app-header">
-    <div class="brand-section">
-      <div class="brand-logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="brand-vector-logo">
-          <!-- Outer Rust Cogwheel Teeth & Ferris Crab Silhouette -->
-          <path d="M10 1h4v2.5h-4V1zM10 20.5h4V23h-4v-2.5zM1 10h2.5v4H1v-4zM20.5 10H23v4h-2.5v-4z" fill="#ea580c"/>
-          <path d="M4.2 4.2l2.6 1.3-1.2 2.4-2.6-1.3 1.2-2.4zM18.4 16.2l2.6 1.3-1.2 2.4-2.6-1.3 1.2-2.4zM4.2 19.8l1.2-2.4 2.6 1.3-1.2 2.4-2.6-1.3zM18.4 7.8l1.2-2.4 2.6 1.3-1.2 2.4-2.6-1.3z" fill="#f97316"/>
-          <!-- Rust Crab Claws Accent Arcs -->
-          <path d="M2.2 7.5C1.4 8.8 1 10.3 1 12c0 1.7.4 3.2 1.2 4.5" stroke="#ea580c" stroke-width="1.4" stroke-linecap="round"/>
-          <path d="M21.8 7.5c.8 1.3 1.2 2.8 1.2 4.5 0 1.7-.4 3.2-1.2 4.5" stroke="#ea580c" stroke-width="1.4" stroke-linecap="round"/>
-          <!-- Isometric Minecraft Obsidian/Slate Block -->
-          <!-- Top Face (Refined Slate with Stone highlight) -->
-          <polygon points="12,3.8 19,7.8 12,11.8 5,7.8" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
-          <!-- Left Face (Deep Obsidian Shadow) -->
-          <polygon points="5,7.8 12,11.8 12,19.8 5,15.8" fill="#0c1017" stroke="#1e293b" stroke-width="0.8"/>
-          <!-- Right Face (Dark Slate) -->
-          <polygon points="12,11.8 19,7.8 19,15.8 12,19.8" fill="#151c28" stroke="#2d3748" stroke-width="0.8"/>
-          <!-- Mechanical Center Core: Rust Cogwheel Hub & Glowing Eye -->
-          <circle cx="12" cy="11.8" r="2.8" fill="#c2410c" stroke="#ea580c" stroke-width="0.8"/>
-          <circle cx="12" cy="11.8" r="1.3" fill="#fbbf24"/>
-          <!-- Minecraft Emerald Inset Pixel on Top Face -->
-          <rect x="11.2" y="5.6" width="1.6" height="1.6" fill="#10b981" rx="0.3"/>
-        </svg>
-      </div>
-      <div class="brand-title-wrap">
-        <span class="brand-title" id="header-brand-title">BURMALDA</span>
-        <span class="brand-tag">ENGINE</span>
-      </div>
-    </div>
-
     <nav class="header-nav">
       <button class="nav-btn active" data-tab="play" title="Игра">
         <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="3"></rect>
+            <path d="M6 12h4m-2-2v4m7-2h.01m3 0h.01"></path>
+          </svg>
         </span>
-        <span class="nav-label">Игра</span>
+        <span class="nav-label">ИГРА</span>
       </button>
 
-      <button class="nav-btn" data-tab="servers" title="Серверы">
+      <button class="nav-btn" data-tab="modpacks" title="Сборки и модификации">
         <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
         </span>
-        <span class="nav-label">Серверы</span>
+        <span class="nav-label">СБОРКИ</span>
       </button>
 
-      <button class="nav-btn" data-tab="friends" title="Друзья">
+      <button class="nav-btn btn-inactive" data-tab="servers" data-locked="true" title="Серверы (В разработке)">
         <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
         </span>
-        <span class="nav-label">Друзья</span>
+        <span class="nav-label">СЕРВЕРЫ</span>
       </button>
 
-      <button class="nav-btn" data-tab="wardrobe" title="Гардероб">
+      <button class="nav-btn btn-inactive" data-tab="friends" data-locked="true" title="Друзья (В разработке)">
         <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
         </span>
-        <span class="nav-label">Гардероб</span>
+        <span class="nav-label">ДРУЗЬЯ</span>
+      </button>
+
+      <button class="nav-btn btn-inactive" data-tab="wardrobe" data-locked="true" title="Гардероб (В разработке)">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+          </svg>
+        </span>
+        <span class="nav-label">ГАРДЕРОБ</span>
       </button>
 
       <button class="nav-btn" data-tab="settings" title="Настройки">
         <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
         </span>
-        <span class="nav-label">Настройки</span>
+        <span class="nav-label">НАСТРОЙКИ</span>
       </button>
     </nav>
 
@@ -1590,26 +1704,28 @@
   <!-- Main Viewport -->
   <main class="app-main">
     
-    <!-- 1. TAB: PLAY (Hero Steve Stage) -->
+    <!-- 1. TAB: PLAY (Hero Steve Stage Centered on Pedestal) -->
     <section class="tab-content active" id="pane-play">
+      <!-- Fullscreen 3D Viewport: Steve, crates and ragdoll debris fly across the entire launcher window -->
+      <div class="stage-viewport" id="stage-viewport">
+        <canvas id="skin-viewer-3d"></canvas>
+      </div>
+
       <div class="hero-stage">
         
-        <!-- Interactive Nametag -->
-        <div class="player-nametag-float" id="btn-open-nametag" title="Нажмите для настройки профиля">
+        <!-- Interactive Nametag with Inline Minecraft Editing -->
+        <div class="player-nametag-float" id="btn-open-nametag" title="Нажмите, чтобы изменить ник">
           <span class="nametag-text" id="stage-player-nick">Player</span>
+          <span class="nametag-cursor" id="stage-player-cursor" style="display: none;">_</span>
+          <input type="text" id="stage-player-input" class="nametag-hidden-input" maxlength="24" autocomplete="off" spellcheck="false" />
         </div>
 
-
-
-        <!-- 3D Steve Canvas -->
-        <div class="stage-viewport">
-          <canvas id="skin-viewer-3d" width="360" height="440"></canvas>
-          <div class="stage-shadow-pedestal"></div>
-        </div>
+        <!-- Interactive Hitbox for Steve (Captures drags, punches & 16+ Easter Egg) -->
+        <div class="steve-interactive-zone" id="steve-interactive-zone"></div>
 
         <!-- EXACTLY 3 Clean Icon-Only Action Buttons under Steve -->
         <div class="stage-icon-bar">
-          <button class="btn-stage-icon" id="btn-stage-wardrobe" title="Гардероб и выбор скина">
+          <button class="btn-stage-icon btn-inactive" id="btn-stage-wardrobe" data-locked="true" title="Гардероб (В разработке)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
           </button>
 
@@ -1625,7 +1741,7 @@
       </div>
     </section>
 
-    <!-- 2. TAB: SERVERS (Popular Servers & Custom Direct Connect) -->
+    <!-- 2. TAB: SERVERS -->
     <section class="tab-content" id="pane-servers">
       <div class="panel-container">
         <div class="panel-header">
@@ -1635,10 +1751,7 @@
           </div>
         </div>
 
-        <!-- Curated Popular Servers Grid -->
-        <div class="servers-grid" id="popular-servers-grid">
-          <!-- Populated by JS: Hypixel, FunTime, ReallyWorld, HolyWorld, CubeCraft, Mineplex -->
-        </div>
+        <div class="servers-grid" id="popular-servers-grid"></div>
 
         <div class="panel-header" style="margin-top: 10px;">
           <div class="panel-title" style="font-size: 14px;">
@@ -1648,7 +1761,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <input type="text" id="input-play-server" class="input-clean" placeholder="IP:порт (например mc.hypixel.net или 127.0.0.1:25565)" value="127.0.0.1:25565" style="flex: 1;">
+          <input type="text" id="input-play-server" class="input-clean" placeholder="IP:порт (например mc.funtime.su)" value="127.0.0.1:25565" style="flex: 1;">
           <button class="btn-action-primary" id="btn-direct-connect">Подключиться</button>
         </div>
 
@@ -1662,74 +1775,64 @@
       </div>
     </section>
 
-    <!-- TAB: FRIENDS (Horizon Friends & Direct P2P Connect) -->
+    <!-- 3. TAB: FRIENDS -->
     <section class="tab-content" id="pane-friends">
-      <div class="panel-container" style="width: min(840px, calc(100vw - 40px));">
+      <div class="panel-container">
         <div class="panel-header">
           <div class="panel-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span>Друзья & Совместная игра (Horizon Friends P2P)</span>
+            <span>Друзья & Совместная игра (P2P)</span>
           </div>
-          <span style="font-size: 11px; font-weight: 700; color: #22c55e; display: flex; align-items: center; gap: 5px;">
-            <span style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>
-            LAN / P2P Сервис активен
-          </span>
+          <span style="font-size: 11px; font-weight: 700; color: #22c55e;">LAN / P2P Активен</span>
         </div>
 
-        <!-- Quick Invite Code Box -->
-        <div class="setting-card" style="margin-bottom: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px;">
+        <div class="setting-card" style="margin-bottom: 12px;">
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span class="setting-label" style="font-size: 13px;">Подключение по инвайт-коду друга</span>
-              <span style="font-size: 11px; color: var(--text-muted);">Без настройки портов роутера</span>
+              <span class="setting-label">Подключение по инвайт-коду</span>
+              <span class="setting-sub">Без настройки роутера</span>
             </div>
             <div style="display: flex; gap: 8px;">
-              <input type="text" id="input-friend-invite-code" class="input-clean" placeholder="Вставьте код (например hzn://7b9f-44a1)" style="flex: 1;">
-              <button class="btn-action-primary" id="btn-join-friend-code" style="padding: 0 16px;">Присоединиться</button>
+              <input type="text" id="input-friend-invite-code" class="input-clean" placeholder="hzn://7b9f-44a1" style="flex: 1;">
+              <button class="btn-action-primary" id="btn-join-friend-code">Присоединиться</button>
             </div>
           </div>
         </div>
 
-        <!-- Share My Session Box -->
-        <div class="setting-card" style="margin-bottom: 16px; background: rgba(234, 88, 12, 0.04); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 10px; padding: 12px 14px;">
+        <div class="setting-card" style="margin-bottom: 16px;">
           <div class="setting-info">
-            <span class="setting-label" style="color: #fed7aa;">Мой код приглашения для друзей</span>
-            <span class="setting-sub" id="my-invite-code-label">Сгенерируйте код, чтобы друг зашел в ваш одиночный мир</span>
+            <span class="setting-label">Мой код приглашения</span>
+            <span class="setting-sub" id="my-invite-code-label">Для входа друга в ваш одиночный мир</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <code id="display-my-invite-code" style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">hzn://offline</code>
-            <button class="btn-action-secondary" id="btn-copy-my-code" style="height: 32px; font-size: 11px;">Скопировать</button>
-            <button class="btn-action-secondary" id="btn-refresh-my-code" title="Обновить код" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+            <button class="btn-action-secondary" id="btn-copy-my-code">Скопировать</button>
+            <button class="btn-action-secondary" id="btn-refresh-my-code" title="Обновить код" style="padding: 6px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
           </div>
         </div>
 
-        <!-- Friends List -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Список друзей</span>
-          <button class="btn-action-secondary" id="btn-open-add-friend" style="height: 28px; padding: 0 10px; font-size: 11px;">+ Добавить друга</button>
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">СПИСОК ДРУЗЕЙ</span>
+          <button class="btn-action-secondary" id="btn-open-add-friend" style="padding: 4px 10px;">+ Добавить друга</button>
         </div>
 
-        <div id="friends-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
-          <!-- Dynamically populated friends cards -->
-        </div>
-
+        <div id="friends-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;"></div>
       </div>
     </section>
 
-    <!-- 3. TAB: WARDROBE (Гардероб, 9 образов Mojang, Коллекция, Ely.by) -->
+    <!-- 4. TAB: WARDROBE -->
     <section class="tab-content" id="pane-wardrobe">
-      <div class="panel-container" style="width: min(920px, calc(100vw - 40px));">
+      <div class="panel-container">
         <div class="panel-header">
           <div class="panel-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-            <span>Гардероб и персонализация персонажа</span>
+            <span>Гардероб и персонализация</span>
           </div>
         </div>
 
         <div class="wardrobe-layout">
-          <!-- Left: Current Skin Preview & Player Nick -->
           <div class="wardrobe-preview-box">
             <canvas class="wardrobe-avatar-canvas" id="wardrobe-avatar-canvas" width="140" height="140"></canvas>
             <div class="wardrobe-active-name" id="wardrobe-skin-name">Скин: Стив</div>
@@ -1744,61 +1847,51 @@
 
             <button class="btn-action-primary" id="btn-upload-new-skin" style="width: 100%; margin-top: 6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>+ Загрузить свой .png</span>
+              <span>+ Загрузить .png</span>
             </button>
           </div>
 
-          <!-- Right: Default Mojang Skins & Custom Skins Collection -->
           <div style="display: flex; flex-direction: column; gap: 14px;">
-            
-            <!-- Standard Mojang 9 Default Skins -->
             <div>
               <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
                 Стандартные образы Minecraft (Mojang)
               </div>
-              <div class="default-skins-grid" id="mojang-default-skins-grid">
-                <!-- Steve, Alex, Noor, Sunny, Ari, Zuri, Makena, Kai, Efe -->
-              </div>
+              <div class="default-skins-grid" id="mojang-default-skins-grid"></div>
             </div>
 
-            <!-- Custom User Wardrobe Collection -->
             <div>
               <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
                 Моя коллекция скинов
               </div>
-              <div class="custom-skins-strip" id="custom-wardrobe-strip">
-                <!-- Dynamically populated from settings.wardrobe -->
-              </div>
+              <div class="custom-skins-strip" id="custom-wardrobe-strip"></div>
             </div>
 
-            <!-- Download Skin by Nickname (Ely.by / Mojang) -->
             <div style="background: #141b26; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px;">
               <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
-                Загрузить скин по нику (Ely.by / Лицензия):
+                Загрузить скин по нику (Ely.by / Mojang):
               </div>
               <div style="display: flex; gap: 8px;">
-                <input type="text" id="input-fetch-skin-nick" class="input-clean" placeholder="Никнейм игрока (например Notch или скин с Ely.by)">
+                <input type="text" id="input-fetch-skin-nick" class="input-clean" placeholder="Никнейм игрока">
                 <button class="btn-action-secondary" id="btn-fetch-skin-by-nick">Скачать</button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 4. TAB: SETTINGS (Real Game & System Options) -->
+    <!-- 5. TAB: SETTINGS -->
     <section class="tab-content" id="pane-settings">
       <div class="panel-container">
         <div class="panel-header">
           <div class="panel-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span>Параметры запуска и системы</span>
           </div>
         </div>
 
         <div class="settings-group">
-          <!-- RAM Allocation -->
+          <!-- RAM -->
           <div class="setting-card">
             <div class="setting-info">
               <span class="setting-label">Выделение оперативной памяти (ОЗУ)</span>
@@ -1837,229 +1930,23 @@
             </label>
           </div>
 
-          <!-- Custom Launch Arguments -->
+          <!-- Custom Args -->
           <div class="setting-card" style="flex-direction: column; align-items: flex-start; gap: 8px;">
             <div class="setting-info">
               <span class="setting-label">Пользовательские параметры запуска</span>
-              <span class="setting-sub">Дополнительные аргументы командной строки при старте игры</span>
+              <span class="setting-sub">Дополнительные аргументы командной строки</span>
             </div>
-            <input type="text" id="setting-custom-args" class="input-clean" placeholder="например: --fps-limit 144 --vsync">
+            <input type="text" id="setting-custom-args" class="input-clean" placeholder="--fps-limit 144 --vsync" style="width: 100%;">
           </div>
 
-          <!-- MOBILE & TOUCH CONTROLS CONFIGURATION -->
+          <!-- Native Folders -->
           <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
-            <div class="panel-title" style="font-size: 14px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-              <span>Сенсорное управление (Touch Controls & Mobile)</span>
-            </div>
-            <span style="font-size: 11px; color: #f97316; font-family: var(--font-mono); font-weight: 600;">v1.0.0 (Persistent Mod)</span>
-          </div>
-
-          <!-- Control Presets -->
-          <div class="setting-card" style="flex-direction: column; align-items: stretch; gap: 8px;">
-            <div class="setting-info">
-              <span class="setting-label">Готовые пресеты раскладки</span>
-              <span class="setting-sub">Быстрая настройка под ваш стиль игры и тип устройства</span>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn-action-secondary btn-touch-preset" data-preset="bedrock" style="flex: 1; min-width: 130px; height: 32px; font-size: 11px;">
-                🎮 Классика Bedrock
-              </button>
-              <button class="btn-action-secondary btn-touch-preset" data-preset="claw" style="flex: 1; min-width: 130px; height: 32px; font-size: 11px;">
-                ⚡ Клешня (PvP 3-4 пальца)
-              </button>
-              <button class="btn-action-secondary btn-touch-preset" data-preset="tablet" style="flex: 1; min-width: 130px; height: 32px; font-size: 11px;">
-                📱 Планшет / Большой экран
-              </button>
-            </div>
-          </div>
-
-          <!-- Enable Virtual HUD -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Виртуальные элементы на экране</span>
-              <span class="setting-sub">Отображать экранный джойстик, кнопки прыжка, приседания и инвентаря</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-enable" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Stick Mode -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Режим виртуального джойстика</span>
-              <span class="setting-sub">Плавающий появляется в месте касания; Фиксированный закреплен в углу</span>
-            </div>
-            <select id="setting-touch-stick-mode" class="input-clean" style="width: 170px;">
-              <option value="floating" selected>Плавающий (динамический)</option>
-              <option value="fixed">Фиксированный</option>
-            </select>
-          </div>
-
-          <!-- Sneak Activation -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Приседание: Двойной тап по центру (Shift)</span>
-              <span class="setting-sub">Два быстрых нажатия по рукоятке стика фиксируют приседание</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-sneak-double" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Sprint Activation -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Бег: Удержание стика вперед (Ctrl)</span>
-              <span class="setting-sub">Удержание стика у границы более 400 мс активирует спринт</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-sprint-hold" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- HUD Opacity -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Прозрачность кнопок HUD: <b id="val-touch-opacity" style="color: #f97316;">80%</b></span>
-              <span class="setting-sub">Регулировка видимости экранных элементов</span>
-            </div>
-            <input type="range" id="setting-touch-opacity" min="20" max="100" value="80" style="width: 160px; accent-color: #f97316;">
-          </div>
-
-          <!-- Button Scale -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Масштаб элементов управления: <b id="val-touch-scale" style="color: #f97316;">1.0x</b></span>
-              <span class="setting-sub">Размер кнопок прыжка, инвентаря и джойстика</span>
-            </div>
-            <input type="range" id="setting-touch-scale" min="80" max="150" value="100" style="width: 160px; accent-color: #f97316;">
-          </div>
-
-          <!-- Camera Sensitivity -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Чувствительность сенсорной камеры: <b id="val-touch-sens" style="color: #f97316;">1.0x</b></span>
-              <span class="setting-sub">Скорость поворота головы при движении пальцем по правой части экрана</span>
-            </div>
-            <input type="range" id="setting-touch-sens" min="50" max="250" value="100" style="width: 160px; accent-color: #f97316;">
-          </div>
-
-          <!-- Left-Handed Mode -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Режим для левшей</span>
-              <span class="setting-sub">Стик перемещается вправо, зона обзора и кнопки действий — влево</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-lefty">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Tactile Sound Feedback -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Звуковой отклик кнопок (Click Sound)</span>
-              <span class="setting-sub">Воспроизводить классический клик при нажатии на экранные кнопки и клавиатуру</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-sound" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Tactile Haptic Vibration -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Виброотклик кнопок (Haptic Feedback)</span>
-              <span class="setting-sub">Мягкая виброотдача смартфона при касании стика, прыжке и ломании блоков</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-haptic" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Split Controls (Crosshair) -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Раздельное управление (Crosshair / Прицел)</span>
-              <span class="setting-sub">Включено: прицел по центру как на ПК/Bedrock; Выключено: прямое указание на блок пальцем</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-touch-split" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Mine Hold Threshold -->
-          <div class="setting-card">
-            <div class="setting-info">
-              <span class="setting-label">Порог зажатия для копания: <b id="val-touch-mine" style="color: #f97316;">350 мс</b></span>
-              <span class="setting-sub">Короткий тап бьет/ставит блок, долгое удержание непрерывно ломает</span>
-            </div>
-            <input type="range" id="setting-touch-mine" min="200" max="600" step="25" value="350" style="width: 160px; accent-color: #f97316;">
-          </div>
-
-          <!-- Save Touch Profile Button -->
-          <div class="setting-card" style="justify-content: space-between;">
-            <div class="setting-info">
-              <span class="setting-label">Синхронизация профиля управления</span>
-              <span class="setting-sub">Сохраняется в профиль мода и не сбрасывается при обновлениях игры</span>
-            </div>
-            <button class="btn-action-primary" id="btn-save-touch-settings" style="height: 34px; padding: 0 16px;">
-              Сохранить настройки
-            </button>
-          </div>
-
-          <!-- Export Android APK -->
-          <div class="setting-card" style="justify-content: space-between; border: 1px solid rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.05);">
-            <div class="setting-info">
-              <span class="setting-label" style="display: flex; align-items: center; gap: 6px;">
-                📱 <span>Экспорт Android APK (Телефон / Планшет)</span>
-              </span>
-              <span class="setting-sub">Собрать готовый APK с предустановленным модом сенсорного управления в ~/Downloads/horizon-mobile-26.3.apk</span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn-action-primary" id="btn-export-apk" style="height: 34px; padding: 0 16px; background: #f97316;">
-                Собрать APK
-              </button>
-            </div>
-          </div>
-
-          <!-- Interactive HUD Simulator Preview -->
-          <div class="setting-card" style="flex-direction: column; align-items: stretch; gap: 10px; padding: 14px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div class="setting-info">
-                <span class="setting-label">Интерактивный симулятор сенсорного экрана</span>
-                <span class="setting-sub">Проверьте отклик джойстика, двойной тап и тайминг зажатия прямо сейчас</span>
-              </div>
-              <span id="touch-sim-feedback" style="font-family: var(--font-mono); font-size: 11px; color: #22c55e; font-weight: 600;">Готов к тестированию</span>
-            </div>
-
-            <div style="position: relative; width: 100%; height: 200px; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-              <canvas id="touch-hud-sim-canvas" width="600" height="200" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
-              <span>💡 Двигайте курсор по левой части для джойстика</span>
-              <span>Двойной клик = Shift • Зажатие справа = Ломание</span>
-            </div>
-          </div>
-
-          <!-- Section Divider -->
-          <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
-            <div class="panel-title" style="font-size: 14px;">
+            <div class="panel-title">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               <span>Системные каталоги и файлы</span>
             </div>
           </div>
 
-          <!-- Native Folders (Direct Graphical File Manager) -->
           <div class="setting-card">
             <div class="setting-info">
               <span class="setting-label">Папка миров (saves)</span>
@@ -2102,18 +1989,7 @@
 
   <!-- FLOATING COMMAND LAUNCH DOCK -->
   <div class="launch-dock">
-    <!-- Left: Profile Pill with Authentic Steve Head -->
-    <div class="dock-player-card" id="dock-player-card" title="Нажмите для перехода в гардероб">
-      <div class="player-avatar-box">
-        <canvas class="player-avatar-canvas" id="dock-avatar" width="42" height="42"></canvas>
-      </div>
-      <div class="player-meta">
-        <span class="player-name-text" id="dock-player-name">Player</span>
-        <span class="player-status-subtitle">Готов к игре</span>
-      </div>
-    </div>
-
-    <!-- Stacked Version Selector (No separate loud headers) -->
+    <!-- Stacked Version Selector on PC -->
     <div class="dock-version-stack">
       <!-- 1. Minecraft 26.3 Trigger -->
       <div style="position: relative;">
@@ -2134,25 +2010,25 @@
       </div>
     </div>
 
-    <!-- Center: Modpack / Assembly Selector -->
-    <div class="dock-modpack-btn" id="trigger-modpack-manager" title="Выбор сборки / Создать свою">
+    <!-- Center: Modpack / Assembly Selector (Unlocked) -->
+    <div class="dock-modpack-btn" id="trigger-modpack-manager" title="Выбор и создание сборок">
       <div class="dock-modpack-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <img src="assets/icons/rust.svg" width="20" height="20" alt="Rust" style="display: block;" />
       </div>
       <div class="dock-modpack-info">
         <span class="dock-modpack-label">Сборка:</span>
-        <span class="dock-modpack-name" id="dock-modpack-name">Ванилла</span>
+        <span class="dock-modpack-name" id="dock-modpack-name">Ванилла Rust</span>
       </div>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted);"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
 
-    <!-- Right: Big Action Button -->
+    <!-- Right: Big 3D Action Button («В БОЙ») -->
     <div class="dock-action-wrap">
       <button class="btn-hero-launch" id="btn-hero-action">
         <span id="hero-btn-icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </span>
-        <span id="hero-btn-text">ИГРАТЬ</span>
+        <span id="hero-btn-text">В БОЙ</span>
       </button>
     </div>
   </div>
@@ -2160,134 +2036,171 @@
   <!-- MODAL: MODPACKS & ASSEMBLIES MANAGER -->
   <div class="modal-backdrop" id="modal-modpacks">
     <div class="modal-dialog">
-      <!-- Modal Header -->
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            <span>Сборки и Модификации</span>
-          </div>
-
-          <div class="modal-nav">
-            <button class="modal-nav-btn active" id="tab-btn-modpack-list">Мои сборки</button>
-            <button class="modal-nav-btn" id="tab-btn-modpack-catalog">Каталог дополнений</button>
-          </div>
-        </div>
-
+        <div style="font-family: var(--font-minecraft); font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px;">СБОРКИ И МОДЫ</div>
         <button class="win-btn" id="btn-close-modpacks-modal" title="Закрыть">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
-      <!-- Modal Body -->
       <div class="modal-body">
-        
-        <!-- VIEW 1: ASSEMBLIES LIST -->
-        <div id="view-modpack-list">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Доступные сборки</span>
-            <button class="btn-action-primary" id="btn-open-create-modpack" style="padding: 7px 16px; font-size: 12px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>+ Создать сборку</span>
-            </button>
-          </div>
-
-          <div class="modpack-grid" id="modpack-cards-container">
-            <!-- Rendered by JS -->
-          </div>
+        <!-- 1. VIEW: MODPACKS GRID LIST -->
+        <div id="view-modpack-list" style="display: flex; flex-direction: column; height: 100%;">
+          <div class="modpack-grid" id="modpack-cards-container"></div>
         </div>
 
-        <!-- VIEW 2: CREATE ASSEMBLY FORM -->
-        <div id="view-modpack-create" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-            <button class="btn-action-secondary" id="btn-back-from-create" style="padding: 5px 10px;">← Назад</button>
-            <span style="font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; font-weight: 800; color: #ffffff;">Новая сборка</span>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: grid; grid-template-columns: 1fr 180px; gap: 12px;">
-              <div>
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">НАЗВАНИЕ СБОРКИ</label>
-                <input type="text" id="input-new-pack-name" class="input-clean" placeholder="Например: Выживание с друзьями" style="width: 100%;">
-              </div>
-              <div>
-                <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">ВЕРСИЯ</label>
-                <select id="select-new-pack-version" class="input-clean" style="width: 100%;">
-                  <option value="26.3">Minecraft 26.3</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Categories -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-              <!-- Mods -->
-              <div class="card-create-category">
-                <div style="font-size: 13px; font-weight: 700; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
-                  <span>📦 Моды</span>
-                  <span id="badge-count-mods" class="badge-cat-count">0</span>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
-                  <button class="btn-action-secondary" id="btn-pick-mods-cat" style="font-size: 11px; padding: 6px 8px;">+ Из каталога</button>
-                  <button class="btn-action-secondary" id="btn-file-mods" style="font-size: 11px; padding: 6px 8px;">+ Файл .jar с ПК</button>
-                </div>
-                <div class="chips-list" id="chips-pack-mods"></div>
+        <!-- 2. VIEW: CREATION STUDIO -->
+        <div id="view-modpack-create" style="display: none; height: 100%;">
+          <div class="creation-workbench">
+            <div class="creation-header-bar">
+              <button class="btn-action-secondary" id="btn-back-from-create" style="padding: 7px 14px; font-size: 11px;">
+                Назад
+              </button>
+              <div style="flex: 1; max-width: 440px;">
+                <input type="text" id="input-new-pack-name" class="input-clean" placeholder="Название сборки" style="width: 100%; font-weight: 700; font-size: 12px;">
               </div>
 
-              <!-- Texture Packs -->
-              <div class="card-create-category">
-                <div style="font-size: 13px; font-weight: 700; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
-                  <span>🎨 Текстурпаки</span>
-                  <span id="badge-count-textures" class="badge-cat-count">0</span>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
-                  <button class="btn-action-secondary" id="btn-pick-tex-cat" style="font-size: 11px; padding: 6px 8px;">+ Из каталога</button>
-                  <button class="btn-action-secondary" id="btn-file-textures" style="font-size: 11px; padding: 6px 8px;">+ Файл .zip с ПК</button>
-                </div>
-                <div class="chips-list" id="chips-pack-textures"></div>
-              </div>
-
-              <!-- Shaders -->
-              <div class="card-create-category">
-                <div style="font-size: 13px; font-weight: 700; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
-                  <span>☀️ Шейдеры</span>
-                  <span id="badge-count-shaders" class="badge-cat-count">0</span>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
-                  <button class="btn-action-secondary" id="btn-pick-sha-cat" style="font-size: 11px; padding: 6px 8px;">+ Из каталога</button>
-                  <button class="btn-action-secondary" id="btn-file-shaders" style="font-size: 11px; padding: 6px 8px;">+ Файл .zip с ПК</button>
-                </div>
-                <div class="chips-list" id="chips-pack-shaders"></div>
+              <!-- 3 Category Switch Buttons (No emojis) -->
+              <div class="creation-tabs-row">
+                <button class="create-cat-tab active" data-tab-cat="mods" id="tab-cat-mods">
+                  <span>Моды</span>
+                  <span class="create-cat-badge" id="badge-cat-mods">0</span>
+                </button>
+                <button class="create-cat-tab" data-tab-cat="textures" id="tab-cat-textures">
+                  <span>Текстурпаки</span>
+                  <span class="create-cat-badge" id="badge-cat-textures">0</span>
+                </button>
+                <button class="create-cat-tab" data-tab-cat="shaders" id="tab-cat-shaders">
+                  <span>Шейдеры</span>
+                  <span class="create-cat-badge" id="badge-cat-shaders">0</span>
+                </button>
               </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-              <button class="btn-action-secondary" id="btn-cancel-create-pack">Отмена</button>
-              <button class="btn-action-primary" id="btn-save-new-pack">Сохранить и активировать сборку</button>
+            <!-- Unified Workbench Body -->
+            <div class="creation-unified-body">
+              <div class="workbench-actions-row">
+                <div style="flex: 1;">
+                  <input type="text" id="input-addon-search" class="input-clean" placeholder="Поиск по названию в списке..." style="width: 100%; font-size: 11px;">
+                </div>
+                <button class="btn-action-primary" id="btn-pick-custom-file" style="height: 36px; font-size: 11px; padding: 0 16px;">
+                  Выбрать файл с ПК
+                </button>
+              </div>
+
+              <!-- Drag and Drop Target Area -->
+              <div class="drag-drop-box" id="modpack-drag-drop">
+                <div style="font-size: 12px; font-weight: 700; color: #ffffff;">Перетащите файлы сюда</div>
+                <div id="drag-drop-hint" style="font-size: 11px; color: var(--text-muted);">Формат: .hmod</div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);" id="label-current-cat-files">ОЧЕРЕДЬ ЗАГРУЗКИ (0):</span>
+                <span style="font-size: 10px; color: var(--text-muted);">Перетаскивайте элементы мышью для смены приоритета</span>
+              </div>
+
+              <!-- Reorderable List of Added Addons -->
+              <div class="file-items-scroll" id="current-cat-file-list"></div>
+            </div>
+
+            <!-- Footer Action Bar -->
+            <div class="creation-footer-bar">
+              <div class="creation-summary-badge">
+                <span id="summary-mods-badge">0 модов</span>
+                <span>/</span>
+                <span id="summary-tex-badge">0 текстурпаков</span>
+                <span>/</span>
+                <span id="summary-sha-badge">0 шейдеров</span>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-action-secondary" id="btn-cancel-create-pack" style="padding: 8px 16px;">Отмена</button>
+                <button class="btn-action-primary" id="btn-save-new-pack" style="padding: 8px 20px; font-size: 11px;">
+                  Сохранить сборку
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- VIEW 3: CATALOG VIEW -->
-        <div id="view-modpack-catalog" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px;">
-            <div style="display: flex; gap: 6px;" id="catalog-category-filter">
-              <button class="btn-action-secondary active-cat" data-cat="mods">Моды</button>
-              <button class="btn-action-secondary" data-cat="textures">Текстурпаки</button>
-              <button class="btn-action-secondary" data-cat="shaders">Шейдеры</button>
-            </div>
-            <input type="text" id="input-catalog-search" class="input-clean" placeholder="Поиск дополнений..." style="max-width: 260px;">
-          </div>
+  <!-- MODAL: 16+ EASTER EGG WARNING (SHOWN ONCE ON FIRST DISCOVERY) -->
+  <div class="modal-backdrop" id="modal-age-warning" style="display: none;">
+    <div class="modal-dialog" style="max-width: 360px; text-align: center; background: #111722; border: 1px solid #233144; border-bottom: 4px solid #0c121b; border-radius: 8px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75); padding: 22px 24px;">
+      <div style="font-family: var(--font-minecraft); font-size: 13px; color: #f8fafc; margin-bottom: 20px; line-height: 1.5; text-align: center;">
+        Вам уже есть 16 лет?
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn-action-primary" id="btn-age-yes" style="min-width: 90px; height: 36px; font-size: 11px;">
+          Да
+        </button>
+        <button class="btn-action-secondary" id="btn-age-no" style="min-width: 90px; height: 36px; font-size: 11px;">
+          Нет
+        </button>
+      </div>
+    </div>
+  </div>
 
-          <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #93c5fd; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <span>Каталог готов к подключению Modrinth и CurseForge API. Вы также можете перетащить любые файлы или использовать кнопки '+ Файл с ПК'.</span>
-          </div>
+  <!-- MODAL: VERSION HARD BLOCKED (NO DISMISS, PLAY LOCKED) -->
+  <div class="modal-backdrop" id="modal-version-blocked" style="display: none; z-index: 10000; background: rgba(0, 0, 0, 0.92); backdrop-filter: blur(8px);">
+    <div class="modal-dialog" style="max-width: 440px; text-align: center; background: #111722; border: 2px solid #ef4444; border-bottom: 4px solid #7f1d1d; border-radius: 8px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85); padding: 26px 28px;">
+      <div style="width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div id="blocked-modal-title" style="font-family: var(--font-minecraft); font-size: 14px; font-weight: 700; color: #ef4444; margin-bottom: 12px; letter-spacing: 0.5px;">
+        ВЕРСИЯ УСТАРЕЛА
+      </div>
+      <div id="blocked-modal-message" style="font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 24px;">
+        Данная версия лаунчера больше не поддерживается. Для продолжения игры необходимо скачать обновление с официального сайта.
+      </div>
+      <button class="btn-action-primary" id="btn-blocked-download" style="width: 100%; height: 40px; font-size: 12px; background: #10b981; border-color: #059669; box-shadow: 0 3px 0 #047857;">
+        СКАЧАТЬ ОБНОВЛЕНИЕ
+      </button>
+    </div>
+  </div>
 
-          <div class="catalog-grid" id="catalog-items-grid">
-            <!-- Populated by JS -->
-          </div>
-        </div>
+  <!-- MODAL: UPDATE AVAILABLE (SOFT NOTIFICATION) -->
+  <div class="modal-backdrop" id="modal-version-update" style="display: none; z-index: 9000;">
+    <div class="modal-dialog" style="max-width: 440px; text-align: center; background: #111722; border: 1px solid #233144; border-bottom: 4px solid #0c121b; border-radius: 8px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85); padding: 26px 28px;">
+      <div style="width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; color: #10b981;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div id="update-modal-title" style="font-family: var(--font-minecraft); font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 12px; letter-spacing: 0.5px;">
+        ДОСТУПНО ОБНОВЛЕНИЕ
+      </div>
+      <div id="update-modal-message" style="font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 24px;">
+        Вышла новая версия лаунчера. Рекомендуется обновиться для стабильной работы и новых функций.
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-action-secondary" id="btn-update-dismiss" style="flex: 1; height: 38px; font-size: 11px;">
+          Позже
+        </button>
+        <button class="btn-action-primary" id="btn-update-download" style="flex: 1.3; height: 38px; font-size: 11px;">
+          Перейти на сайт
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <!-- MODAL: BROADCAST ANNOUNCEMENT TO PLAYERS -->
+  <div class="modal-backdrop" id="modal-broadcast" style="display: none; z-index: 9000;">
+    <div class="modal-dialog" style="max-width: 440px; text-align: center; background: #111722; border: 1px solid #233144; border-bottom: 4px solid #0c121b; border-radius: 8px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85); padding: 26px 28px;">
+      <div style="width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div id="broadcast-modal-title" style="font-family: var(--font-minecraft); font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 12px; letter-spacing: 0.5px;">
+        ОБЪЯВЛЕНИЕ
+      </div>
+      <div id="broadcast-modal-message" style="font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 24px; white-space: pre-wrap;"></div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn-action-secondary" id="btn-broadcast-close" style="flex: 1; height: 38px; font-size: 11px;">
+          Закрыть
+        </button>
+        <button class="btn-action-primary" id="btn-broadcast-action" style="display: none; flex: 1.3; height: 38px; font-size: 11px;">
+          Перейти
+        </button>
       </div>
     </div>
   </div>
