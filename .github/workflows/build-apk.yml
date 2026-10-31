@@ -21,10 +21,9 @@ env:
   # Репозиторий upstream для скачивания исходников (tarball коммита).
   HORIZON_REPO: "horizon-rust/horizon"
   # Прямой URL на horizon-source.tar.gz ИМЕННО базового коммита.
-  # В upstream-репо этого коммита сейчас нет (история ушла вперёд), поэтому
-  # положите tarball базового коммита в свой fork/mirror (например asset'ом
-  # релиза) и впишите URL сюда. Оставьте пустым — тогда пробуем tarball по sha.
-  HORIZON_SOURCE_URL: ""
+  # Тарболл базового снапшота лежит ассетом релиза engine-base-7c83966 этого же
+  # репозитория (Actions качает его своим GITHUB_TOKEN).
+  HORIZON_SOURCE_URL: "https://github.com/NimbrelDev/burmalda-launcher/releases/download/engine-base-7c83966/horizon-source-base.tar.gz"
   # Версия NDK (для nttld/setup-ndk).
   NDK_VERSION: "r26"
 
