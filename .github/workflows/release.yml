@@ -183,7 +183,12 @@ jobs:
           export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
           SDKM="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           [ -x "$SDKM" ] || SDKM=$(ls "$ANDROID_SDK_ROOT"/cmdline-tools/*/bin/sdkmanager | head -1)
-          yes | "$SDKM" "build-tools;34.0.0" "platforms;android-34" >/dev/null
+          # Пакеты уже предустановлены на runner'е — sdkmanager выйдет мгновенно,
+          # и `yes` получит SIGPIPE (broken pipe), потому пайп под pipefail
+          # гасим через || true; корректность проверяет ls ниже.
+          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" ] || [ ! -f "$ANDROID_SDK_ROOT/platforms/android-34/android.jar" ]; then
+            yes | "$SDKM" "build-tools;34.0.0" "platforms;android-34" >/dev/null || true
+          fi
           ls "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" "$ANDROID_SDK_ROOT/platforms/android-34/android.jar"
 
       - name: cargo build (aarch64-linux-android, release)
