@@ -1,10 +1,12 @@
 // Game process lifecycle: status, launch, kill and crash reporting
 import { ipcMain, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { spawn } from 'child_process';
 import { appState } from './state.js';
 import { loadSettings } from './settings.js';
 import { findHorizonBinary, findResourcesDir, getModFile } from './game-files.js';
+import { prepareHorizonResources } from './horizon-prepare.js';
 
 export function registerGameProcessHandlers() {
   ipcMain.handle('get-status', () => {
@@ -16,7 +18,7 @@ export function registerGameProcessHandlers() {
       binaryPath: binary,
       resourcesPath: resources,
       isGameRunning: Boolean(appState.gameProcess && !appState.gameProcess.killed),
-      currentVersion: settings.selectedVersion || 'v0.2.93',
+      currentVersion: settings.selectedVersion || 'v0.2.97',
     };
   });
 
@@ -30,10 +32,27 @@ export function registerGameProcessHandlers() {
     const resources = findResourcesDir(settings.selectedVersion);
 
     if (!binary || !resources) {
-      return { 
-        success: false, 
-        error: `Файлы для версии ${settings.selectedVersion} не найдены. Откройте вкладку «Версии» и нажмите «Скачать версию».` 
+      return {
+        success: false,
+        error: `Файлы для версии ${settings.selectedVersion} не найдены. Откройте вкладку «Версии» и нажмите «Скачать версию».`
       };
+    }
+
+    // The engine refuses to start without its pinned prepared resources;
+    // repair them right before launch if a previous install was interrupted.
+    try {
+      const versionDir = path.dirname(binary);
+      const mcVersion = settings.selectedMcVersion || '26.3';
+      const preparedDir = path.join(versionDir, '.local', 'horizon-client', mcVersion);
+      // Complete preparation ends with horizon-resources.json; a partial dir
+      // (interrupted prepare) must be rebuilt, not trusted.
+      if (!fs.existsSync(path.join(preparedDir, 'horizon-resources.json'))) {
+        await prepareHorizonResources(versionDir, mcVersion, ({ status }) => {
+          appState.mainWindow?.webContents.send('game-log', `\n[лаунчер] ${status}\n`);
+        });
+      }
+    } catch (prepErr) {
+      return { success: false, error: `Не удалось подготовить ресурсы игры: ${prepErr.message}` };
     }
 
     const args = [
@@ -99,18 +118,30 @@ export function registerGameProcessHandlers() {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
-      let crashLog = '';
-      appState.gameProcess.stdout.on('data', (data) => {
-        const s = data.toString();
-        crashLog += s;
-        appState.mainWindow?.webContents.send('game-log', s);
+      // Hide the launcher while the game runs, bring it back when the game ends
+      appState.mainWindow?.hide();
+      appState.gameProcess.on('exit', () => {
+        const win = appState.mainWindow;
+        if (win && !win.isDestroyed()) {
+          win.show();
+          win.focus();
+        }
       });
 
-      appState.gameProcess.stderr.on('data', (data) => {
+      let crashLog = '';
+      // Persist the session log so crashes/lags can be diagnosed afterwards
+      const logDir = path.join(path.dirname(binary), '..', 'logs');
+      try { fs.mkdirSync(logDir, { recursive: true }); } catch (_) {}
+      const logStream = fs.createWriteStream(path.join(logDir, `game-${new Date().toISOString().replace(/[:.]/g, '-')}.log`));
+      const onGameOutput = (data) => {
         const s = data.toString();
         crashLog += s;
+        logStream.write(s);
         appState.mainWindow?.webContents.send('game-log', s);
-      });
+      };
+      appState.gameProcess.stdout.on('data', onGameOutput);
+      appState.gameProcess.stderr.on('data', onGameOutput);
+      appState.gameProcess.on('exit', () => { try { logStream.end(); } catch (_) {} });
 
       appState.gameProcess.on('exit', (code) => {
         appState.gameProcess = null;

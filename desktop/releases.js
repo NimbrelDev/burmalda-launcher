@@ -99,7 +99,7 @@ async function fetchFreshReleases() {
   try {
     const response = await fetch('https://api.github.com/repos/horizon-rust/horizon/releases?per_page=30', {
       headers: {
-        'User-Agent': 'Zenith-Launcher/1.0 (Linux; x86_64)',
+        'User-Agent': 'Burmalda-Launcher/1.0 (Linux; x86_64)',
         'Accept': 'application/vnd.github.v3+json',
       },
       signal: AbortSignal.timeout(5000),

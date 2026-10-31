@@ -6,7 +6,7 @@ import { MODS_DIR } from './paths.js';
 import { loadSettings, saveSettings } from './settings.js';
 
 export function registerModHandlers() {
-  // Scan Real Mods in ~/.zenith-launcher/mods/
+  // Scan Real Mods in ~/.burmalda-launcher/mods/
   ipcMain.handle('scan-mods', async () => {
     if (!fs.existsSync(MODS_DIR)) return [];
     try {
@@ -30,7 +30,7 @@ export function registerModHandlers() {
     }
   });
 
-  // Import custom mod/pack/shader file directly from PC to ~/.zenith-launcher/mods/
+  // Import custom mod/pack/shader file directly from PC to ~/.burmalda-launcher/mods/
   ipcMain.handle('import-mod-file', async (_, filePath) => {
     if (!filePath || !fs.existsSync(filePath)) {
       return { success: false, error: 'Файл не найден' };

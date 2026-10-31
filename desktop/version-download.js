@@ -8,6 +8,7 @@ import { appState } from './state.js';
 import { fetchOnlineReleases } from './releases.js';
 import { findResourcesDir } from './game-files.js';
 import { ensureMinecraftAssets } from './minecraft-assets.js';
+import { prepareHorizonResources } from './horizon-prepare.js';
 
 export function registerVersionDownloadHandler() {
   // On-demand version download from GitHub releases
@@ -36,7 +37,7 @@ export function registerVersionDownloadHandler() {
 
       const response = await fetch(downloadUrl, {
         headers: {
-          'User-Agent': 'Zenith-Launcher/1.0 (Linux; x86_64)',
+          'User-Agent': 'Burmalda-Launcher/1.0 (Linux; x86_64)',
         },
         redirect: 'follow',
       });
@@ -49,31 +50,35 @@ export function registerVersionDownloadHandler() {
       let downloadedBytes = 0;
       const fileStream = fs.createWriteStream(archivePath);
 
-      for await (const chunk of response.body) {
-        downloadedBytes += chunk.length;
-        fileStream.write(chunk);
-        const percent = totalBytes > 0 ? Math.min(95, Math.round((downloadedBytes / totalBytes) * 100)) : 50;
-      
+      // Overall progress map (byte-accurate where possible):
+      //   0-12   engine archive from GitHub
+      //   12-14  extraction
+      //   14-18  shared Mojang assets (ensureMinecraftAssets)
+      //   18-97  pinned resources: jars + libraries + assets (byte-accurate) then horizon-prepare
+      //   97-100 finishing up
+      const sendProgress = (percent, status) => {
         appState.mainWindow?.webContents.send('version-download-progress', {
           tag: versionTag,
           percent,
           downloadedBytes,
           totalBytes,
-          status: `Загрузка: ${Math.round(downloadedBytes / (1024 * 1024))} МБ / ${Math.round(totalBytes / (1024 * 1024))} МБ`
+          status,
         });
+      };
+
+      for await (const chunk of response.body) {
+        downloadedBytes += chunk.length;
+        fileStream.write(chunk);
+        const percent = totalBytes > 0 ? Math.min(12, Math.round((downloadedBytes / totalBytes) * 12)) : 6;
+
+        sendProgress(percent, `Загрузка движка: ${Math.round(downloadedBytes / (1024 * 1024))} МБ / ${Math.round(totalBytes / (1024 * 1024))} МБ`);
       }
 
       await new Promise((res, rej) => {
         fileStream.end((err) => err ? rej(err) : res());
       });
 
-      appState.mainWindow?.webContents.send('version-download-progress', {
-        tag: versionTag,
-        percent: 96,
-        downloadedBytes: totalBytes,
-        totalBytes,
-        status: 'Распаковка нативного архива движка...'
-      });
+      sendProgress(12, 'Распаковка нативного архива движка...');
 
       if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
@@ -133,14 +138,22 @@ export function registerVersionDownloadHandler() {
       // Ensure official Minecraft assets are downloaded directly from Mojang CDN for supported version
       const targetMcVersion = release.defaultMcVersion || (release.supportedMcVersions && release.supportedMcVersions[0]) || '26.3';
       await ensureMinecraftAssets(targetMcVersion, (status) => {
-        appState.mainWindow?.webContents.send('version-download-progress', {
-          tag: versionTag,
-          percent: 98,
-          downloadedBytes: totalBytes,
-          totalBytes,
-          status,
-        });
+        sendProgress(16, status);
       });
+
+      // Prepare the engine's pinned resources via its own horizon-prepare
+      // (official Mojang client/server jars + libraries + assets, then data export).
+      // Download bytes are cumulative, mapped onto the 18-97 range.
+      try {
+        await prepareHorizonResources(destDir, targetMcVersion, ({ status, bytesDone, bytesTotal }) => {
+          const percent = bytesTotal > 0
+            ? Math.min(96, 18 + Math.round((bytesDone / bytesTotal) * 78))
+            : 97;
+          sendProgress(percent, status || 'Подготовка ресурсов...');
+        });
+      } catch (prepErr) {
+        console.warn('horizon-prepare note:', prepErr.message);
+      }
 
       // Ensure resources are linked or copied into the version folder
       const verRes = path.join(destDir, 'resources');

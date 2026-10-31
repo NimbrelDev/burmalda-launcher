@@ -1,6 +1,7 @@
-// Central storage paths for the launcher (~/.zenith-launcher and bundled assets)
+// Central storage paths for the launcher (~/.burmalda-launcher and bundled assets)
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { app } from 'electron';
 
@@ -10,9 +11,18 @@ const SRC_DIR = path.join(__dirname, '..', 'src');
 const ANDROID_DIR = path.join(__dirname, '..', 'android');
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 
-// Storage directories in ~/.zenith-launcher
+// Storage directories in ~/.burmalda-launcher
 const USER_DATA = app.getPath('userData');
-const GAME_DIR = path.join(process.env.HOME || USER_DATA, '.zenith-launcher');
+const HOME = process.env.HOME || os.homedir() || USER_DATA;
+
+// One-time migration from the pre-rebrand name (~/.zenith-launcher)
+const LEGACY_GAME_DIR = path.join(HOME, '.zenith-launcher');
+const GAME_DIR = path.join(HOME, '.burmalda-launcher');
+try {
+  if (fs.existsSync(LEGACY_GAME_DIR) && !fs.existsSync(GAME_DIR)) {
+    fs.renameSync(LEGACY_GAME_DIR, GAME_DIR);
+  }
+} catch (_) {}
 const SETTINGS_FILE = path.join(GAME_DIR, 'settings.json');
 const VERSIONS_DIR = path.join(GAME_DIR, 'versions');
 const SAVES_DIR = path.join(GAME_DIR, 'saves');

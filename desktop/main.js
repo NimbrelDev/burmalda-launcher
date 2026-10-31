@@ -13,6 +13,20 @@ import { registerSystemHandlers } from './ipc-system.js';
 import { registerVersionDownloadHandler } from './version-download.js';
 import { registerGameProcessHandlers } from './game-process.js';
 
+// Single instance: launching a second copy focuses the existing window
+// instead of silently dying (the second process exits immediately).
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (appState.mainWindow) {
+      if (appState.mainWindow.isMinimized()) appState.mainWindow.restore();
+      appState.mainWindow.focus();
+    }
+  });
+}
+
 let mainWindow = null;
 
 function createWindow() {
@@ -46,6 +60,14 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// A running game would keep the launcher process alive after the window is
+// gone — kill it so closing the launcher always closes everything.
+app.on('before-quit', () => {
+  if (appState.gameProcess && !appState.gameProcess.killed) {
+    try { appState.gameProcess.kill(); } catch (_) {}
+  }
 });
 
 // IPC Handlers

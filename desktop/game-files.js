@@ -2,12 +2,14 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { app } from 'electron';
 import { VERSIONS_DIR, RESOURCES_DIR, MODS_DIR } from './paths.js';
 import { loadSettings } from './settings.js';
 
-// Optional local dev roots for Horizon builds (no effect in normal installs)
-const DEV_HORIZON_DIST = path.join(os.homedir(), 'horizon-dist');
-const DEV_HORIZON_REPO = path.join(os.homedir(), 'horizon');
+// Optional local dev roots for Horizon builds — only honored when running
+// unpackaged (npm start). In an installed build they would fake "installed".
+const DEV_HORIZON_DIST = app.isPackaged ? null : path.join(os.homedir(), 'horizon-dist');
+const DEV_HORIZON_REPO = app.isPackaged ? null : path.join(os.homedir(), 'horizon');
 
 // Check if a specific version tag is installed (versioned dir OR bundled fallback)
 function isVersionInstalled(tag) {
@@ -17,10 +19,10 @@ function isVersionInstalled(tag) {
   return fs.existsSync(path.join(vDir, binaryName)) ||
          fs.existsSync(path.join(vDir, 'horizon-windows-x64', binaryName)) ||
          fs.existsSync(path.join(vDir, 'horizon-linux-x86_64', binaryName)) ||
-         fs.existsSync(path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client'));
+         (DEV_HORIZON_DIST && fs.existsSync(path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client')));
 }
 
-// Find binary strictly for the chosen version in ~/.zenith-launcher/versions/<tag>/
+// Find binary strictly for the chosen version in ~/.burmalda-launcher/versions/<tag>/
 function findHorizonBinary(versionTag) {
   const tag = versionTag || loadSettings().selectedVersion;
   if (!tag) return null;
@@ -30,8 +32,8 @@ function findHorizonBinary(versionTag) {
     path.join(VERSIONS_DIR, tag, binaryName),
     path.join(VERSIONS_DIR, tag, 'horizon-windows-x64', binaryName),
     path.join(VERSIONS_DIR, tag, 'horizon-linux-x86_64', binaryName),
-    // Fallback: local dev build
-    path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client'),
+    // Fallback: local dev build (npm start only)
+    ...(DEV_HORIZON_DIST ? [path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client')] : []),
   ];
 
   for (const c of candidates) {
@@ -42,18 +44,29 @@ function findHorizonBinary(versionTag) {
 
 // Find resources directory for the chosen version
 function findResourcesDir(versionTag) {
-  const tag = versionTag || loadSettings().selectedVersion || 'v0.2.93';
+  const tag = versionTag || loadSettings().selectedVersion || 'v0.2.97';
+  const vDir = path.join(VERSIONS_DIR, tag);
+
+  // The engine's own horizon-prepare output is the only root it accepts:
+  // it carries horizon-resources.json with the pinned data_version.
+  const preparedRoot = path.join(vDir, '.local', 'horizon-client');
+  try {
+    for (const mc of fs.readdirSync(preparedRoot)) {
+      const dir = path.join(preparedRoot, mc);
+      if (fs.existsSync(path.join(dir, 'horizon-resources.json'))) return dir;
+    }
+  } catch (_) {}
+
   const candidates = [
-    path.join(VERSIONS_DIR, tag, 'resources'),
+    path.join(vDir, 'resources'),
     RESOURCES_DIR,
-    path.join(VERSIONS_DIR, 'v0.2.93', 'resources'),
-    path.join(DEV_HORIZON_DIST, 'game-bundle-linux/resources'),
-    path.join(DEV_HORIZON_REPO, 'horizon-linux-x86_64/.local/horizon-client/26.3'),
+    ...(DEV_HORIZON_DIST ? [path.join(DEV_HORIZON_DIST, 'game-bundle-linux/resources')] : []),
+    ...(DEV_HORIZON_REPO ? [path.join(DEV_HORIZON_REPO, 'horizon-linux-x86_64/.local/horizon-client/26.3')] : []),
   ];
 
   for (const c of candidates) {
-    if (fs.existsSync(c) && fs.existsSync(path.join(c, 'asset-index.json'))) return c;
     if (fs.existsSync(c) && fs.existsSync(path.join(c, 'horizon-resources.json'))) return c;
+    if (fs.existsSync(c) && fs.existsSync(path.join(c, 'asset-index.json'))) return c;
   }
   return null;
 }

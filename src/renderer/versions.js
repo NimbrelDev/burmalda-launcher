@@ -4,10 +4,11 @@ let selectedEngineTag = 'v0.2.97';
 
 function getCurrentVersionObj() {
   const activeTag = selectedEngineTag || currentVersionsData?.activeVersion || 'v0.2.97';
+  const fallback = { tag: 'v0.2.97', name: 'Horizon 0.2.97', status: 'Релиз', supportedMcVersions: ['26.3'], defaultMcVersion: '26.3', isInstalled: false, isActive: true };
   if (!currentVersionsData || !currentVersionsData.versions) {
-    return { tag: 'v0.2.97', name: 'Horizon 0.2.97', status: 'Релиз', supportedMcVersions: ['26.3'], defaultMcVersion: '26.3', isInstalled: true, isActive: true };
+    return fallback;
   }
-  return currentVersionsData.versions.find((v) => v.tag === activeTag) || currentVersionsData.versions[0] || { tag: 'v0.2.97', name: 'Horizon 0.2.97', status: 'Релиз', supportedMcVersions: ['26.3'], defaultMcVersion: '26.3', isInstalled: true, isActive: true };
+  return currentVersionsData.versions.find((v) => v.tag === activeTag) || currentVersionsData.versions[0] || fallback;
 }
 
 window.addEventListener('click', (e) => {
@@ -180,7 +181,7 @@ function updateDockForVersion(ver) {
   btnHeroAction.disabled = false;
 
   if (ver && ver.isInstalled) {
-    heroBtnText.textContent = 'В БОЙ';
+    heroBtnText.textContent = 'ИГРАТЬ';
     heroBtnIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
   } else {
     btnHeroAction.classList.add('download-mode');

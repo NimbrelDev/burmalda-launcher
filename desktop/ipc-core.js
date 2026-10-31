@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import { GAME_DIR, SAVES_DIR, MODS_DIR, VERSIONS_DIR, SKINS_DIR } from './paths.js';
 import { appState } from './state.js';
 import { loadSettings, saveSettings } from './settings.js';
-import { UPDATE_CONFIG_URLS, BROADCAST_CONFIG_URLS, fetchHighestVersionConfig, fetchBroadcastFromPrimary } from './remote-config.js';
+import { UPDATE_CONFIG_URLS, BROADCAST_CONFIG_URLS, fetchHighestVersionConfig, fetchBroadcastFromPrimary, compareSemver } from './remote-config.js';
 import { fetchOnlineReleases } from './releases.js';
 import { findHorizonBinary } from './game-files.js';
 
@@ -32,7 +32,7 @@ export function registerCoreHandlers() {
         supportedMcVersions: supported,
         defaultMcVersion: defMc,
         publishedAt: r.publishedAt || (r.published_at || '').split('T')[0] || '',
-        isInstalled: Boolean(findHorizonBinary(r.tag)) || r.tag === 'v0.2.97',
+        isInstalled: Boolean(findHorizonBinary(r.tag)),
         isActive: r.tag === (settings.selectedVersion || 'v0.2.97'),
         assets: r.assets || [],
       };

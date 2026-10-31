@@ -1,4 +1,4 @@
-// Launcher settings persistence (settings.json in ~/.zenith-launcher)
+// Launcher settings persistence (settings.json in ~/.burmalda-launcher)
 import fs from 'fs';
 import { SETTINGS_FILE } from './paths.js';
 import { appState } from './state.js';

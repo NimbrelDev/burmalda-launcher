@@ -43,7 +43,9 @@ async function getMojangVersionMetadata(mcVersion) {
 
 // Automatically download or link official Minecraft assets directly from Mojang CDN
 async function ensureMinecraftAssets(mcVersion = '26.3', onProgress) {
-  const checkFile = path.join(RESOURCES_DIR, 'horizon-resources.json');
+  // NOTE: deliberately NOT named horizon-resources.json — that name belongs to
+  // the engine's own horizon-prepare output and the game validates its schema.
+  const checkFile = path.join(RESOURCES_DIR, 'mojang-assets.json');
   const checkAssets = path.join(RESOURCES_DIR, 'assets', 'minecraft');
   if (fs.existsSync(checkFile) && fs.existsSync(checkAssets)) {
     try {
@@ -75,13 +77,18 @@ async function ensureMinecraftAssets(mcVersion = '26.3', onProgress) {
     }
   }
 
-  // 2. Download official Minecraft assets directly from Mojang CDN dynamically for mcVersion
+  // 2. Official Minecraft assets directly from Mojang CDN for mcVersion.
+  // Reuse the client jar already fetched by the horizon-prepare flow
+  // (~/.burmalda-launcher/mojang/<mc>/versions/...) instead of re-downloading ~41MB.
   if (!fs.existsSync(checkAssets)) {
     onProgress?.(`Загрузка официальных ассетов Minecraft ${mcVersion} с серверов Mojang...`);
-    
+
     const meta = await getMojangVersionMetadata(mcVersion);
     const mojangClientJarUrl = meta.clientUrl;
-    const tempJar = path.join(RESOURCES_DIR, `client-${mcVersion}-temp.jar`);
+    const sharedMojangJar = path.join(RESOURCES_DIR, '..', 'mojang', mcVersion, 'versions', mcVersion, `${mcVersion}.jar`);
+    const tempJar = fs.existsSync(sharedMojangJar)
+      ? sharedMojangJar
+      : path.join(RESOURCES_DIR, `client-${mcVersion}-temp.jar`);
     
     try {
       const jarRes = await fetch(mojangClientJarUrl);
@@ -100,7 +107,7 @@ async function ensureMinecraftAssets(mcVersion = '26.3', onProgress) {
             execFile('unzip', ['-o', tempJar, 'assets/*', '-d', RESOURCES_DIR], () => resolve());
           }
         });
-        try { fs.unlinkSync(tempJar); } catch (_) {}
+        if (tempJar !== sharedMojangJar) { try { fs.unlinkSync(tempJar); } catch (_) {} }
       }
     } catch (e) {
       console.warn('Mojang official download note:', e.message);
@@ -117,6 +124,8 @@ async function ensureMinecraftAssets(mcVersion = '26.3', onProgress) {
   }
 
   try {
+    // Clean up the stale marker from older launcher builds if present
+    try { fs.unlinkSync(path.join(RESOURCES_DIR, 'horizon-resources.json')); } catch (_) {}
     fs.writeFileSync(checkFile, JSON.stringify({ mcVersion, preparedAt: new Date().toISOString() }, null, 2));
   } catch (_) {}
 
