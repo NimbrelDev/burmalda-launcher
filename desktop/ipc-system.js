@@ -69,6 +69,23 @@ export function registerSystemHandlers() {
   ipcMain.handle('get-touch-settings', () => loadTouchSettings());
   ipcMain.handle('save-touch-settings', (_, settings) => saveTouchSettings(settings));
 
+// Resolve adb binary: PATH first, then the Android SDK location.
+function resolveAdb(execSync) {
+  try {
+    execSync('command -v adb', { stdio: 'pipe' });
+    return 'adb';
+  } catch (_) {}
+  const candidates = [
+    process.env.ANDROID_SDK_ROOT && path.join(process.env.ANDROID_SDK_ROOT, 'platform-tools', 'adb'),
+    process.env.ANDROID_HOME && path.join(process.env.ANDROID_HOME, 'platform-tools', 'adb'),
+    path.join(process.env.HOME || '', 'Android', 'Sdk', 'platform-tools', 'adb')
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return 'adb';
+}
+
   ipcMain.handle('export-android-apk', async () => {
     const { execSync } = require('child_process');
     try {
@@ -81,9 +98,10 @@ export function registerSystemHandlers() {
       const apkDist = path.join(DIST_DIR, 'android', 'horizon-mobile-26.3.apk');
       const apkDownloads = path.join(homeDir, 'Downloads', 'horizon-mobile-26.3.apk');
 
+      const adb = resolveAdb(execSync);
       let adbDevice = null;
       try {
-        const adbOut = execSync('/home/roman/Android/Sdk/platform-tools/adb devices', { encoding: 'utf-8' });
+        const adbOut = execSync(`"${adb}" devices`, { encoding: 'utf-8' });
         const lines = adbOut.trim().split('\n').slice(1).map(l => l.trim()).filter(Boolean);
         for (const line of lines) {
           const [id, status] = line.split(/\s+/);
@@ -109,7 +127,8 @@ export function registerSystemHandlers() {
       if (!fs.existsSync(apk)) {
         apk = path.join(homeDir, 'Downloads', 'horizon-mobile-26.3.apk');
       }
-      const out = execSync(`/home/roman/Android/Sdk/platform-tools/adb install -r "${apk}"`, { encoding: 'utf-8' });
+      const adb = resolveAdb(execSync);
+      const out = execSync(`"${adb}" install -r "${apk}"`, { encoding: 'utf-8' });
       return { success: true, output: out };
     } catch (err) {
       return { success: false, error: err.message };

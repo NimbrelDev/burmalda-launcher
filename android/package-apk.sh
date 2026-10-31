@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ANDROID_SDK="${ANDROID_SDK_ROOT:-/home/roman/Android/Sdk}"
+ANDROID_SDK="${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}"
 BUILD_TOOLS="$ANDROID_SDK/build-tools/34.0.0"
 PLATFORM="$ANDROID_SDK/platforms/android-34/android.jar"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -80,13 +80,24 @@ fi
 "$BUILD_TOOLS/zipalign" -f -v 4 "$WORK_DIR/unaligned.apk" "$OUT_DIR/horizon-mobile-26.3.apk"
 
 # 8. Keystore & Sign
-KEYSTORE="$WORK_DIR/debug.keystore"
+# Release builds: point ANDROID_KEYSTORE at a keystore kept OUTSIDE the repo, e.g.:
+#   export ANDROID_KEYSTORE="$HOME/проекты/burmalda-launcher-secrets/release.keystore"
+#   export ANDROID_KEYSTORE_PASS=... ANDROID_KEY_ALIAS=... [ANDROID_KEY_PASS=...]
+# Fallback (local dev): auto-generate a debug keystore in android/build/.
+KEYSTORE="${ANDROID_KEYSTORE:-$WORK_DIR/debug.keystore}"
+KEYSTORE_PASS="${ANDROID_KEYSTORE_PASS:-android}"
+KEY_ALIAS="${ANDROID_KEY_ALIAS:-androiddebugkey}"
+KEY_PASS="${ANDROID_KEY_PASS:-$KEYSTORE_PASS}"
 if [ ! -f "$KEYSTORE" ]; then
+    if [ -n "${ANDROID_KEYSTORE:-}" ]; then
+        echo "ERROR: ANDROID_KEYSTORE is set but the file does not exist: $KEYSTORE" >&2
+        exit 1
+    fi
     keytool -genkeypair \
         -keystore "$KEYSTORE" \
-        -storepass android \
-        -alias androiddebugkey \
-        -keypass android \
+        -storepass "$KEYSTORE_PASS" \
+        -alias "$KEY_ALIAS" \
+        -keypass "$KEY_PASS" \
         -keyalg RSA \
         -keysize 2048 \
         -validity 10000 \
@@ -95,9 +106,9 @@ fi
 
 "$BUILD_TOOLS/apksigner" sign \
     --ks "$KEYSTORE" \
-    --ks-pass pass:android \
-    --ks-key-alias androiddebugkey \
-    --key-pass pass:android \
+    --ks-pass "pass:$KEYSTORE_PASS" \
+    --ks-key-alias "$KEY_ALIAS" \
+    --key-pass "pass:$KEY_PASS" \
     "$OUT_DIR/horizon-mobile-26.3.apk"
 
 # Also copy to Downloads for user accessibility

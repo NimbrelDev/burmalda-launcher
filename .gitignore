@@ -5,3 +5,11 @@ android/compiled_res/
 *.log
 .DS_Store
 android/libs/
+
+# Local-only docs and secrets (never publish)
+AGENTS.md
+ТЗ.md
+burmalda-launcher-secrets/
+*.jks
+*.keystore
+*.pk8

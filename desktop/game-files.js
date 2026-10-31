@@ -1,8 +1,13 @@
 // Locating installed game binaries, resources and addon files
 import path from 'path';
+import os from 'os';
 import fs from 'fs';
 import { VERSIONS_DIR, RESOURCES_DIR, MODS_DIR } from './paths.js';
 import { loadSettings } from './settings.js';
+
+// Optional local dev roots for Horizon builds (no effect in normal installs)
+const DEV_HORIZON_DIST = path.join(os.homedir(), 'horizon-dist');
+const DEV_HORIZON_REPO = path.join(os.homedir(), 'horizon');
 
 // Check if a specific version tag is installed (versioned dir OR bundled fallback)
 function isVersionInstalled(tag) {
@@ -12,7 +17,7 @@ function isVersionInstalled(tag) {
   return fs.existsSync(path.join(vDir, binaryName)) ||
          fs.existsSync(path.join(vDir, 'horizon-windows-x64', binaryName)) ||
          fs.existsSync(path.join(vDir, 'horizon-linux-x86_64', binaryName)) ||
-         fs.existsSync('/home/roman/horizon-dist/game-bundle-linux/horizon-client');
+         fs.existsSync(path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client'));
 }
 
 // Find binary strictly for the chosen version in ~/.zenith-launcher/versions/<tag>/
@@ -26,7 +31,7 @@ function findHorizonBinary(versionTag) {
     path.join(VERSIONS_DIR, tag, 'horizon-windows-x64', binaryName),
     path.join(VERSIONS_DIR, tag, 'horizon-linux-x86_64', binaryName),
     // Fallback: local dev build
-    '/home/roman/horizon-dist/game-bundle-linux/horizon-client',
+    path.join(DEV_HORIZON_DIST, 'game-bundle-linux/horizon-client'),
   ];
 
   for (const c of candidates) {
@@ -42,8 +47,8 @@ function findResourcesDir(versionTag) {
     path.join(VERSIONS_DIR, tag, 'resources'),
     RESOURCES_DIR,
     path.join(VERSIONS_DIR, 'v0.2.93', 'resources'),
-    '/home/roman/horizon-dist/game-bundle-linux/resources',
-    '/home/roman/horizon/horizon-linux-x86_64/.local/horizon-client/26.3',
+    path.join(DEV_HORIZON_DIST, 'game-bundle-linux/resources'),
+    path.join(DEV_HORIZON_REPO, 'horizon-linux-x86_64/.local/horizon-client/26.3'),
   ];
 
   for (const c of candidates) {
@@ -89,8 +94,8 @@ function getModFile(modKey) {
 
   const searchDirs = [
     MODS_DIR,
-    '/home/roman/horizon-dist/website/api/mods/files',
-    '/home/roman/horizon/horizon-main/crates/horizon-mods/tests/index',
+    path.join(DEV_HORIZON_DIST, 'website/api/mods/files'),
+    path.join(DEV_HORIZON_REPO, 'horizon-main/crates/horizon-mods/tests/index'),
   ];
 
   for (const dir of searchDirs) {
