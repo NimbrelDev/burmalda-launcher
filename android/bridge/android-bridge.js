@@ -225,101 +225,12 @@
   }, 1500);
 
   // ------------------------------------------------------------
-  // Releases (bundled catalog + cached GitHub refresh)
+  // Versions: Horizon NEVER downloads on Android — the engine binary ships
+  // inside the APK. Only the Minecraft assets (for the engine's supported
+  // vanilla version) are installed on demand via the flag handshake.
   // ------------------------------------------------------------
 
-  function cleanReleaseName(rawName, tagName, isNightly) {
-    if (isNightly) {
-      const d = (rawName || tagName || '').match(/(\d{4}-\d{2}-\d{2})/);
-      return d ? 'Nightly ' + d[1] : 'Horizon Nightly';
-    }
-    const m = (rawName || tagName || '').match(/0\.\d+\.\d+/);
-    if (m) return 'Horizon ' + m[0];
-    return (rawName || tagName || '').split(':')[0].trim() || tagName;
-  }
-
-  function parseSupportedMcVersions(release) {
-    const text = [release.name, release.body, release.tag_name || release.tag].filter(Boolean).join(' ');
-    const found = new Set();
-    (text.match(/\b(26\.\d+|1\.\d+(?:\.\d+)?)\b/g) || []).forEach(m => {
-      if (m.startsWith('26.') || (m.startsWith('1.') && parseFloat(m.slice(2)) >= 14)) found.add(m);
-    });
-    if (release.mcVersion) found.add(release.mcVersion);
-    if (found.size === 0) found.add('26.3');
-    return Array.from(found).sort((a, b) => {
-      const na = a.split('.').map(Number);
-      const nb = b.split('.').map(Number);
-      for (let i = 0; i < Math.max(na.length, nb.length); i++) {
-        if ((na[i] || 0) !== (nb[i] || 0)) return (na[i] || 0) - (nb[i] || 0);
-      }
-      return 0;
-    });
-  }
-
-  function bundledReleases() {
-    const a = A();
-    if (!a) return [];
-    const text = a.readAssetText('launcher/assets/horizon_releases.json');
-    const items = parseJson(text, []);
-    if (!Array.isArray(items)) return [];
-    return items.map(r => {
-      const isNightly = Boolean(r.prerelease || (r.tag && r.tag.includes('nightly')));
-      const supported = r.supportedMcVersions || [r.mcVersion || '26.3'];
-      return {
-        tag: r.tag,
-        name: cleanReleaseName(r.name, r.tag, isNightly),
-        prerelease: isNightly,
-        publishedAt: r.publishedAt || '',
-        supportedMcVersions: supported,
-        defaultMcVersion: supported[supported.length - 1] || '26.3',
-        assets: r.assets || [],
-      };
-    });
-  }
-
-  function parseGitHubReleases(text) {
-    const raw = parseJson(text, null);
-    if (!Array.isArray(raw)) return null;
-    return raw
-      .filter(r => !String(r.tag_name || '').startsWith('launcher@'))
-      .map(r => {
-        const isNightly = Boolean(r.prerelease || String(r.tag_name).includes('nightly'));
-        const supported = parseSupportedMcVersions(r);
-        return {
-          tag: r.tag_name,
-          name: cleanReleaseName(r.name, r.tag_name, isNightly),
-          prerelease: isNightly,
-          publishedAt: (r.published_at || '').split('T')[0] || '',
-          supportedMcVersions: supported,
-          defaultMcVersion: supported[supported.length - 1] || '26.3',
-          assets: (r.assets || []).map(a => ({
-            name: a.name,
-            size: a.size,
-            downloadUrl: a.browser_download_url,
-          })),
-        };
-      });
-  }
-
-  async function getReleasesList() {
-    const a = A();
-    if (a) {
-      // background refresh; result is served from cache on later calls
-      a.refreshHttpCache('https://api.github.com/repos/horizon-rust/horizon/releases?per_page=30', 'releases');
-      const cached = a.getHttpCache('releases');
-      const parsed = cached ? parseGitHubReleases(cached) : null;
-      if (parsed && parsed.length > 0) return parsed;
-    }
-    return bundledReleases();
-  }
-
-  function isVersionInstalled(tag) {
-    const a = A();
-    if (!a) return false;
-    // the engine binary ships in the APK; a version is playable once its
-    // resources exist (shared resources dir), or its metadata was stored
-    return resourcesInstalled() || a.exists('versions/' + tag + '/release.json');
-  }
+  const BUNDLED_MC_VERSION = '26.3';
 
   // The engine installs/prepares resources into files/resources (horizon-prepare
   // structure); they are shared between all engine versions.
@@ -466,44 +377,43 @@
     },
 
     // ---- versions ----
+    // Horizon is built into the APK: exactly one non-downloadable engine entry.
+    // "Скачать" below means Minecraft assets only (latest vanilla version the
+    // bundled engine supports), installed through the flag handshake.
     getVersions: async () => {
       const s = getStoredSettings();
-      const releases = await getReleasesList();
-      const versions = releases.map(r => ({
-        id: r.tag,
-        tag: r.tag,
-        name: r.name,
-        prerelease: Boolean(r.prerelease),
-        channel: r.prerelease ? 'nightly' : 'stable',
-        status: r.prerelease ? 'Nightly' : 'Релиз',
-        supportedMcVersions: r.supportedMcVersions,
-        defaultMcVersion: r.defaultMcVersion,
-        publishedAt: r.publishedAt,
-        isInstalled: isVersionInstalled(r.tag),
-        isActive: r.tag === (s.selectedVersion || BUNDLED_ENGINE_TAG),
-        assets: r.assets || [],
-      }));
-      const activeTag = s.selectedVersion || (versions.find(v => v.isInstalled)?.tag) || BUNDLED_ENGINE_TAG;
-      const activeVer = versions.find(v => v.tag === activeTag) || versions[0];
-      const supported = activeVer?.supportedMcVersions?.length ? activeVer.supportedMcVersions : ['26.3'];
+      const supported = [BUNDLED_MC_VERSION];
       let activeMc = s.selectedMcVersion;
-      if (!activeMc || !supported.includes(activeMc)) {
-        activeMc = activeVer?.defaultMcVersion || supported[supported.length - 1] || '26.3';
-      }
+      if (!activeMc || !supported.includes(activeMc)) activeMc = BUNDLED_MC_VERSION;
+      const versions = [{
+        id: BUNDLED_ENGINE_TAG,
+        tag: BUNDLED_ENGINE_TAG,
+        name: 'Horizon — встроен в приложение',
+        prerelease: false,
+        channel: 'stable',
+        status: 'Встроен',
+        supportedMcVersions: supported,
+        defaultMcVersion: BUNDLED_MC_VERSION,
+        publishedAt: '',
+        isInstalled: resourcesInstalled(),
+        isActive: true,
+        assets: [],
+      }];
       return {
-        minecraftVersions: supported.map(v => ({ id: v, name: 'Minecraft ' + v, description: 'Поддерживаемая версия Horizon' })),
+        minecraftVersions: supported.map(v => ({ id: v, name: 'Minecraft ' + v, description: 'Версия Minecraft встроенного движка' })),
         selectedMcVersion: activeMc,
-        activeVersion: activeTag,
-        latestStableTag: (versions.find(v => !v.prerelease) || {}).tag || activeTag,
+        activeVersion: BUNDLED_ENGINE_TAG,
+        latestStableTag: BUNDLED_ENGINE_TAG,
         versions,
       };
     },
 
-    // Version download, our scheme, manual only (like desktop): the user picks
-    // a concrete Horizon version and presses "Скачать". The launcher writes the
-    // install-assets.flag handshake file, starts the engine (it performs the
-    // installation and exits by itself, streaming install-progress.txt), and
-    // the launcher shows that progress until completion. Play stays blocked
+    // Download = Minecraft assets ONLY (Horizon itself is built into the APK).
+    // Manual, like on desktop: the user presses "Скачать"; the launcher writes
+    // the install-assets.flag handshake file (empty = the latest vanilla
+    // version supported by the bundled engine), starts the engine (it fetches
+    // everything from Mojang and exits by itself, streaming install-progress.txt),
+    // and the launcher shows that progress until completion. Play stays blocked
     // while the flag exists. With an old engine .so that ignores the flag we
     // fail honestly instead of waiting forever.
     downloadVersion: async (tag) => {
@@ -511,21 +421,15 @@
       if (!a) return { success: false, error: 'Мост недоступен' };
       try {
         const emit = (percent, status) => versionProgressCbs.forEach(cb => {
-          try { cb({ tag, percent, status }); } catch (e) {}
+          try { cb({ tag: BUNDLED_ENGINE_TAG, percent, status }); } catch (e) {}
         });
 
         if (resourcesInstalled()) {
-          emit(100, 'Ресурсы уже установлены');
-          const releases = await getReleasesList();
-          const release = releases.find(r => r.tag === tag);
-          if (release) a.writeFileText('versions/' + tag + '/release.json', JSON.stringify(release), false);
-          const s = getStoredSettings();
-          s.selectedVersion = tag;
-          saveStoredSettings(s);
-          return { success: true, tag };
+          emit(100, 'Minecraft-ресурсы уже установлены');
+          return { success: true, tag: BUNDLED_ENGINE_TAG };
         }
 
-        emit(2, 'Запрос установки ресурсов версии ' + tag + '...');
+        emit(2, 'Запрос установки Minecraft-ресурсов (Minecraft ' + BUNDLED_MC_VERSION + ')...');
         if (!a.writeFileText(INSTALL_FLAG, '', false)) {
           return { success: false, error: 'Не удалось создать файл-флаг установки' };
         }
@@ -541,26 +445,20 @@
           const p = readInstallProgress();
           if (!p.installing) {
             if (p.done && resourcesInstalled()) {
-              emit(100, p.status || 'Ресурсы установлены');
-              const releases = await getReleasesList();
-              const release = releases.find(r => r.tag === tag);
-              if (release) a.writeFileText('versions/' + tag + '/release.json', JSON.stringify(release), false);
-              const s2 = getStoredSettings();
-              s2.selectedVersion = tag;
-              saveStoredSettings(s2);
-              return { success: true, tag };
+              emit(100, p.status || 'Minecraft-ресурсы установлены');
+              return { success: true, tag: BUNDLED_ENGINE_TAG };
             }
             return {
               success: false,
-              error: p.failed ? ('Установка ресурсов прервана: ' + (p.status || 'ошибка движка'))
+              error: p.failed ? ('Установка Minecraft-ресурсов прервана: ' + (p.status || 'ошибка движка'))
                 : 'Установка завершилась без результата. Обновите версию игры.',
             };
           }
-          emit(p.percent, p.status || 'Установка ресурсов...');
+          emit(p.percent, p.status || 'Установка Minecraft-ресурсов...');
           // old .so: the engine ignores the flag and just runs the game
           if (Date.now() - started > 15000 && !a.exists(INSTALL_PROGRESS)) {
             a.killGameProcess();
-            return { success: false, error: 'Установленный движок не умеет скачивать ресурсы (устаревшая версия игры). Обновите APK.' };
+            return { success: false, error: 'Установленный движок не умеет скачивать Minecraft-ресурсы (устаревшая версия игры). Обновите APK.' };
           }
         }
       } catch (err) {
