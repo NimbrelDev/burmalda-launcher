@@ -23,11 +23,16 @@
 #   - Подпись APK: если заданы секреты ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASS /
 #     ANDROID_KEY_ALIAS / ANDROID_KEY_PASS — release-ключ, иначе debug-подпись
 #     (android/package-apk.sh умеет оба режима через env).
-#   - pacman-таргет на ubuntu-latest собирается встроенным app-builder (pacman не
-#     нужен) и обычно проходит; если упадёт — джоб автоматически пересобирает
-#     остальные таргеты, а pacman просто пропускается (warning), не вали джоб.
-#   - rpm: electron-builder 26 собирает rpm встроенным app-builder (rpmbuild не
-#     нужен), но на всякий случай ставим пакет `rpm`, если rpmbuild отсутствует.
+#   - pacman-таргет на ubuntu-latest идёт через fpm, которому нужен bsdtar
+#     (пакет libarchive-tools — ставится в джобе). Если pacman всё равно упадёт —
+#     джоб автоматически пересобирает остальные таргеты, pacman пропускается
+#     (warning), не вали джоб (проверено: в прогоне #2 AppImage/deb/rpm собрались).
+#   - rpm: deb/rpm/pacman собираются fpm (бандл electron-builder качает сам);
+#     системный rpmbuild не нужен, но пакет `rpm` ставим на всякий случай.
+#   - android: android-actions/setup-android@v3 НЕ используется — он запускает
+#     `sdkmanager tools`, а этот пакет удалён из репозитория SDK (упал в #2).
+#     SDK предустановлен на runner'е; build-tools;34.0.0 и platforms;android-34
+#     доустанавливаются напрямую через sdkmanager.
 #   - windows: NSIS-таргет на linux требует wine (electron-builder всегда
 #     прогоняет инсталлятор под wine для извлечения uninstaller stub) — wine
 #     ставится через apt в самой джобе. Иконка/версия в exe патчатся без wine
@@ -168,8 +173,18 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Android SDK (build-tools 34 + platform 34; без android-actions/setup-android)
+        # android-actions/setup-android@v3 падает: он запускает `sdkmanager tools`,
+        # а устаревший пакет 'tools' удалён из репозитория SDK (Failed to find
+        # package 'tools'). SDK уже предустановлен на runner'е — просто ставим
+        # недостающие пакеты напрямую и проверяем, что нужны package-apk.sh.
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          SDKM="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM=$(ls "$ANDROID_SDK_ROOT"/cmdline-tools/*/bin/sdkmanager | head -1)
+          yes | "$SDKM" "build-tools;34.0.0" "platforms;android-34" >/dev/null
+          ls "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" "$ANDROID_SDK_ROOT/platforms/android-34/android.jar"
 
       - name: cargo build (aarch64-linux-android, release)
         env:
@@ -240,11 +255,11 @@ jobs:
       - name: Зависимости (pnpm, frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: rpmbuild (на всякий случай; electron-builder обычно использует app-builder)
+      - name: rpmbuild + bsdtar (fpm использует bsdtar для pacman-таргета)
         run: |
-          if ! command -v rpmbuild >/dev/null 2>&1; then
+          if ! command -v rpmbuild >/dev/null 2>&1 || ! command -v bsdtar >/dev/null 2>&1; then
             sudo apt-get update
-            sudo apt-get install -y rpm
+            sudo apt-get install -y rpm libarchive-tools
           fi
 
       - name: Сборка linux (AppImage/deb/rpm/pacman; pacman при падении не валит джоб)
@@ -290,10 +305,13 @@ jobs:
       - name: Устанавливаем wine (нужен NSIS-таргету на linux)
         # electron-builder 26 на НЕ-Windows хостах всегда прогоняет собираемый
         # инсталлятор под wine, чтобы извлечь uninstaller stub (WineVmManager).
-        # Локально сборка работала только потому, что wine установлен в системе.
+        # Инсталлятор NSIS — 32-битный exe, поэтому нужен и wine32:i386
+        # (в прогоне #2 с одним wine64 было "wine process failed 1").
+        # Локально сборка работала потому, что wine установлен в системе.
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends wine
+          sudo apt-get install -y --no-install-recommends wine wine32:i386 wine64
           wine --version
 
       - name: Сборка windows (nsis + portable; иконку ставит scripts/afterpack.js через resedit)
