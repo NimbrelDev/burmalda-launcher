@@ -1,0 +1,372 @@
+# CI/CD: собрать и зарелизить все платформы Burmalda Launcher одним прогоном.
+#
+# Триггеры:
+#   - workflow_dispatch:
+#       inputs.version  — версия релиза, указывается БЕЗ префикса "v" (напр. 1.0.0-test).
+#                         ВНИМАНИЕ: если указать версию с префиксом "v", созданный тег
+#                         совпадёт с паттерном push-триггера 'v*' и запустит второй прогон.
+#       inputs.publish  — true: опубликовать Release сразу; false (по умолчанию): Draft.
+#   - push тегов 'v*' — версия берётся из имени тега, Release публикуется сразу.
+#
+# Джобы (параллельно): android (APK из исходников Horizon + мобильный патч),
+# linux, windows, macos; затем job release сводит все артефакты в один
+# GitHub Release (по умолчанию Draft). Тело релиза — RELEASE_NOTES.md из корня
+# репозитория; если файла нет — автогенерация из git log последнего тега.
+#
+# Примечания:
+#   - Android-джоб повторяет логику build-apk.yml (шаги те же), но поиск NDK_ROOT
+#     сделан устойчивее: output setup-ndk -> ANDROID_NDK_ROOT/HOME -> папка SDK ->
+#     tool cache раннера (/opt/hostedtoolcache/ndk/*/*). Это обходной путь для
+#     случая, когда nttld/setup-ndk не выставляет output ndk-root (так упал
+#     прогон build-apk #5: NDK скачался в tool cache, а шаг .cargo/config.toml
+#     его не нашёл — ошибка окружения, не логики workflow).
+#   - Подпись APK: если заданы секреты ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASS /
+#     ANDROID_KEY_ALIAS / ANDROID_KEY_PASS — release-ключ, иначе debug-подпись
+#     (android/package-apk.sh умеет оба режима через env).
+#   - pacman-таргет на ubuntu-latest собирается встроенным app-builder (pacman не
+#     нужен) и обычно проходит; если упадёт — джоб автоматически пересобирает
+#     остальные таргеты, а pacman просто пропускается (warning), не вали джоб.
+#   - rpm: electron-builder 26 собирает rpm встроенным app-builder (rpmbuild не
+#     нужен), но на всякий случай ставим пакет `rpm`, если rpmbuild отсутствует.
+#   - macOS: unsigned (identity: null + CSC_IDENTITY_AUTO_DISCOVERY=false),
+#     hardenedRuntime не нужен — достаточно для Draft-проверки сборки.
+#   - Зависимости ставим pnpm (в репозитории pnpm-lock.yaml, package-lock.json нет —
+#     поэтому не `npm ci`), pinned pnpm@11 — та же мажорная, что и локально.
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия релиза БЕЗ префикса v (например 1.0.0-test)"
+        required: true
+        type: string
+      publish:
+        description: "Опубликовать сразу (иначе Draft)"
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  # --- PIN исходников Horizon (тот же, что в build-apk.yml) ---
+  HORIZON_COMMIT: "7c839665283157c1ada904d2a10867e52e3443b3"
+  HORIZON_REPO: "horizon-rust/horizon"
+  # API-эндпоинт ассета релиза engine-base-7c83966 этого же репозитория.
+  HORIZON_SOURCE_URL: "https://api.github.com/repos/NimbrelDev/burmalda-launcher/releases/assets/695920018"
+  NDK_VERSION: "r26"
+
+jobs:
+  # ---------------------------------------------------------------- android ---
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout лаунчера
+        uses: actions/checkout@v4
+
+      - name: Вычисляем версию (для имени артефакта)
+        run: |
+          set -euo pipefail
+          V="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+          V="${V#v}"
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+
+      - name: Скачиваем и распаковываем исходники Horizon (pin-коммит)
+        id: source
+        run: |
+          set -euo pipefail
+          mkdir -p horizon-src && cd horizon-src
+          # Прямой URL на source tarball базового коммита. Ассет качаем
+          # с GITHUB_TOKEN + Accept: application/octet-stream.
+          curl -fL --retry 3 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/octet-stream" \
+            -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
+          tar -xzf horizon-source.tar.gz
+          if [ -f Cargo.toml ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1 | sed 's|^\./||')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Android NDK ${{ env.NDK_VERSION }}
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: false
+
+      - name: Генерируем .cargo/config.toml под CI-NDK (каскадный поиск NDK_ROOT)
+        run: |
+          set -euo pipefail
+          # 1) output экшена setup-ndk; 2) стандартные переменные окружения;
+          # 3) папка SDK; 4) tool cache раннера, куда setup-ndk кладёт NDK.
+          NDK_ROOT="${{ steps.ndk.outputs.ndk-root }}"
+          : "${NDK_ROOT:=${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}}"
+          if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+            NDK_ROOT=$(ls -d /usr/local/lib/android/sdk/ndk/* 2>/dev/null | head -1 || true)
+          fi
+          if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+            NDK_ROOT=$(ls -d /opt/hostedtoolcache/ndk/*/* 2>/dev/null | head -1 || true)
+          fi
+          [ -n "$NDK_ROOT" ] && [ -d "$NDK_ROOT" ] || { echo "::error::NDK not found (ndk-root='${{ steps.ndk.outputs.ndk-root }}', ANDROID_NDK_ROOT='${ANDROID_NDK_ROOT:-}')"; ls /opt/hostedtoolcache/ndk/ 2>/dev/null || true; exit 1; }
+          echo "NDK_ROOT=$NDK_ROOT" >> "$GITHUB_ENV"
+          echo "Используем NDK: $NDK_ROOT"
+          SRC="${{ steps.source.outputs.dir }}"
+          mkdir -p "$SRC/.cargo"
+          cat > "$SRC/.cargo/config.toml" <<EOF
+          [target.aarch64-linux-android]
+          ar = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang"
+          rustflags = [
+              "-L", "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/34"
+          ]
+          EOF
+
+      - name: Накладываем мобильный патч (git apply, при неудаче patch -p1)
+        run: |
+          set -euo pipefail
+          cd "${{ steps.source.outputs.dir }}"
+          PATCH="$GITHUB_WORKSPACE/android/patches/horizon-mobile-overlay.patch"
+          if git apply --check "$PATCH" 2>/dev/null; then
+            git apply "$PATCH"
+            echo "Патч применён через git apply"
+          else
+            patch -p1 < "$PATCH"
+            echo "Патч применён через patch -p1"
+          fi
+
+      - name: Rust stable + target aarch64-linux-android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "${{ steps.source.outputs.dir }}"
+
+      - name: JDK 17 (javac для package-apk.sh)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: cargo build (aarch64-linux-android, release)
+        env:
+          CC_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang
+          AR_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: |
+          set -euo pipefail
+          cd "${{ steps.source.outputs.dir }}"
+          cargo build -p horizon-client --target aarch64-linux-android --release \
+            --no-default-features --features audio,mods
+
+      - name: Кладём .so в android/libs/arm64-v8a/
+        run: |
+          set -euo pipefail
+          mkdir -p android/libs/arm64-v8a
+          cp "${{ steps.source.outputs.dir }}/target/aarch64-linux-android/release/libhorizon_client.so" \
+             android/libs/arm64-v8a/
+
+      - name: Распаковываем release-keystore из секрета (если задан)
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            mkdir -p "$RUNNER_TEMP/keystore"
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore/release.keystore"
+            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/keystore/release.keystore" >> "$GITHUB_ENV"
+          else
+            echo "Секрет ANDROID_KEYSTORE_B64 не задан — APK будет подписан debug-ключом"
+          fi
+
+      - name: Упаковка APK (android/package-apk.sh)
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+        run: bash android/package-apk.sh
+
+      - name: Переименовываем APK под версию релиза
+        run: |
+          set -euo pipefail
+          cd dist/android
+          SRC_APK=$(ls horizon-mobile-*.apk | head -1)
+          mv "$SRC_APK" "horizon-mobile-${APP_VERSION}.apk"
+
+      - name: Загружаем APK как артефакт (horizon-mobile-${{ env.APP_VERSION }}.apk)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: dist/android/horizon-mobile-*.apk
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ linux ---
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Зависимости (pnpm, frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: rpmbuild (на всякий случай; electron-builder обычно использует app-builder)
+        run: |
+          if ! command -v rpmbuild >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y rpm
+          fi
+
+      - name: Сборка linux (AppImage/deb/rpm/pacman; pacman при падении не валит джоб)
+        run: |
+          set -uo pipefail
+          if ! pnpm exec electron-builder --linux --config.directories.output=dist/linux AppImage deb rpm pacman; then
+            echo "::warning::Сборка pacman-таргета на ubuntu-latest не удалась — пересобираем без него"
+            pnpm exec electron-builder --linux --config.directories.output=dist/linux AppImage deb rpm
+          fi
+
+      - name: Артефакты (AppImage/deb/rpm/pacman)
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/linux/*.AppImage
+            dist/linux/*.deb
+            dist/linux/*.rpm
+            dist/linux/*.pacman
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- windows ---
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Зависимости (pnpm, frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Сборка windows (nsis + portable, без wine — иконку ставит scripts/afterpack.js)
+        run: pnpm run build:win
+
+      - name: Артефакты (Setup.exe + portable exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/windows/*.exe
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------- macos ---
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Зависимости (pnpm, frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Сборка mac (dmg + zip, unsigned)
+        env:
+          # Нет сертификатов подписи — отключаем автопоиск identity.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: pnpm run build:mac
+
+      - name: Артефакты (dmg + zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            dist/mac/*.dmg
+            dist/mac/*.zip
+          if-no-files-found: error
+
+  # ----------------------------------------------------------------- release ---
+  release:
+    needs: [android, linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # полная история для автогенерации notes из git log
+
+      - name: Скачиваем артефакты всех джобов
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Вычисляем тег и draft-статус
+        id: meta
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.version }}"
+            if [ "${{ inputs.publish }}" = "true" ]; then DRAFT=false; else DRAFT=true; fi
+          else
+            TAG="${{ github.ref_name }}"   # push тега v* — публикуем сразу
+            DRAFT=false
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
+
+      - name: Формируем тело релиза (RELEASE_NOTES.md или git log последнего тега)
+        run: |
+          set -euo pipefail
+          if [ -f RELEASE_NOTES.md ]; then
+            cp RELEASE_NOTES.md body.md
+          else
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            {
+              echo "## Что нового"
+              echo
+              if [ -n "$LAST_TAG" ]; then
+                git log --oneline "$LAST_TAG..HEAD"
+              else
+                git log --oneline -20
+              fi
+            } | sed 's/^/- /' > body.md
+          fi
+
+      - name: Создаём Release и заливаем артефакты
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: "Burmalda Launcher ${{ steps.meta.outputs.tag }}"
+          body_path: body.md
+          draft: ${{ steps.meta.outputs.draft }}
+          fail_on_unmatched_files: true
+          files: release-assets/**
