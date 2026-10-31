@@ -35,16 +35,6 @@
         texturepacks: [],
         shaders: []
       },
-      {
-        id: 'pvp-boost',
-        name: 'PVP & Оптимизация',
-        version: '26.3',
-        isDefault: false,
-        description: 'Оптимизация рендера, высокий FPS и шейдеры',
-        mods: ['Sodium', 'Iris Shaders', 'FastCraft Pro'],
-        texturepacks: ['Faithful 32x'],
-        shaders: ['Complementary Reimagined']
-      }
     ];
   }
 
