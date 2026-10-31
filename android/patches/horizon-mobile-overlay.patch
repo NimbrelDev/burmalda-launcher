@@ -1,0 +1,4117 @@
+diff --git a/crates/horizon-client/Cargo.toml b/crates/horizon-client/Cargo.toml
+index 12b1ccf..c446282 100644
+--- a/crates/horizon-client/Cargo.toml
++++ b/crates/horizon-client/Cargo.toml
+@@ -7,6 +7,14 @@ license.workspace = true
+ rust-version = "1.90"
+ description = "Horizon native development client"
+ 
++[lib]
++crate-type = ["lib", "cdylib"]
++path = "src/lib.rs"
++
++[[bin]]
++name = "horizon-client"
++path = "src/main.rs"
++
+ [dependencies]
+ horizon-assets = { path = "../horizon-assets" }
+ horizon-client-core = { path = "../horizon-client-core" }
+@@ -37,6 +45,8 @@ png = "0.18"
+ sha2 = "0.10.9"
+ # Server resource packs are checked and cached by their SHA-1, as vanilla does.
+ sha1 = "0.10"
++# Official-install URL validation (Mojang HTTPS hosts only).
++url = "2"
+ serde = { version = "1", features = ["derive"] }
+ serde_json = { version = "1.0.151", features = ["raw_value"] }
+ # hlsl-out: the gfx.rs tests translate every shader as wgpu's DirectX 12 backend does. A normal feature,
+@@ -55,7 +65,6 @@ horizon-theme = { path = "../horizon-theme" }
+ # the anonymous "I'm playing" ping the game sends itself (`heartbeat.rs`).
+ horizon-telemetry = { path = "../horizon-telemetry", default-features = false, features = ["live"] }
+ horizon-bench = { path = "../horizon-bench" }
+-arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
+ zip = { version = "2", default-features = false, features = ["deflate"] }
+ # Controllers (evdev + libudev on Linux, IOKit on macOS, Windows.Gaming.Input); the `controllers` feature.
+ gilrs = { version = "0.11", optional = true }
+@@ -65,6 +74,12 @@ horizon-dualsense = { path = "../horizon-dualsense", optional = true }
+ ureq = { version = "2", default-features = false, features = ["tls"] }
+ unicode-bidi = "0.3.18"
+ 
++[target.'cfg(not(target_os = "android"))'.dependencies]
++arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
++
++[target.'cfg(target_os = "android")'.dependencies]
++android-activity = { version = "0.6", features = ["native-activity"] }
++
+ [target.'cfg(unix)'.dependencies]
+ # The server thread's CPU time per tick (`HORIZON_SPIKES`, spans.rs).
+ rustix = { version = "1", default-features = false, features = ["std", "time"] }
+diff --git a/crates/horizon-client/src/clipboard.rs b/crates/horizon-client/src/clipboard.rs
+index 7687209..8d0d145 100644
+--- a/crates/horizon-client/src/clipboard.rs
++++ b/crates/horizon-client/src/clipboard.rs
+@@ -112,6 +112,7 @@ pub trait Clipboard {
+ /// game can still be pasted in the game.
+ #[derive(Default)]
+ pub struct SystemClipboard {
++    #[cfg(not(target_os = "android"))]
+     system: Option<arboard::Clipboard>,
+     /// The text Horizon last copied (`horizon-ctl status`).
+     copied: Option<String>,
+@@ -122,6 +123,7 @@ impl SystemClipboard {
+     pub fn copied(&self) -> Option<&str> {
+         self.copied.as_deref()
+     }
++    #[cfg(not(target_os = "android"))]
+     fn system(&mut self) -> Option<&mut arboard::Clipboard> {
+         if self.system.is_none() {
+             self.system = arboard::Clipboard::new().ok();
+@@ -131,6 +133,7 @@ impl SystemClipboard {
+ }
+ 
+ impl Clipboard for SystemClipboard {
++    #[cfg(not(target_os = "android"))]
+     fn get(&mut self) -> String {
+         let Some(system) = self.system() else {
+             return self.copied.clone().unwrap_or_default();
+@@ -145,6 +148,13 @@ impl Clipboard for SystemClipboard {
+             }
+         }
+     }
++
++    #[cfg(target_os = "android")]
++    fn get(&mut self) -> String {
++        self.copied.clone().unwrap_or_default()
++    }
++
++    #[cfg(not(target_os = "android"))]
+     fn set(&mut self, text: &str) {
+         if text.is_empty() {
+             return;
+@@ -156,6 +166,13 @@ impl Clipboard for SystemClipboard {
+             self.system = None;
+         }
+     }
++
++    #[cfg(target_os = "android")]
++    fn set(&mut self, text: &str) {
++        if !text.is_empty() {
++            self.copied = Some(text.to_owned());
++        }
++    }
+ }
+ 
+ /// A clipboard in memory.
+diff --git a/crates/horizon-client/src/game.rs b/crates/horizon-client/src/game.rs
+index 05c8765..a56187e 100644
+--- a/crates/horizon-client/src/game.rs
++++ b/crates/horizon-client/src/game.rs
+@@ -15,7 +15,7 @@ mod block_items;
+ mod blockctl;
+ mod boat_passengers;
+ mod boats;
+-mod books;
++pub(crate) mod books;
+ mod bossbars;
+ mod breezes;
+ mod brush;
+@@ -29,7 +29,7 @@ mod chiseled_bookshelf;
+ mod client_ambient;
+ mod clipboard;
+ mod combat;
+-mod command_blocks;
++pub(crate) mod command_blocks;
+ mod command_harness;
+ mod commands;
+ mod composter;
+@@ -274,13 +274,15 @@ use std::{
+ use winit::{
+     application::ApplicationHandler,
+     event::{DeviceEvent, DeviceId, ElementState, MouseButton, MouseScrollDelta, WindowEvent},
+-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
++    event_loop::{ActiveEventLoop, ControlFlow},
+     keyboard::{KeyCode, PhysicalKey},
+     window::{CursorGrabMode, Window, WindowId},
+ };
++#[cfg(not(target_os = "android"))]
++use winit::event_loop::EventLoop;
+ 
+ #[derive(Clone)]
+-struct Options {
++pub(crate) struct Options {
+     resources: PathBuf,
+     distance: i32,
+     distance_override: Option<i32>,
+@@ -332,7 +334,7 @@ struct Options {
+ impl Options {
+     /// The name to join servers with: the one given, else the offline name kept
+     /// next to options.txt (created on first use).
+-    fn player_name(&self) -> String {
++    pub(crate) fn player_name(&self) -> String {
+         self.player_name.clone().unwrap_or_else(|| {
+             std::env::current_dir().map_or_else(
+                 |_| horizon_client::offline_name::generate(0),
+@@ -341,10 +343,16 @@ impl Options {
+         })
+     }
+     fn read() -> Result<Option<Self>> {
++        // Android: the launcher's installed copy on the shared storage.
++        #[cfg(target_os = "android")]
++        let sibling = crate::mobile::resources_dir();
++
++        #[cfg(not(target_os = "android"))]
+         let sibling = std::env::current_exe()?
+             .parent()
+             .ok_or("missing executable directory")?
+             .join("resources");
++
+         let mut o = Self {
+             resources: if sibling.join("horizon-resources.json").exists() {
+                 sibling
+@@ -501,7 +509,7 @@ impl Options {
+     }
+ }
+ #[derive(Clone, Copy, PartialEq, Eq)]
+-enum Screen {
++pub(crate) enum Screen {
+     Playing,
+     GameModeSwitcher,
+     Paused,
+@@ -1369,7 +1377,7 @@ fn select_creative_tab(
+     clicks.skip_release();
+ }
+ 
+-struct Game<'a> {
++pub(crate) struct Game<'a> {
+     /// Shared with an integrated server; `collision` and `motion` borrow from it.
+     res: Arc<Resources>,
+     rest_loader: Option<WorldRestLoader>,
+@@ -1377,9 +1385,9 @@ struct Game<'a> {
+     world_loader: Option<world_loading::WorldLoader>,
+     pending_pack_reload: bool,
+     /// A server's resource packs (game/server_packs.rs).
+-    server_packs: server_packs::ServerPackState,
++    pub(crate) server_packs: server_packs::ServerPackState,
+     /// The link a chat click asks to open (`ConfirmLinkScreen`).
+-    link_prompt: Option<String>,
++    pub(crate) link_prompt: Option<String>,
+     dialogs: dialogs::DialogState,
+     world_renderer_ready: bool,
+     collision: &'a BlockCollisionRegistry<'a>,
+@@ -1387,7 +1395,7 @@ struct Game<'a> {
+     /// This game's resource packs (`reload_packs` replaces them).
+     pack: PackResources,
+     /// The title and menu bundle (GUI atlas, font and panorama).
+-    gui: UiResources,
++    pub(crate) gui: UiResources,
+     /// `FogRenderer`'s evolving state.
+     fog: horizon_client::fog::FogState,
+     screen_fx: horizon_client::screen_effects::ScreenEffects,
+@@ -1400,7 +1408,7 @@ struct Game<'a> {
+     lod_observe: horizon_client::fast_hash::FxHashSet<(i32, i32)>,
+     /// The detail revision, centre and radius `Lod::update` last had covered for.
+     lod_covered_at: Option<(u64, (i32, i32), i32)>,
+-    options: Options,
++    pub(crate) options: Options,
+     player: Option<PlayerMotion>,
+     spawn: Option<Vec3>,
+     clock: FixedStep,
+@@ -1410,8 +1418,8 @@ struct Game<'a> {
+     yaw: f32,
+     pitch: f32,
+     inventory: Vec<Option<ItemStack>>,
+-    selected: usize,
+-    carried: Option<ItemStack>,
++    pub(crate) selected: usize,
++    pub(crate) carried: Option<ItemStack>,
+     craft_grid: Vec<Option<ItemStack>>,
+     craft_size: usize,
+     /// The crafting table the 3x3 grid belongs to (`CraftingMenu.access`).
+@@ -1430,7 +1438,7 @@ struct Game<'a> {
+     /// double click moves every stack of.
+     last_quick_moved: Option<ItemStack>,
+     /// Open container block entity, if any.
+-    container: Option<(i32, i32, i32)>,
++    pub(crate) container: Option<(i32, i32, i32)>,
+     /// Open workstation menu (enchanting table, anvil, ...).
+     station: Option<stations::Station>,
+     /// Status effects and thrown potions (game/potions.rs).
+@@ -1442,25 +1450,25 @@ struct Game<'a> {
+     destroying: HashMap<i32, ([i32; 3], u8, i64)>,
+     destroy_delay: u32,
+     use_delay: u32,
+-    creative: bool,
++    pub(crate) creative: bool,
+     /// The game mode; `creative` mirrors `mode == Creative`.
+     mode: horizon_client::command::args::GameMode,
+-    keys: HashSet<KeyCode>,
++    pub(crate) keys: HashSet<KeyCode>,
+     // Physical input is separate from remapped and toggled movement keys.
+-    physical_keys: HashSet<KeyCode>,
++    pub(crate) physical_keys: HashSet<KeyCode>,
+     left: bool,
+     right: bool,
+-    cursor: (f32, f32),
++    pub(crate) cursor: (f32, f32),
+     /// The cursor icon the window shows (`widgets::take_cursor` each frame).
+     cursor_icon: horizon_client::widgets::Cursor,
+     captured: bool,
+     focused: bool,
+     /// The keyboard's modifier state (`KeyEvent.modifiers`).
+-    modifiers: winit::keyboard::ModifiersState,
++    pub(crate) modifiers: winit::keyboard::ModifiersState,
+     /// The window's fullscreen request and reported state.
+     fullscreen: horizon_client::window::FullscreenState,
+     /// MouseHandler's accumulated look and wheel state.
+-    mouse: MouseLook,
++    pub(crate) mouse: MouseLook,
+     /// An agent moved the mouse (`mouse-move`) since the pointer was last
+     /// grabbed or released: its motion turns the view like a grabbed pointer.
+     agent_pointer: bool,
+@@ -1473,9 +1481,9 @@ struct Game<'a> {
+     /// Minecraft.pause: a single-player screen that pauses the game is open.
+     pause: bool,
+     debug: bool,
+-    screen: Screen,
+-    window: Option<Arc<Window>>,
+-    renderer: Option<Renderer>,
++    pub(crate) screen: Screen,
++    pub(crate) window: Option<Arc<Window>>,
++    pub(crate) renderer: Option<Renderer>,
+     /// CPU geometry storage retained across frames, including empty/title frames.
+     entity_vertices: Vec<Vertex>,
+     /// Horizon Extras' dynamic lights this frame (`dynamic_lights.rs`), and how brightly each
+@@ -1520,7 +1528,7 @@ struct Game<'a> {
+     save: Arc<SaveDir>,
+     level: Level,
+     session_lock: Option<horizon_client::save::SessionLock>,
+-    audio: Audio,
++    pub(crate) audio: Audio,
+     music: horizon_client::music::MusicManager,
+     ambience: horizon_client::ambience::Ambience,
+     /// The sound engine was told the game paused (pauseAllExcept).
+@@ -1539,9 +1547,9 @@ struct Game<'a> {
+     /// `ItemPickupParticle`s: taken items, orbs and arrows flying to their collector.
+     pickups: pickups::Pickups,
+     /// Sign text being edited (`SignEditScreen`).
+-    sign_edit: Option<sign_edit::SignEditor>,
++    pub(crate) sign_edit: Option<sign_edit::SignEditor>,
+     /// An open book, book and quill or lectern screen.
+-    book: Option<books::BookScreen>,
++    pub(crate) book: Option<books::BookScreen>,
+     /// Lecterns whose page-turn pulse is running (ticks left).
+     lectern_pulses: Vec<((i32, i32, i32), i32)>,
+     /// LevelLoadingScreen.smoothedProgress while the player is not placed yet.
+@@ -1583,7 +1591,7 @@ struct Game<'a> {
+     scope_scale: f32,
+     /// Duration of the last frame in ticks (GUI easing).
+     frame_ticks: f32,
+-    title: Option<Title>,
++    pub(crate) title: Option<Title>,
+     /// Armor slots: head, chest, legs, feet.
+     armor: [Option<ItemStack>; 4],
+     /// The off hand (Inventory slot 40, saved as slot 150; menu slot 504 here).
+@@ -1629,10 +1637,10 @@ struct Game<'a> {
+     clicks: horizon_client::first_person::Clicks,
+     attack_clicks: u32,
+     hand_strength: horizon_client::attack_strength::AttackStrength,
+-    settings: Settings,
++    pub(crate) settings: Settings,
+     /// Where the options screen returns: true = title, false = pause menu.
+     options_from_title: bool,
+-    dragging: bool,
++    pub(crate) dragging: bool,
+     /// `ClientAvatarState`: walked distance and view bob.
+     avatar: horizon_client::camera::AvatarBob,
+     flash: u32,
+@@ -1772,7 +1780,7 @@ struct Game<'a> {
+     hoppers: HashMap<(i32, i32, i32), machines::HopperState>,
+     /// Where item entities are, while the block entities tick (hoppers).
+     item_columns: Option<machines::ItemColumns>,
+-    creative_screen: Creative,
++    pub(crate) creative_screen: Creative,
+     control: Option<horizon_client::control::Server>,
+     /// The Agent Control setting the socket was last opened or closed for (`agent_settings`).
+     agent_control_on: bool,
+@@ -1824,16 +1832,16 @@ struct Game<'a> {
+     world_options: Option<lan_screen::WorldOptions>,
+     /// Chat Settings opened from RestrictionsScreen: Done returns to World Options.
+     options_to_world_options: bool,
+-    command_block_screen: Option<command_blocks::CommandBlockScreen>,
++    pub(crate) command_block_screen: Option<command_blocks::CommandBlockScreen>,
+     /// KeyboardHandler's debug key state (game/debug_keys.rs), the physical
+     /// keys held, and the debug renderers F3+B and F3+G switch on.
+-    debug_keys: horizon_client::debug_keys::DebugKeys,
++    pub(crate) debug_keys: horizon_client::debug_keys::DebugKeys,
+     /// The F3 overlay's charts (F3+2, F3+3).
+     debug_charts: horizon_client::debug_chart::DebugCharts,
+     show_hitboxes: bool,
+     show_chunk_borders: bool,
+     /// PauseScreen.showPauseMenu (false after F3+Escape).
+-    pause_menu: bool,
++    pub(crate) pause_menu: bool,
+     /// MultiPlayerGameMode.previousLocalPlayerMode (F3+N goes back to it).
+     previous_mode: Option<horizon_client::command::args::GameMode>,
+     gamemode_switcher: Option<horizon_client::game_mode_switcher::GameModeSwitcher>,
+@@ -1902,7 +1910,7 @@ struct Game<'a> {
+     console_broadcast: Option<bool>,
+     /// State of `/spectate`, `/posteffect`, `/debug`, `/waypoint` and friends.
+     cmds: commands::extra::CommandExtras,
+-    ui: chat::UiState,
++    pub(crate) ui: chat::UiState,
+     combat: combat::CombatTracker,
+     /// Each guest's own `CombatTracker`, out of `combat` between turns.
+     guest_combat: std::collections::HashMap<u32, combat::CombatTracker>,
+@@ -1936,7 +1944,7 @@ struct Game<'a> {
+     player_model: Option<Mob>,
+ }
+ #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+-enum Dim {
++pub(crate) enum Dim {
+     Overworld,
+     Nether,
+     End,
+@@ -5513,9 +5521,9 @@ impl Game<'_> {
+     fn apply_mouse_look(&mut self) {
+         let look = self.look_options();
+         let time = self.started.elapsed().as_secs_f64();
+-        let pointer = self.captured || self.agent_pointer;
++        let pointer = self.captured || self.agent_pointer || cfg!(target_os = "android");
+         let grabbed = pointer && self.screen == Screen::Playing && self.player.is_some();
+-        let active = self.focused || self.agent_pointer;
++        let active = self.focused || self.agent_pointer || cfg!(target_os = "android");
+         if let Some((xo, yo)) = self
+             .mouse
+             .handle_accumulated_movement(time, active, grabbed, look)
+@@ -5798,6 +5806,8 @@ impl Game<'_> {
+         self.frame_graph
+             .draw(self.settings.horizon.overlay, &mut batch, &self.gui.atlas);
+         self.draw_pad_cursor(&mut batch);
++        #[cfg(target_os = "android")]
++        self.draw_mobile_hud(&mut batch);
+         batch
+     }
+     fn hud_layers(&mut self, size: [u32; 2]) -> HudBatch {
+@@ -6515,7 +6525,7 @@ impl Game<'_> {
+     /// chest, hopper, dispenser or furnace menu, run by the verified menu
+     /// engine (`horizon_client::menu`). `slot` None is outside the window.
+     /// False when the open screen is not one the engine models.
+-    fn menu_click(
++    pub(crate) fn menu_click(
+         &mut self,
+         slot: Option<usize>,
+         button: i32,
+@@ -7149,7 +7159,7 @@ impl Game<'_> {
+     }
+     /// Number keys, F and Q over a slot of the open menu: SWAP with a hotbar
+     /// slot or the off hand, THROW one or the whole stack.
+-    fn inventory_hotkey(&mut self, key: KeyCode) -> bool {
++    pub(crate) fn inventory_hotkey(&mut self, key: KeyCode) -> bool {
+         use horizon_client::menu::Input;
+         let Some(size) = self
+             .renderer
+@@ -7179,7 +7189,7 @@ impl Game<'_> {
+     }
+     /// The plain inventory mouse press: starts a quick craft drag when a
+     /// stack is held, gathers on a double click, else the normal click.
+-    fn inventory_press(&mut self, right: bool) {
++    pub(crate) fn inventory_press(&mut self, right: bool) {
+         use horizon_client::container_screen::Target;
+         use horizon_client::menu::Input;
+         if self.mod_browser_press(right) {
+@@ -7318,7 +7328,7 @@ impl Game<'_> {
+         self.click_inventory(right);
+     }
+     /// Mouse movement while a quick craft drag is running.
+-    fn inventory_drag_move(&mut self) {
++    pub(crate) fn inventory_drag_move(&mut self) {
+         if self.tweaks_on() && self.tweak_drag_move(self.inventory_target().0) {
+             return;
+         }
+@@ -7340,7 +7350,7 @@ impl Game<'_> {
+         }
+     }
+     /// The hovered slot and whether the cursor is outside the window.
+-    fn inventory_target(&self) -> (Option<usize>, bool) {
++    pub(crate) fn inventory_target(&self) -> (Option<usize>, bool) {
+         let Some(r) = self.renderer.as_ref() else {
+             return (None, false);
+         };
+@@ -7356,7 +7366,7 @@ impl Game<'_> {
+     }
+     /// `Screen.hasShiftDown` / `InputWithModifiers.hasShiftDown`: the
+     /// physical Shift keys, whatever the sneak key is bound or toggled to.
+-    pub(super) fn has_shift_down(&self) -> bool {
++    pub(crate) fn has_shift_down(&self) -> bool {
+         self.physical_keys.contains(&KeyCode::ShiftLeft)
+             || self.physical_keys.contains(&KeyCode::ShiftRight)
+     }
+@@ -7446,7 +7456,7 @@ impl Game<'_> {
+     }
+     /// Mouse release over an inventory screen: `mouseReleased` ends or
+     /// cancels the drag, drops a stack released outside, or clicks.
+-    fn inventory_mouse_release(&mut self, right: bool) {
++    pub(crate) fn inventory_mouse_release(&mut self, right: bool) {
+         use horizon_client::container_screen::{Release, Target};
+         self.tweak_release();
+         let (slot, outside) = self.inventory_target();
+@@ -7484,7 +7494,7 @@ impl Game<'_> {
+     /// full size (`CLONE`), a carried stack starts a quick craft drag of type
+     /// 2 that fills every slot it crosses; without infinite materials the
+     /// press does nothing.
+-    fn inventory_pick_press(&mut self) {
++    pub(crate) fn inventory_pick_press(&mut self) {
+         use horizon_client::container_screen::{Button, Target};
+         let (slot, outside) = self.inventory_target();
+         let was_crafting = self.inv_clicks.quick_crafting().is_some();
+@@ -7513,7 +7523,7 @@ impl Game<'_> {
+     /// The pick block button's release (`mouseReleased`): ends its quick
+     /// craft drag, cancels another button's, or clones onto the slot under a
+     /// carried stack (`CLONE`, which only an item tab's display slot takes).
+-    fn inventory_pick_release(&mut self) {
++    pub(crate) fn inventory_pick_release(&mut self) {
+         use horizon_client::container_screen::{Button, Release, Target};
+         let (slot, outside) = self.inventory_target();
+         let dragged = self.inv_drag.as_ref().is_some_and(|(_, s)| !s.is_empty());
+@@ -8794,7 +8804,7 @@ impl Game<'_> {
+         (out, stars)
+     }
+     /// Enter a local world from the client, selecting its simulation mode.
+-    fn open_world(
++    pub(crate) fn open_world(
+         &mut self,
+         folder: &str,
+         name: Option<&str>,
+@@ -10926,7 +10936,7 @@ impl Game<'_> {
+             self.sleep_seen.1 = 0;
+         }
+     }
+-    fn creative_origin(batch: &HudBatch) -> (f32, f32) {
++    pub(crate) fn creative_origin(batch: &HudBatch) -> (f32, f32) {
+         batch.centered_origin(Creative::WIDTH, Creative::HEIGHT)
+     }
+     /// A creative tab's title: `itemGroup.*`, else the export's English title.
+@@ -11144,7 +11154,7 @@ impl Game<'_> {
+             && cursor.1 >= oy + y
+             && cursor.1 < oy + y + 16.0
+     }
+-    fn click_creative(&mut self, right: bool) {
++    pub(crate) fn click_creative(&mut self, right: bool) {
+         let Some(size) = self
+             .renderer
+             .as_ref()
+@@ -11917,7 +11927,7 @@ impl Game<'_> {
+         })
+     }
+     /// A key press while a world is open (keyboard or control socket).
+-    fn key_pressed(&mut self, key: KeyCode) -> Result<()> {
++    pub(crate) fn key_pressed(&mut self, key: KeyCode) -> Result<()> {
+         if self.sleeping.is_some()
+             && self.screen == Screen::Playing
+             && !matches!(
+@@ -12094,7 +12104,7 @@ impl Game<'_> {
+         Ok(())
+     }
+     /// A mouse button while playing (window or control socket).
+-    fn play_mouse(&mut self, button: MouseButton, pressed: bool) -> Result<()> {
++    pub(crate) fn play_mouse(&mut self, button: MouseButton, pressed: bool) -> Result<()> {
+         // A mod's claimed item takes the use button (capability `input`).
+         if self.mod_use(button, pressed) {
+             return Ok(());
+@@ -12455,6 +12465,10 @@ impl ApplicationHandler for Game<'_> {
+         if self.window.as_ref().is_none_or(|w| w.id() != id) {
+             return;
+         }
++        // The Android back gesture arrives as the browser Back key; mobile
++        // remaps it to Escape (a no-op hook on desktop).
++        #[cfg(target_os = "android")]
++        let event = crate::mobile::remap_back_key(event);
+         if let WindowEvent::KeyboardInput { event, .. } = &event
+             && let PhysicalKey::Code(key) = event.physical_key
+         {
+@@ -12506,6 +12520,7 @@ impl ApplicationHandler for Game<'_> {
+                 | WindowEvent::MouseInput { .. }
+                 | WindowEvent::MouseWheel { .. }
+                 | WindowEvent::CursorMoved { .. }
++                | WindowEvent::Touch { .. }
+         ) {
+             self.last_input = Instant::now();
+         }
+@@ -12604,6 +12619,13 @@ impl ApplicationHandler for Game<'_> {
+                         }
+                     }
+                 }
++                #[cfg(target_os = "android")]
++                WindowEvent::Touch(touch) => {
++                    self.handle_mobile_touch(touch);
++                    // Keyboard taps queue outputs; route them into the
++                    // focused text field right here.
++                    self.flush_mobile_keyboard();
++                }
+                 WindowEvent::CursorMoved { position, .. } => {
+                     if let Some(r) = &self.renderer {
+                         let b = HudBatch::new([r.config.width, r.config.height]);
+@@ -12724,11 +12746,13 @@ impl ApplicationHandler for Game<'_> {
+                         self.advancements_scroll(scaled(raw_x) as f32, d);
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } if self.link_prompt.is_some() => {
+                     if state == ElementState::Pressed && button == MouseButton::Left {
+                         self.link_prompt_click();
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. }
+                     if self.server_packs.prompt.is_some() =>
+                 {
+@@ -12736,12 +12760,15 @@ impl ApplicationHandler for Game<'_> {
+                         self.pack_prompt_click()?;
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } if self.dialog_open() => {
+                     if state == ElementState::Pressed && button == MouseButton::Left {
+                         self.dialog_click()?;
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { .. } if self.screen == Screen::Win => {}
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } if self.screen == Screen::Options => {
+                     if self.options_waiting_for_key() && state == ElementState::Pressed {
+                         self.options_bind_mouse(button)?;
+@@ -12752,6 +12779,7 @@ impl ApplicationHandler for Game<'_> {
+                         )?;
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput {
+                     state: ElementState::Released,
+                     button: MouseButton::Left,
+@@ -12762,6 +12790,7 @@ impl ApplicationHandler for Game<'_> {
+                         title.release_field();
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput {
+                     state,
+                     button: MouseButton::Left,
+@@ -12811,7 +12840,9 @@ impl ApplicationHandler for Game<'_> {
+                         Action::None => {}
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { .. } if self.title.is_some() => {}
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } if self.book.is_some() => {
+                     if state == ElementState::Pressed && button == MouseButton::Left {
+                         let size = self
+@@ -12822,6 +12853,7 @@ impl ApplicationHandler for Game<'_> {
+                         self.book_click(size);
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } if self.sign_edit.is_some() => {
+                     if state == ElementState::Pressed && button == MouseButton::Left {
+                         let size = self
+@@ -12832,6 +12864,7 @@ impl ApplicationHandler for Game<'_> {
+                         self.sign_edit_click(size);
+                     }
+                 }
++                #[cfg(not(target_os = "android"))]
+                 WindowEvent::MouseInput { state, button, .. } => {
+                     let pressed = state == ElementState::Pressed;
+                     if matches!(self.screen, Screen::Inventory | Screen::Creative)
+@@ -12957,6 +12990,35 @@ impl ApplicationHandler for Game<'_> {
+                         _ => {}
+                     }
+                 }
++                #[cfg(target_os = "android")]
++                WindowEvent::MouseInput { state, button, .. } => {
++                    let pressed = state == ElementState::Pressed;
++                    if self.screen == Screen::Playing
++                        && self.title.is_none()
++                        && self.book.is_none()
++                        && self.sign_edit.is_none()
++                        && !self.dialog_open()
++                        && self.link_prompt.is_none()
++                        && self.server_packs.prompt.is_none()
++                    {
++                        self.extras_mouse(button, pressed);
++                        self.mod_mouse_key(button, pressed);
++                        for mapped in self.settings.keys.translate_mouse_all(button) {
++                            match mapped {
++                                Err(b) => self.play_mouse(b, pressed)?,
++                                Ok(k) if pressed => {
++                                    self.keys.insert(k);
++                                    self.key_pressed(k)?;
++                                }
++                                Ok(k) => {
++                                    self.keys.remove(&k);
++                                }
++                            }
++                        }
++                    } else {
++                        self.dispatch_menu_mouse(pressed, button, Some(event_loop))?;
++                    }
++                }
+                 // ConfirmScreen.keyPressed: Escape answers no, once its delay is over.
+                 WindowEvent::KeyboardInput { event, .. }
+                     if self.screen == Screen::Dead && self.ui.death_confirm.is_some() =>
+@@ -13182,6 +13244,8 @@ impl ApplicationHandler for Game<'_> {
+                     let elapsed = now.duration_since(self.previous);
+                     self.frame_ticks = elapsed.as_secs_f32() * 20.0;
+                     self.previous = now;
++                    #[cfg(target_os = "android")]
++                    self.tick_mobile();
+                     // Arrow-key camera controls belong to gameplay; chat and
+                     // other screens use the same keys for their own navigation.
+                     if self.screen == Screen::Playing
+@@ -13367,7 +13431,7 @@ impl ApplicationHandler for Game<'_> {
+     }
+     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
+         if self.pending_save.is_none()
+-            && self.captured
++            && (self.captured || cfg!(target_os = "android"))
+             && self.focused
+             && self.screen == Screen::Playing
+             && let DeviceEvent::MouseMotion { delta: (x, y) } = event
+@@ -13884,7 +13948,7 @@ struct GameCpuResources {
+     dragon_model: Option<horizon_client::mobs::Part>,
+     arrow_model: Option<horizon_client::mobs::Part>,
+     trident_model: Option<horizon_client::mobs::Part>,
+-    creative_screen: Creative,
++    pub(crate) creative_screen: Creative,
+ }
+ impl GameCpuResources {
+     fn load(root: &std::path::Path) -> Result<Self> {
+@@ -14797,7 +14861,17 @@ fn write_report(game: &Game<'_>) -> Result<()> {
+     Ok(())
+ }
+ 
++/// Stores the Android app handle for the event loop builders; the body
++/// lives in `mobile.rs` (called from `android_main` in lib.rs).
++#[cfg(target_os = "android")]
++pub fn set_android_app(app: android_activity::AndroidApp) {
++    crate::mobile::set_android_app(app);
++}
++
+ fn run_event_loop(mut game: Game<'_>) -> Result<()> {
++    #[cfg(target_os = "android")]
++    crate::mobile::run_android_event_loop(&mut game)?;
++    #[cfg(not(target_os = "android"))]
+     EventLoop::new()?.run_app(&mut game)?;
+     horizon_client::discord_presence::stop();
+     write_report(&game)?;
+@@ -14809,8 +14883,8 @@ fn run_event_loop(mut game: Game<'_>) -> Result<()> {
+ 
+ /// The loading screen's state while the worker loads the resources.
+ struct Loading {
+-    window: Option<Arc<Window>>,
+-    renderer: Option<Renderer>,
++    pub(crate) window: Option<Arc<Window>>,
++    pub(crate) renderer: Option<Renderer>,
+     gui: Option<UiResources>,
+     settings: Settings,
+     fullscreen: horizon_client::window::FullscreenState,
+@@ -15155,6 +15229,9 @@ fn run_loading(
+         error: None,
+     };
+     let mut app = App::Loading(Box::new(loading));
++    #[cfg(target_os = "android")]
++    crate::mobile::run_android_event_loop(&mut app)?;
++    #[cfg(not(target_os = "android"))]
+     EventLoop::new()?.run_app(&mut app)?;
+     horizon_client::discord_presence::stop();
+     match app {
+diff --git a/crates/horizon-client/src/game/advancements_screen.rs b/crates/horizon-client/src/game/advancements_screen.rs
+index 211bab3..77b0c79 100644
+--- a/crates/horizon-client/src/game/advancements_screen.rs
++++ b/crates/horizon-client/src/game/advancements_screen.rs
+@@ -740,7 +740,7 @@ impl Game<'_> {
+         self.draw_item(batch, &icon, ix + f(x + 8), iy + f(y + 5));
+     }
+     /// A left button press or release.
+-    pub(super) fn advancements_mouse(&mut self, pressed: bool, size: [u32; 2]) {
++    pub(crate) fn advancements_mouse(&mut self, pressed: bool, size: [u32; 2]) {
+         if !pressed {
+             self.adv_ui.drag = None;
+             self.adv_ui.scrolling = false;
+diff --git a/crates/horizon-client/src/game/books.rs b/crates/horizon-client/src/game/books.rs
+index 07d65c5..5d47cd5 100644
+--- a/crates/horizon-client/src/game/books.rs
++++ b/crates/horizon-client/src/game/books.rs
+@@ -45,7 +45,7 @@ fn book_page_box() -> ui::EditBox {
+     edit
+ }
+ 
+-pub(super) enum BookScreen {
++pub(crate) enum BookScreen {
+     Edit {
+         /// Inventory slot of the book (the selected hotbar slot).
+         slot: usize,
+@@ -321,7 +321,7 @@ impl Game<'_> {
+     }
+     /// A key and the text it typed in the open book (the keyboard, or a
+     /// controller's on-screen keyboard).
+-    pub(super) fn book_input(&mut self, key: Option<KeyCode>, text: Option<&str>) {
++    pub(crate) fn book_input(&mut self, key: Option<KeyCode>, text: Option<&str>) {
+         match self.book.as_mut() {
+             Some(BookScreen::View { .. }) => match key {
+                 Some(KeyCode::Escape) => self.close_book(),
+@@ -963,7 +963,7 @@ impl Game<'_> {
+             _ => self.close_book(),
+         }
+     }
+-    pub(super) fn book_click(&mut self, size: [u32; 2]) {
++    pub(crate) fn book_click(&mut self, size: [u32; 2]) {
+         let b = HudBatch::new(size);
+         let (w, left) = (b.width, ((b.width - 192.0) / 2.0).floor());
+         let (mx, my) = self.cursor;
+diff --git a/crates/horizon-client/src/game/chat.rs b/crates/horizon-client/src/game/chat.rs
+index 49ad2be..e400fb0 100644
+--- a/crates/horizon-client/src/game/chat.rs
++++ b/crates/horizon-client/src/game/chat.rs
+@@ -573,7 +573,7 @@ impl Game<'_> {
+         self.chat_key_code(key, event.text.as_deref());
+     }
+     /// A key (and the text it typed) while the chat screen is open.
+-    pub(super) fn chat_key_code(&mut self, key: KeyCode, typed_text: Option<&str>) {
++    pub(crate) fn chat_key_code(&mut self, key: KeyCode, typed_text: Option<&str>) {
+         // InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER: Cmd on macOS, Ctrl elsewhere.
+         let (left, right) = if cfg!(target_os = "macos") {
+             (KeyCode::SuperLeft, KeyCode::SuperRight)
+@@ -653,7 +653,7 @@ impl Game<'_> {
+         }
+     }
+     /// Text typed into the chat box (control socket `chat`).
+-    pub(super) fn chat_type(&mut self, text: &str) {
++    pub(crate) fn chat_type(&mut self, text: &str) {
+         let m = Measure(&self.gui.atlas.font);
+         let c = Commands {
+             dispatcher: chat_tree(&self.remote, &self.mods),
+@@ -726,7 +726,7 @@ impl Game<'_> {
+         let amount = amount.clamp(-1.0, 1.0) * if shift { 1.0 } else { 7.0 };
+         self.ui.chat.scroll_by(amount as i32, true);
+     }
+-    pub(super) fn chat_click(&mut self) {
++    pub(crate) fn chat_click(&mut self) {
+         let cursor = self.cursor;
+         let height = self.renderer.as_ref().map_or(720.0, |r| {
+             HudBatch::new([r.config.width, r.config.height]).height
+@@ -842,7 +842,7 @@ impl Game<'_> {
+             super::packs::open_uri(&url);
+         }
+     }
+-    pub(super) fn link_prompt_click(&mut self) {
++    pub(crate) fn link_prompt_click(&mut self) {
+         let Some(url) = &self.link_prompt else {
+             return;
+         };
+diff --git a/crates/horizon-client/src/game/clipboard.rs b/crates/horizon-client/src/game/clipboard.rs
+index 6e81bf3..eacea42 100644
+--- a/crates/horizon-client/src/game/clipboard.rs
++++ b/crates/horizon-client/src/game/clipboard.rs
+@@ -65,7 +65,7 @@ impl Game<'_> {
+     }
+     /// Typing or a backspace in a title-screen field. A field that still only
+     /// appends replaces a Select All selection before the edit.
+-    pub(super) fn title_edit(&mut self, typed: Option<&str>, backspace: bool) {
++    pub(crate) fn title_edit(&mut self, typed: Option<&str>, backspace: bool) {
+         let Some(title) = self.title.as_mut() else {
+             return;
+         };
+@@ -97,14 +97,14 @@ impl Game<'_> {
+     /// A backspace in the creative search box: with Ctrl, the whole word
+     /// before the caret (`EditBox.deleteWords(-1)`), otherwise one character.
+     /// A selection is what it deletes, as in `EditBox.keyPressed`.
+-    pub(super) fn creative_search_backspace(&mut self, ctrl: bool) {
++    pub(crate) fn creative_search_backspace(&mut self, ctrl: bool) {
+         self.creative_screen
+             .search
+             .key(KeyCode::Backspace, ctrl, false);
+         self.creative_screen.scroll = 0.0;
+     }
+     /// Typing in the creative search box.
+-    pub(super) fn creative_search_edit(&mut self, typed: Option<&str>) {
++    pub(crate) fn creative_search_edit(&mut self, typed: Option<&str>) {
+         if let Some(text) = typed {
+             self.creative_screen.search.insert_text(text);
+             self.creative_screen.scroll = 0.0;
+diff --git a/crates/horizon-client/src/game/command_blocks.rs b/crates/horizon-client/src/game/command_blocks.rs
+index 8683464..4dd17a7 100644
+--- a/crates/horizon-client/src/game/command_blocks.rs
++++ b/crates/horizon-client/src/game/command_blocks.rs
+@@ -26,9 +26,9 @@ use winit::{
+ type Pos = (i32, i32, i32);
+ 
+ /// The open `CommandBlockEditScreen`.
+-pub(super) struct CommandBlockScreen {
++pub(crate) struct CommandBlockScreen {
+     pos: Pos,
+-    command: EditBox,
++    pub(crate) command: EditBox,
+     previous: EditBox,
+     track_output: bool,
+     mode: Mode,
+@@ -468,7 +468,7 @@ impl Game<'_> {
+         self.screen = Screen::CommandBlock;
+         self.capture(false);
+     }
+-    pub(super) fn close_command_block(&mut self) {
++    pub(crate) fn close_command_block(&mut self) {
+         self.command_block_screen = None;
+         self.screen = Screen::Playing;
+         self.capture(true);
+@@ -513,7 +513,7 @@ impl Game<'_> {
+         }
+         self.command_block_screen = Some(s);
+     }
+-    pub(super) fn command_block_click(&mut self) {
++    pub(crate) fn command_block_click(&mut self) {
+         let Some(mut s) = self.command_block_screen.take() else {
+             return;
+         };
+@@ -584,7 +584,7 @@ impl Game<'_> {
+         }
+     }
+     /// Characters typed into the command box (`StringUtil.isAllowedChatCharacter`).
+-    pub(super) fn command_block_type(&mut self, typed: &str) {
++    pub(crate) fn command_block_type(&mut self, typed: &str) {
+         let allowed: String = typed
+             .chars()
+             .filter(|&c| c != '\u{a7}' && c >= ' ' && c != '\u{7f}')
+@@ -597,7 +597,7 @@ impl Game<'_> {
+     }
+     /// The edit screen's Done: a server's client sends the packet, the
+     /// window's own world applies it (`handleSetCommandBlock`).
+-    fn set_command_block(&mut self, s: &CommandBlockScreen) {
++    pub(crate) fn set_command_block(&mut self, s: &CommandBlockScreen) {
+         if !self.can_use_game_master_blocks() {
+             self.system_message(Text::translate("advMode.notAllowed", &[]));
+             return;
+diff --git a/crates/horizon-client/src/game/debug_keys.rs b/crates/horizon-client/src/game/debug_keys.rs
+index 1b82243..84c1207 100644
+--- a/crates/horizon-client/src/game/debug_keys.rs
++++ b/crates/horizon-client/src/game/debug_keys.rs
+@@ -64,7 +64,7 @@ impl Game<'_> {
+     /// A physical key event (already in `physical_keys`) before the game's
+     /// own handling. Returns true when it is used up (a debug combination,
+     /// F3 itself, F3+Escape).
+-    pub(super) fn debug_key(&mut self, key: KeyCode, action: KeyAction) -> bool {
++    pub(crate) fn debug_key(&mut self, key: KeyCode, action: KeyAction) -> bool {
+         let Some(name) = keybinds::key_name(key) else {
+             return false;
+         };
+diff --git a/crates/horizon-client/src/game/dialogs.rs b/crates/horizon-client/src/game/dialogs.rs
+index 4928b0a..d74cb24 100644
+--- a/crates/horizon-client/src/game/dialogs.rs
++++ b/crates/horizon-client/src/game/dialogs.rs
+@@ -49,7 +49,7 @@ fn warning_texts() -> (Text, Text, [Text; 2]) {
+ 
+ impl Game<'_> {
+     /// Whether a dialog screen takes the input.
+-    pub(super) fn dialog_open(&self) -> bool {
++    pub(crate) fn dialog_open(&self) -> bool {
+         let d = &self.dialogs;
+         d.open.is_some() || d.waiting.is_some() || d.warning
+     }
+@@ -374,7 +374,7 @@ impl Game<'_> {
+     }
+ 
+     /// A left click on a dialog screen.
+-    pub(super) fn dialog_click(&mut self) -> Result<()> {
++    pub(crate) fn dialog_click(&mut self) -> Result<()> {
+         let cursor = self.cursor;
+         if self.dialogs.warning {
+             let (title, message, _) = warning_texts();
+@@ -493,7 +493,7 @@ impl Game<'_> {
+     /// A key pressed on a dialog screen: Escape closes what allows it, Tab
+     /// moves between the text inputs, the rest goes to the focused one
+     /// (`shortcut`: the press as an edit shortcut; `text`: what it types).
+-    pub(super) fn dialog_key(
++    pub(crate) fn dialog_key(
+         &mut self,
+         key: KeyCode,
+         shortcut: Option<EditShortcut>,
+@@ -571,7 +571,7 @@ impl Game<'_> {
+ 
+     /// `type TEXT` with a dialog open: into the focused text input, or the
+     /// first one.
+-    pub(super) fn dialog_type(&mut self, text: &str) -> bool {
++    pub(crate) fn dialog_type(&mut self, text: &str) -> bool {
+         let Some(open) = self.dialogs.open.as_mut() else {
+             return false;
+         };
+diff --git a/crates/horizon-client/src/game/friends.rs b/crates/horizon-client/src/game/friends.rs
+index b6d1ad6..f833b19 100644
+--- a/crates/horizon-client/src/game/friends.rs
++++ b/crates/horizon-client/src/game/friends.rs
+@@ -184,7 +184,7 @@ impl Game<'_> {
+         let view = self.friends_view();
+         friends_screen::draw(batch, &self.gui.atlas, self.cursor, &view, true);
+     }
+-    pub(super) fn friends_screen_click(&mut self) {
++    pub(crate) fn friends_screen_click(&mut self) {
+         let view = self.friends_view();
+         let Some(action) =
+             friends_screen::click(&self.gui.atlas, self.gui_size(), self.cursor, &view)
+diff --git a/crates/horizon-client/src/game/lan_screen.rs b/crates/horizon-client/src/game/lan_screen.rs
+index 055d1ea..bb27c5f 100644
+--- a/crates/horizon-client/src/game/lan_screen.rs
++++ b/crates/horizon-client/src/game/lan_screen.rs
+@@ -531,7 +531,7 @@ impl Game<'_> {
+ 
+     /// Escape: the question and RestrictionsScreen return to the options
+     /// (their onClose), which close; the game rules ask first.
+-    pub(super) fn world_options_escape(&mut self) {
++    pub(crate) fn world_options_escape(&mut self) {
+         match self.world_options.as_mut() {
+             Some(o) if o.view == View::GameRules => {
+                 if o.rules.is_none() {
+@@ -814,7 +814,7 @@ impl Game<'_> {
+     }
+ 
+     /// The button came up: a held scrollbar lets go (onRelease).
+-    pub(super) fn world_options_release(&mut self) {
++    pub(crate) fn world_options_release(&mut self) {
+         if let Some(o) = self.world_options.as_mut()
+             && let Some(rules) = o.rules.as_mut()
+         {
+@@ -822,7 +822,7 @@ impl Game<'_> {
+         }
+     }
+ 
+-    pub(super) fn world_options_click(&mut self) {
++    pub(crate) fn world_options_click(&mut self) {
+         let Some(mut o) = self.world_options.take() else {
+             return;
+         };
+@@ -990,7 +990,7 @@ impl Game<'_> {
+     }
+     /// Digits typed into the port field (the keyboard, or a controller's
+     /// on-screen keyboard), and its backspace.
+-    pub(super) fn world_options_text(&mut self, text: Option<&str>) {
++    pub(crate) fn world_options_text(&mut self, text: Option<&str>) {
+         if let Some(rules) = self
+             .world_options
+             .as_mut()
+diff --git a/crates/horizon-client/src/game/loom.rs b/crates/horizon-client/src/game/loom.rs
+index 3d69aac..e080377 100644
+--- a/crates/horizon-client/src/game/loom.rs
++++ b/crates/horizon-client/src/game/loom.rs
+@@ -149,7 +149,7 @@ impl Game<'_> {
+             .collect()
+     }
+     /// `LoomScreen.mouseDragged` on the scroller.
+-    pub(super) fn loom_drag(&mut self) {
++    pub(crate) fn loom_drag(&mut self) {
+         let Some(size) = self
+             .renderer
+             .as_ref()
+@@ -168,7 +168,7 @@ impl Game<'_> {
+             l.start_row = l.row_for(l.scroll);
+         }
+     }
+-    pub(super) fn loom_release(&mut self) {
++    pub(crate) fn loom_release(&mut self) {
+         if let Some(s) = self.station.as_mut() {
+             s.loom.scrolling = false;
+         }
+diff --git a/crates/horizon-client/src/game/machines.rs b/crates/horizon-client/src/game/machines.rs
+index f9a208a..6afda47 100644
+--- a/crates/horizon-client/src/game/machines.rs
++++ b/crates/horizon-client/src/game/machines.rs
+@@ -481,7 +481,7 @@ impl Game<'_> {
+         }
+     }
+     /// `BlockEntity.setChanged` at `pos`: comparators re-read the container.
+-    pub(super) fn container_changed(&mut self, pos: Pos) {
++    pub(crate) fn container_changed(&mut self, pos: Pos) {
+         if pos.1 == super::minecarts::CART_KEY_Y {
+             return;
+         }
+diff --git a/crates/horizon-client/src/game/mods.rs b/crates/horizon-client/src/game/mods.rs
+index 52dc46f..6cafc8c 100644
+--- a/crates/horizon-client/src/game/mods.rs
++++ b/crates/horizon-client/src/game/mods.rs
+@@ -280,7 +280,7 @@ impl Game<'_> {
+     pub(super) fn open_mod_screen(&mut self, _owner: usize, _settings: bool) {}
+     pub(super) fn close_mod_screen(&mut self, _tell: bool) {}
+     pub(super) fn draw_mod_screen(&mut self, _batch: &mut HudBatch) {}
+-    pub(super) fn mod_screen_click(&mut self, _button: winit::event::MouseButton) {}
++    pub(crate) fn mod_screen_click(&mut self, _button: winit::event::MouseButton) {}
+     pub(super) fn mod_screen_key(&mut self, _key: winit::keyboard::KeyCode) -> bool {
+         false
+     }
+@@ -1122,7 +1122,7 @@ impl Game<'_> {
+     }
+     /// A click on the mod screen: Done leaves it, a `list` row is the mod's
+     /// `ui-events::select`.
+-    pub(super) fn mod_screen_click(&mut self, button: MouseButton) {
++    pub(crate) fn mod_screen_click(&mut self, button: MouseButton) {
+         // Key Binds: a mouse button pressed while waiting binds it.
+         if self
+             .mods
+diff --git a/crates/horizon-client/src/game/options.rs b/crates/horizon-client/src/game/options.rs
+index 7ac4ae9..b29357c 100644
+--- a/crates/horizon-client/src/game/options.rs
++++ b/crates/horizon-client/src/game/options.rs
+@@ -17,7 +17,7 @@ pub(super) const CONTROL_HELP: &[&str] = &[
+ ];
+ 
+ impl Game<'_> {
+-    pub(super) fn save_title_options(&mut self) {
++    pub(crate) fn save_title_options(&mut self) {
+         if let Some(title) = &self.title
+             && title.last_server != self.settings.file.string("lastServer")
+         {
+@@ -82,7 +82,7 @@ impl Game<'_> {
+     pub(super) fn shader_packs_dir() -> std::path::PathBuf {
+         Self::options_path().with_file_name(horizon_client::shader_pack_list::DIR)
+     }
+-    pub(super) fn gui_size(&self) -> (f32, f32) {
++    pub(crate) fn gui_size(&self) -> (f32, f32) {
+         let size = self
+             .renderer
+             .as_ref()
+@@ -91,10 +91,10 @@ impl Game<'_> {
+         (b.width, b.height)
+     }
+     /// Open the options screens (OptionsScreen) from the title or pause menu.
+-    pub(super) fn open_options(&mut self, from_title: bool) {
++    pub(crate) fn open_options(&mut self, from_title: bool) {
+         self.open_options_at(from_title, Page::Main);
+     }
+-    pub(super) fn open_options_at(&mut self, from_title: bool, page: Page) {
++    pub(crate) fn open_options_at(&mut self, from_title: bool, page: Page) {
+         // Gameplay keys must not stay held behind the options screen, where
+         // bindings can also change before the physical key is released.
+         self.keys.clear();
+@@ -111,7 +111,7 @@ impl Game<'_> {
+         ui.draw(&self.settings, batch, &self.gui.atlas, self.cursor);
+         self.ui.options = ui;
+     }
+-    pub(super) fn options_mouse(&mut self, pressed: bool, right: bool) -> Result<()> {
++    pub(crate) fn options_mouse(&mut self, pressed: bool, right: bool) -> Result<()> {
+         if !pressed {
+             if right {
+                 return Ok(());
+@@ -141,7 +141,7 @@ impl Game<'_> {
+         self.ui.options = ui;
+         self.handle_option_events(events)
+     }
+-    pub(super) fn options_drag(&mut self) -> Result<()> {
++    pub(crate) fn options_drag(&mut self) -> Result<()> {
+         let size = self.gui_size();
+         let framebuffer = self.renderer.as_ref().map_or([1280, 720], |r| {
+             [r.config.width as i32, r.config.height as i32]
+@@ -160,7 +160,7 @@ impl Game<'_> {
+         self.ui.options = ui;
+         self.handle_option_events(events)
+     }
+-    pub(super) fn options_key(&mut self, key: KeyCode, text: Option<&str>) -> Result<()> {
++    pub(crate) fn options_key(&mut self, key: KeyCode, text: Option<&str>) -> Result<()> {
+         let mut ui = std::mem::take(&mut self.ui.options);
+         let events = ui.key(&mut self.settings, &self.gui.atlas, key, text);
+         self.ui.options = ui;
+@@ -175,21 +175,23 @@ impl Game<'_> {
+             .options
+             .shortcut(&self.gui.atlas, shortcut, &mut self.clipboard)
+     }
+-    pub(super) fn options_scroll(&mut self, amount: f32) {
++    /// Wheel/touch scroll on an options screen (the mobile touch layer
++    /// feeds it finger GUI px for a 1:1 content drag).
++    pub(crate) fn options_scroll(&mut self, amount: f32) {
+         let size = self.gui_size();
+         self.ui
+             .options
+             .scroll_at(&self.settings, size, self.cursor, amount);
+     }
+     /// Mouse buttons pressed while a key is being bound.
+-    pub(super) fn options_waiting_for_key(&self) -> bool {
++    pub(crate) fn options_waiting_for_key(&self) -> bool {
+         self.ui.options.selected_key.is_some()
+     }
+-    pub(super) fn options_bind_mouse(&mut self, button: MouseButton) -> Result<()> {
++    pub(crate) fn options_bind_mouse(&mut self, button: MouseButton) -> Result<()> {
+         let events = self.ui.options.bind_mouse(&mut self.settings, button);
+         self.handle_option_events(events)
+     }
+-    pub(super) fn handle_option_events(&mut self, events: Vec<Event>) -> Result<()> {
++    pub(crate) fn handle_option_events(&mut self, events: Vec<Event>) -> Result<()> {
+         for e in events {
+             match e {
+                 Event::ButtonClick => self.audio.play_button_click(),
+diff --git a/crates/horizon-client/src/game/pick_entity.rs b/crates/horizon-client/src/game/pick_entity.rs
+index 5efc54d..1c0cf95 100644
+--- a/crates/horizon-client/src/game/pick_entity.rs
++++ b/crates/horizon-client/src/game/pick_entity.rs
+@@ -8,7 +8,7 @@ impl Game<'_> {
+     /// The entity the crosshair hits before any block, as `Entity.getId`; an
+     /// entity with nothing to pick (a projectile, a player, the dragon) is
+     /// `Some(None)`. `None` when the view hits a block or nothing.
+-    pub(super) fn pick_entity_hit(&self) -> Option<Option<i32>> {
++    pub(crate) fn pick_entity_hit(&self) -> Option<Option<i32>> {
+         let mut best: Option<(f64, Option<i32>)> = None;
+         let mut offer = |distance: f64, id: Option<i32>| {
+             if self.before_block(distance) && best.is_none_or(|b| distance < b.0) {
+diff --git a/crates/horizon-client/src/game/recipe_book.rs b/crates/horizon-client/src/game/recipe_book.rs
+index 9991ce3..1ab6950 100644
+--- a/crates/horizon-client/src/game/recipe_book.rs
++++ b/crates/horizon-client/src/game/recipe_book.rs
+@@ -141,7 +141,7 @@ impl Game<'_> {
+         }
+     }
+     /// Whether typed keys go to the search box.
+-    pub(super) fn recipe_search_focused(&self) -> bool {
++    pub(crate) fn recipe_search_focused(&self) -> bool {
+         self.active_book().is_some_and(|b| self.book_open(b))
+             && self.recipe_ui.search.as_ref().is_some_and(|s| s.focused)
+     }
+@@ -155,7 +155,7 @@ impl Game<'_> {
+         }
+     }
+     /// Text typed (or one backspace) into the search box.
+-    pub(super) fn recipe_text(&mut self, text: Option<&str>, backspace: bool) {
++    pub(crate) fn recipe_text(&mut self, text: Option<&str>, backspace: bool) {
+         let Some(search) = self.recipe_ui.search.as_mut() else {
+             return;
+         };
+diff --git a/crates/horizon-client/src/game/remote.rs b/crates/horizon-client/src/game/remote.rs
+index 9d79aa1..293de63 100644
+--- a/crates/horizon-client/src/game/remote.rs
++++ b/crates/horizon-client/src/game/remote.rs
+@@ -291,7 +291,7 @@ impl Game<'_> {
+         }
+     }
+     /// Leave the title for a server (ConnectScreen): an empty world fed by the connection.
+-    pub(super) fn connect_server(&mut self, address: &str, name: &str) -> Result<()> {
++    pub(crate) fn connect_server(&mut self, address: &str, name: &str) -> Result<()> {
+         self.connect_server_with_cookies(address, name, None)
+     }
+     /// `connect_server` carrying a transfer's stored server cookies
+diff --git a/crates/horizon-client/src/game/screens.rs b/crates/horizon-client/src/game/screens.rs
+index 200a0e6..6305e24 100644
+--- a/crates/horizon-client/src/game/screens.rs
++++ b/crates/horizon-client/src/game/screens.rs
+@@ -210,7 +210,7 @@ impl Game<'_> {
+             ui::tooltip(batch, atlas, &lines, self.cursor);
+         }
+     }
+-    pub(super) fn pause_click(&mut self) -> Result<()> {
++    pub(crate) fn pause_click(&mut self) -> Result<()> {
+         let (w, h) = {
+             let size = self
+                 .renderer
+@@ -397,7 +397,7 @@ impl Game<'_> {
+         }
+         Ok(())
+     }
+-    pub(super) fn death_click(&mut self) -> Result<()> {
++    pub(crate) fn death_click(&mut self) -> Result<()> {
+         if self
+             .ui
+             .died_at
+diff --git a/crates/horizon-client/src/game/server_links.rs b/crates/horizon-client/src/game/server_links.rs
+index 85fda71..1c30fd9 100644
+--- a/crates/horizon-client/src/game/server_links.rs
++++ b/crates/horizon-client/src/game/server_links.rs
+@@ -222,7 +222,7 @@ impl Game<'_> {
+         }
+     }
+     /// A click on `Screen::ServerLinks`: a link, the warning button or Back.
+-    pub(super) fn server_links_click(&mut self) -> Result<()> {
++    pub(crate) fn server_links_click(&mut self) -> Result<()> {
+         let (w, h) = self.gui_size();
+         let links = self.server_links().to_vec();
+         let top = list_top(h, links.len()) - self.links_ui.scroll.trunc();
+@@ -300,7 +300,7 @@ impl Game<'_> {
+     }
+     /// ConfirmLinkScreen's answer: yes opens the browser, the middle button
+     /// copies the link, no closes; all return to Server Links.
+-    pub(super) fn confirm_link_click(&mut self) {
++    pub(crate) fn confirm_link_click(&mut self) {
+         let (w, h) = self.gui_size();
+         let url = self.links_ui.confirm.clone().unwrap_or_default();
+         let layout = confirm_link_layout(&self.gui.atlas, (w, h), &url);
+@@ -351,7 +351,7 @@ impl Game<'_> {
+         }
+     }
+     /// WarningScreen's answer: disconnect, or back to Server Links.
+-    pub(super) fn dialog_warning_click(&mut self) -> Result<()> {
++    pub(crate) fn dialog_warning_click(&mut self) -> Result<()> {
+         let (w, h) = self.gui_size();
+         let layout = dialog_warning_layout(&self.gui.atlas, (w, h));
+         for (i, (x, y)) in layout.buttons.iter().enumerate() {
+diff --git a/crates/horizon-client/src/game/server_packs.rs b/crates/horizon-client/src/game/server_packs.rs
+index a616be1..a919eb6 100644
+--- a/crates/horizon-client/src/game/server_packs.rs
++++ b/crates/horizon-client/src/game/server_packs.rs
+@@ -24,7 +24,7 @@ use std::{
+ 
+ /// `ClientCommonPacketListenerImpl.PackConfirmScreen`: the packs it asks
+ /// about, whether the last one is required, and the server's message.
+-pub(super) struct PackPrompt {
++pub(crate) struct PackPrompt {
+     requests: Vec<(u128, String, String)>,
+     required: bool,
+     prompt: Option<Text>,
+@@ -76,11 +76,11 @@ impl ServerPackState {
+ 
+ /// The game's `DownloadedPackSource`.
+ #[derive(Default)]
+-pub(super) struct ServerPackState {
++pub(crate) struct ServerPackState {
+     packs: ServerPacks,
+     /// `downloads/` in the game folder, opened at the first download.
+     queue: Option<download::Queue>,
+-    pub(super) prompt: Option<PackPrompt>,
++    pub(crate) prompt: Option<PackPrompt>,
+     /// The server list entry the setting is saved to (none: a direct join).
+     address: Option<String>,
+     /// The account the downloads are made for (the download headers).
+@@ -542,7 +542,7 @@ impl Game<'_> {
+         }
+     }
+     /// A left click on the prompt: its answer when it hit a button.
+-    pub(super) fn pack_prompt_click(&mut self) -> Result<()> {
++    pub(crate) fn pack_prompt_click(&mut self) -> Result<()> {
+         let Some(prompt) = &self.server_packs.prompt else {
+             return Ok(());
+         };
+diff --git a/crates/horizon-client/src/game/sign_edit.rs b/crates/horizon-client/src/game/sign_edit.rs
+index c263145..75ed8a7 100644
+--- a/crates/horizon-client/src/game/sign_edit.rs
++++ b/crates/horizon-client/src/game/sign_edit.rs
+@@ -15,7 +15,7 @@ use winit::{
+     keyboard::{KeyCode, PhysicalKey},
+ };
+ 
+-pub(super) struct SignEditor {
++pub(crate) struct SignEditor {
+     pub pos: (i32, i32, i32),
+     pub front: bool,
+     pub line: usize,
+@@ -309,7 +309,7 @@ impl Game<'_> {
+     }
+     /// A key and the text it typed on the sign being edited (the keyboard,
+     /// or a controller's on-screen keyboard).
+-    pub(super) fn sign_input(&mut self, key: Option<KeyCode>, typed: Option<&str>) {
++    pub(crate) fn sign_input(&mut self, key: Option<KeyCode>, typed: Option<&str>) {
+         if self.sign_edit.is_none() {
+             return;
+         }
+@@ -462,7 +462,7 @@ impl Game<'_> {
+     }
+     /// Done button (`this.width / 2 - 100, this.height / 4 + 144`, 200x20),
+     /// or a click on a line (`EditBox.onClick`).
+-    pub(super) fn sign_edit_click(&mut self, size: [u32; 2]) {
++    pub(crate) fn sign_edit_click(&mut self, size: [u32; 2]) {
+         let b = HudBatch::new(size);
+         let (x, y) = (b.width / 2.0 - 100.0, b.height / 4.0 + 144.0);
+         let (mx, my) = self.cursor;
+diff --git a/crates/horizon-client/src/game/stations.rs b/crates/horizon-client/src/game/stations.rs
+index 1734cb3..7218b13 100644
+--- a/crates/horizon-client/src/game/stations.rs
++++ b/crates/horizon-client/src/game/stations.rs
+@@ -956,14 +956,14 @@ impl Game<'_> {
+         s.start = first_row.clamp(0, rows as i32) as usize * 4;
+     }
+     /// Whether keyboard text goes to the anvil rename box.
+-    pub(super) fn station_typing(&self) -> bool {
++    pub(crate) fn station_typing(&self) -> bool {
+         self.screen == Screen::Inventory
+             && self
+                 .station
+                 .as_ref()
+                 .is_some_and(|s| s.kind == Kind::Anvil && s.inputs[0].is_some())
+     }
+-    pub(super) fn station_text(&mut self, text: Option<&str>, backspace: bool) {
++    pub(crate) fn station_text(&mut self, text: Option<&str>, backspace: bool) {
+         // The recipe book's search box takes scripted typing too.
+         if self.recipe_search_focused() {
+             self.recipe_text(text, backspace);
+diff --git a/crates/horizon-client/src/game/stats_screen.rs b/crates/horizon-client/src/game/stats_screen.rs
+index bd7663e..c4f3fed 100644
+--- a/crates/horizon-client/src/game/stats_screen.rs
++++ b/crates/horizon-client/src/game/stats_screen.rs
+@@ -441,7 +441,7 @@ impl Game<'_> {
+             hover,
+         );
+     }
+-    pub(super) fn stats_click(&mut self, size: [u32; 2]) {
++    pub(crate) fn stats_click(&mut self, size: [u32; 2]) {
+         // A press on the scrollbar holds it and clicks nothing else.
+         if self.stats_press_scrollbar(size) {
+             return;
+@@ -520,7 +520,7 @@ impl Game<'_> {
+             .drag(self.cursor.1, TAB_H, h - FOOTER, content);
+     }
+     /// The button came up: the scrollbar lets go.
+-    pub(super) fn stats_release(&mut self) {
++    pub(crate) fn stats_release(&mut self) {
+         self.stats_ui.scroll.release();
+     }
+ }
+diff --git a/crates/horizon-client/src/game/tweaks.rs b/crates/horizon-client/src/game/tweaks.rs
+index 6480738..1286a93 100644
+--- a/crates/horizon-client/src/game/tweaks.rs
++++ b/crates/horizon-client/src/game/tweaks.rs
+@@ -370,7 +370,7 @@ impl Game<'_> {
+     pub(super) fn sort_key_press(&mut self, key: KeyCode) -> bool {
+         keybinds::key_name(key).is_some_and(|name| self.sort_input(name))
+     }
+-    pub(super) fn sort_mouse_press(&mut self, button: MouseButton) -> bool {
++    pub(crate) fn sort_mouse_press(&mut self, button: MouseButton) -> bool {
+         self.sort_input(&keybinds::mouse_name(button))
+     }
+     fn sort_input(&mut self, name: &str) -> bool {
+diff --git a/crates/horizon-client/src/lib.rs b/crates/horizon-client/src/lib.rs
+index 312cec3..b760ba6 100644
+--- a/crates/horizon-client/src/lib.rs
++++ b/crates/horizon-client/src/lib.rs
+@@ -1,6 +1,7 @@
+ //! Horizon native client: resources, world streaming, rendering and the
+ //! bindings between the validated simulation pieces and the game loop.
+-#![forbid(unsafe_code)]
++#![deny(unsafe_code)]
++extern crate self as horizon_client;
+ pub mod advancements;
+ pub mod ambience;
+ pub mod animate_tick;
+@@ -70,6 +71,7 @@ pub mod flatgen;
+ pub mod fog;
+ pub mod font;
+ pub mod friends_screen;
++pub mod game;
+ pub mod game_mode_switcher;
+ pub mod game_rules_screen;
+ pub mod gamepad;
+@@ -113,6 +115,9 @@ pub mod mipmap;
+ pub mod mobs;
+ pub mod mod_content;
+ pub mod mod_list;
++
++#[cfg(target_os = "android")]
++pub mod mobile;
+ mod model_library;
+ pub mod models;
+ pub mod motion;
+@@ -122,6 +127,8 @@ pub mod multiplayer;
+ pub mod music;
+ pub mod net;
+ pub mod nether_portal;
++#[cfg(target_os = "android")]
++pub mod official_install;
+ pub mod offline_name;
+ pub mod options_file;
+ pub mod options_fixes;
+@@ -211,3 +218,39 @@ pub use horizon_items::enchant;
+ pub use horizon_items::item_data;
+ pub use horizon_items::items;
+ pub use horizon_items::random_sequences;
++
++#[cfg(target_os = "android")]
++#[allow(unsafe_code)]
++#[unsafe(no_mangle)]
++fn android_main(app: android_activity::AndroidApp) {
++    let home = std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files");
++    let _ = std::fs::create_dir_all(&home);
++    let _ = std::env::set_current_dir(&home);
++    crate::logging::init(&home, "Render thread");
++    log::info!("Horizon Android starting on ARM64...");
++    // Launcher-requested resource installation (the desktop launcher's
++    // "Download" button, mobile edition): the flag file selects the version,
++    // progress goes to install-progress.txt, and the process exits without
++    // entering the game so the launcher can read the result and relaunch.
++    if crate::official_install::install_requested(&home) {
++        log::info!("install-assets.flag present: installing official resources");
++        let _ = crate::official_install::install(&home, &app);
++        crate::logging::flush();
++        std::process::exit(0);
++    }
++    // Nothing installed and nothing requested: exit cleanly with a message
++    // instead of booting the renderer into a missing-resources error.
++    if !crate::official_install::resources_ready(&home) {
++        log::error!("resources not installed, download from launcher (restart with install-assets.flag)");
++        crate::logging::flush();
++        std::process::exit(0);
++    }
++    crate::game::set_android_app(app);
++    if let Err(error) = crate::game::run() {
++        log::error!("Horizon Android fatal error: {error}");
++    }
++    crate::logging::flush();
++    // winit's event loop can only ever be created once per process (Android);
++    // never return from android_main so a relaunch always gets a fresh process.
++    std::process::exit(0);
++}
+diff --git a/crates/horizon-client/src/main.rs b/crates/horizon-client/src/main.rs
+index 8d03455..5c23cd5 100644
+--- a/crates/horizon-client/src/main.rs
++++ b/crates/horizon-client/src/main.rs
+@@ -1,8 +1,7 @@
+ //! Horizon: native Rust client for Minecraft Java Edition 26.3 gameplay.
+ #![forbid(unsafe_code)]
+-mod game;
+ 
+-use horizon_client::{crash, logging};
++use horizon_client::{crash, game, logging};
+ 
+ /// The mod API level this game serves, kept in the program for the launcher
+ /// to read without running it (`horizon_mods::api_level::MARK`). `main`
+diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
+new file mode 100644
+index 0000000..a1c24a4
+--- /dev/null
++++ b/crates/horizon-client/src/mobile.rs
+@@ -0,0 +1,2079 @@
++#![cfg(target_os = "android")]
++//! Android mobile touch controls: virtual joystick, camera look swipe,
++//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
++//! timers, hotbar selection, vanilla 1:1 inventory LMB/RMB mechanics & drag,
++//! cursor hover glow fix, a mini side keyboard panel (F / abc / 123 tabs)
++//! for game keys, and the Android system keyboard (IME) raised for the
++//! engine's text fields (chat, commands, signs, books, renames, title
++//! fields) — whose text arrives through the same
++//! `WindowEvent::KeyboardInput` path a physical keyboard uses.
++
++use crate::{
++    game::{books, Game, Screen},
++    hud::{HudAtlas, HudBatch, rgba},
++    title::Action,
++    Result,
++};
++use std::time::Instant;
++use winit::{
++    event::{MouseButton, Touch, TouchPhase, WindowEvent},
++    event_loop::{ActiveEventLoop, EventLoop},
++    keyboard::{KeyCode, PhysicalKey},
++};
++
++/// Inventory cursor speed: GUI pixels of cursor travel per GUI pixel of
++/// finger travel (the reference fork's default virtual-mouse sensitivity).
++const INV_CURSOR_SENSITIVITY: f32 = 1.0;
++/// Finger travel (squared, GUI px) that marks a gesture as "cursor move":
++/// after it, the release can no longer fire a tap click (reference: 3 px).
++const INV_DRAG_DIST_SQ: f32 = 3.0 * 3.0;
++/// Stationary hold duration that fires a Right click (half stack / place
++/// one; with movement it becomes the RMB distribute sweep). Reference: 500ms.
++const INV_HOLD_RIGHT_MS: u128 = 500;
++
++/// A second menu press within this window of the previous one counts as a
++/// bounce of the same tap, not a new click (one tap = one activation).
++const MENU_BOUNCE_MS: u128 = 150;
++/// Menu bounce radius: GUI px between the presses of the same tap.
++const MENU_BOUNCE_DIST: f32 = 24.0;
++/// Safe zones (GUI px): menu scroll drags only start between the top
++/// cutout/status-bar band and the bottom navigation-bar band.
++const MENU_SAFE_TOP: f32 = 32.0;
++const MENU_SAFE_BOTTOM: f32 = 32.0;
++
++/// Internal state tracking mobile touch interactions.
++#[derive(Default)]
++pub struct MobileTouchState {
++    // 1. Movement joystick
++    pub stick_id: Option<u64>,
++    pub stick_origin: (f32, f32),
++    pub stick_offset: (f32, f32),
++
++    // 2. Jump button
++    pub jump_id: Option<u64>,
++
++    // 3. Camera look & continuous mining
++    pub look_id: Option<u64>,
++    pub look_prev: (f32, f32),
++    pub look_start: (f32, f32),
++    pub look_start_time: Option<Instant>,
++    pub look_moved_dist: f32,
++    pub is_mining: bool,
++
++    // 4. Inventory touch & drag state (virtual-mouse model, reference UX)
++    pub inv_touch_id: Option<u64>,
++    pub inv_start_pos: (f32, f32),
++    /// Last GUI-space position of the cursor finger (for relative movement).
++    pub inv_last: (f32, f32),
++    pub inv_start_time: Option<Instant>,
++    pub inv_moved: bool,
++    pub inv_pressed: bool,
++    pub inv_is_right: bool,
++    /// A second finger acting as a held Left mouse button (the reference
++    /// fork's on-screen LMB/RMB buttons, ported logic-only): press it, move
++    /// the cursor with the first finger — that is the stack drag.
++    pub inv_lmb_id: Option<u64>,
++
++    /// The camera-look gesture that started on the inventory button's
++    /// enlarged corner hit zone. The gesture still works as a camera swipe,
++    /// but it must never start continuous mining, and a quick tap on it
++    /// opens the inventory instead of interacting with the world (taps near
++    /// the top-right corner used to leak through as random interacts).
++    pub inv_corner_id: Option<u64>,
++
++    // 5. Mini side keyboard (touch) + system IME
++    /// The mini side panel is drawn and its taps are keys.
++    pub osk_open: bool,
++    /// The panel's active tab (F / abc / 123).
++    osk_tab: OskTab,
++    /// One-shot shift: the next letter is upper case.
++    pub osk_shift: bool,
++    /// Whether the Android system keyboard (IME) is currently raised for a
++    /// focused text field; toggled only on transitions.
++    pub osk_ime: bool,
++    /// The active menu scroll drag: the finger's touch id and its last GUI
++    /// y. Only set when a press on an options screen hit empty space (no
++    /// widget), so scrolling never fights widget interaction.
++    pub menu_scroll: Option<(u64, f32)>,
++    /// The last menu press (time and GUI position): a bounced second press
++    /// of the same tap — same spot within a beat — is swallowed, so one
++    /// tap activates exactly one menu item even when the first press
++    /// switched the screen under the finger.
++    pub last_menu_press: Option<(Instant, f32, f32)>,
++    /// Key outputs waiting to be flushed into the focused text field
++    /// (drained after every touch event).
++    osk_queue: Vec<OskOut>,
++
++    /// Whether the last touch event (or tick) saw gameplay. A flip of this
++    /// flag means the screen changed (inventory opened or closed, a
++    /// container, death, ...): every gesture that started under the
++    /// previous screen is invalid and must be dropped before the next
++    /// event is routed, or a finger still on the glass feeds its stale
++    /// last touch position into the camera and the view snaps towards
++    /// that corner.
++    pub was_gameplay: bool,
++}
++
++static TOUCH_STATE: std::sync::Mutex<MobileTouchState> =
++    std::sync::Mutex::new(MobileTouchState {
++        stick_id: None,
++        stick_origin: (60.0, 0.0),
++        stick_offset: (0.0, 0.0),
++        jump_id: None,
++        look_id: None,
++        look_prev: (0.0, 0.0),
++        look_start: (0.0, 0.0),
++        look_start_time: None,
++        look_moved_dist: 0.0,
++        is_mining: false,
++        inv_touch_id: None,
++        inv_start_pos: (0.0, 0.0),
++        inv_last: (0.0, 0.0),
++        inv_start_time: None,
++        inv_moved: false,
++        inv_pressed: false,
++        inv_is_right: false,
++        inv_lmb_id: None,
++        inv_corner_id: None,
++        osk_open: false,
++        osk_tab: OskTab::Func,
++        osk_shift: false,
++        osk_ime: false,
++        menu_scroll: None,
++        last_menu_press: None,
++        osk_queue: Vec::new(),
++        was_gameplay: false,
++    });
++
++impl Game<'_> {
++    /// Main entry point for mobile touch event routing.
++    pub(crate) fn handle_mobile_touch(&mut self, touch: Touch) {
++        let (sw, sh, scale) = if let Some(r) = &self.renderer {
++            let b = HudBatch::new([r.config.width, r.config.height]);
++            (b.width, b.height, b.scale)
++        } else {
++            (854.0, 480.0, 2.0)
++        };
++
++        let gx = touch.location.x as f32 / scale;
++        let gy = touch.location.y as f32 / scale;
++
++        let is_in_game = self.screen == Screen::Playing
++            && self.title.is_none()
++            && !self.is_overlay_open();
++
++        // The screen changed since the last touch event (the inventory was
++        // opened or closed, a container opened from a gameplay tap, the
++        // player died, ...). Drop every gesture started under the previous
++        // screen BEFORE routing this event: a finger still on the glass
++        // would otherwise integrate one camera delta spanning its whole
++        // stale travel (the view swings towards the corner that finger
++        // last visited), keep mining, or keep its movement keys stuck.
++        if let Ok(mut state) = TOUCH_STATE.lock() {
++            if state.was_gameplay != is_in_game {
++                state.was_gameplay = is_in_game;
++                self.reset_mobile_gestures(&mut state);
++                if !is_in_game {
++                    // Entering a screen: the cursor starts centred — never
++                    // at the parked offscreen spot or (0, 0), where slot
++                    // hit-testing would resolve to the top-left slot.
++                    if matches!(self.screen, Screen::Inventory | Screen::Creative) {
++                        self.cursor = (sw / 2.0, sh / 2.0);
++                    }
++                } else {
++                    // Back to gameplay: park the cursor offscreen again
++                    // (same as tick_mobile) so no hover glow sticks.
++                    self.cursor = (-1000.0, -1000.0);
++                }
++            }
++            self.sync_mobile_keyboard(&mut state);
++        }
++
++        if is_in_game {
++            self.handle_gameplay_touch(touch, gx, gy, sw, sh, scale);
++        } else {
++            self.handle_menu_touch(touch, gx, gy, sw, sh, scale);
++        }
++    }
++
++    /// Drops every transient gesture (joystick, camera swipe, mining, jump,
++    /// inventory drag). Called when the screen changes so nothing started
++    /// under one screen can leak into another one.
++    fn reset_mobile_gestures(&mut self, state: &mut MobileTouchState) {
++        if state.stick_id.take().is_some() {
++            for key in [KeyCode::KeyW, KeyCode::KeyS, KeyCode::KeyA, KeyCode::KeyD] {
++                self.keys.remove(&key);
++            }
++        }
++        state.stick_offset = (0.0, 0.0);
++        if state.jump_id.take().is_some() {
++            self.keys.remove(&KeyCode::Space);
++        }
++        if state.is_mining {
++            let _ = self.play_mouse(MouseButton::Left, false);
++        }
++        // Release any held inventory mouse buttons (RMB hold-drag, the
++        // second-finger LMB) before clearing the state, so a screen change
++        // never leaves a virtual button stuck down.
++        if state.inv_pressed {
++            let button = if state.inv_is_right {
++                MouseButton::Right
++            } else {
++                MouseButton::Left
++            };
++            let _ = self.dispatch_menu_mouse(false, button, None);
++        }
++        if state.inv_lmb_id.take().is_some() {
++            let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++        }
++        state.look_id = None;
++        state.look_prev = (0.0, 0.0);
++        state.look_start = (0.0, 0.0);
++        state.look_start_time = None;
++        state.look_moved_dist = 0.0;
++        state.is_mining = false;
++        state.inv_touch_id = None;
++        state.inv_start_pos = (0.0, 0.0);
++        state.inv_last = (0.0, 0.0);
++        state.inv_start_time = None;
++        state.inv_moved = false;
++        state.inv_pressed = false;
++        state.inv_is_right = false;
++        state.inv_corner_id = None;
++        state.menu_scroll = None;
++    }
++
++    /// Handles gameplay touch events: joystick, jump, inventory, hotbar, camera look & gestures.
++    fn handle_gameplay_touch(
++        &mut self,
++        touch: Touch,
++        gx: f32,
++        gy: f32,
++        sw: f32,
++        sh: f32,
++        scale: f32,
++    ) {
++        // The mini side panel (when open) owns its taps before any gesture
++        // starts, but blocks nothing else: touches outside it fall through
++        // to the game. (Before the state lock: mobile_panel_touch locks
++        // TOUCH_STATE itself.)
++        if self.mobile_panel_touch(&touch, gx, gy, sw, sh) {
++            return;
++        }
++
++        let mut state = TOUCH_STATE.lock().unwrap();
++
++        match touch.phase {
++            TouchPhase::Started => {
++                // 1. Panel edge button (right edge, vertically centred:
++                // center at sw - 14.0, sh * 0.4). Toggles the mini keyboard
++                // panel; the game stays fully usable while it is open.
++                let pb_dx = gx - (sw - 14.0);
++                let pb_dy = gy - (sh * 0.4);
++                if pb_dx * pb_dx + pb_dy * pb_dy <= 26.0 * 26.0 {
++                    state.osk_open = !state.osk_open;
++                    if !state.osk_open {
++                        self.mobile_keyboard_clear_mods();
++                    }
++                    return;
++                }
++
++                // 2. Inventory button (top-right: center at sw - 30.0, 26.0,
++                // drawn with an 18 px radius). The hit zone is deliberately
++                // much larger (45 px) than the drawing: the button sits in
++                // the corner, where a missed tap used to fall through to the
++                // camera gesture and a quick tap then interacted with
++                // whatever the crosshair hit. The zone still starts a normal
++                // camera-look gesture so swipes are unaffected — but it is
++                // tagged, never mines, and a quick tap on it opens the
++                // inventory (handled at release below).
++                let inv_dx = gx - (sw - 30.0);
++                let inv_dy = gy - 26.0;
++                if (inv_dx * inv_dx + inv_dy * inv_dy).sqrt() <= 45.0
++                    && state.look_id.is_none()
++                {
++                    state.look_id = Some(touch.id);
++                    let screen_pos = (touch.location.x as f32, touch.location.y as f32);
++                    state.look_prev = screen_pos;
++                    state.look_start = screen_pos;
++                    state.look_start_time = Some(Instant::now());
++                    state.look_moved_dist = 0.0;
++                    state.is_mining = false;
++                    state.inv_corner_id = Some(touch.id);
++                    return;
++                }
++
++                // 3. Jump button (bottom-right: center at sw - 48.0, sh - 48.0)
++                let jump_dx = gx - (sw - 48.0);
++                let jump_dy = gy - (sh - 48.0);
++                if (jump_dx * jump_dx + jump_dy * jump_dy).sqrt() <= 32.0 {
++                    // Ignore a second finger: the held jump finger owns the
++                    // button until it releases.
++                    if state.jump_id.is_none() {
++                        state.jump_id = Some(touch.id);
++                        self.keys.insert(KeyCode::Space);
++                    }
++                    return;
++                }
++
++                // 4. Chat button (top-right under the INV button: center at
++                // sw - 30.0, 82.0). A quick tap opens the chat (the vanilla
++                // T key); the system keyboard (IME) is raised over it by
++                // the keyboard sync, so chat and commands can be typed.
++                let kb_dx = gx - (sw - 30.0);
++                let kb_dy = gy - 82.0;
++                if (kb_dx * kb_dx + kb_dy * kb_dy).sqrt() <= 30.0 {
++                    self.keys.insert(KeyCode::KeyT);
++                    let _ = self.key_pressed(KeyCode::KeyT);
++                    self.keys.remove(&KeyCode::KeyT);
++                    return;
++                }
++
++                // 5. Hotbar slot touch (bottom-center). The hotbar sprite is
++                // 182 px wide for 9 slots (20.222.. px each, hud_layout.rs):
++                // derive the slot width from that actual span instead of
++                // rounding, or the last slot mis-hits by half a slot.
++                let hotbar_center = sw / 2.0;
++                let hx0 = hotbar_center - 91.0;
++                let hx1 = hotbar_center + 91.0;
++                if gy >= (sh - 28.0) && gx >= hx0 && gx <= hx1 {
++                    let slot_w = (hx1 - hx0) / 9.0;
++                    let slot = (((gx - hx0) / slot_w).floor() as usize).min(8);
++                    self.selected = slot;
++                    return;
++                }
++
++                // 6. Movement virtual joystick (left half of screen)
++                if gx < sw * 0.48 {
++                    // Ignore a second finger: the active joystick owns the
++                    // left half until it releases (overwriting it orphaned
++                    // the first thumb's drag and its key releases).
++                    if state.stick_id.is_none() {
++                        state.stick_id = Some(touch.id);
++                        let default_center = (60.0, sh - 60.0);
++                        let dist_to_default = ((gx - default_center.0).powi(2)
++                            + (gy - default_center.1).powi(2))
++                        .sqrt();
++                        state.stick_origin = if dist_to_default <= 65.0 {
++                            default_center
++                        } else {
++                            (gx, gy)
++                        };
++                        state.stick_offset = (0.0, 0.0);
++                    }
++                    return;
++                }
++
++                // 7. Camera look & mining/attack gestures (right half of
++                // screen). Ignore a second finger while one look gesture is
++                // active: overwriting `look_id` orphaned the first finger's
++                // swipe (its release then never matched) — the same bug
++                // class as the inventory drag.
++                if gx >= sw * 0.48 && state.look_id.is_none() {
++                    state.look_id = Some(touch.id);
++                    let screen_pos = (touch.location.x as f32, touch.location.y as f32);
++                    state.look_prev = screen_pos;
++                    state.look_start = screen_pos;
++                    state.look_start_time = Some(Instant::now());
++                    state.look_moved_dist = 0.0;
++                    state.is_mining = false;
++                    return;
++                }
++            }
++
++            TouchPhase::Moved => {
++                // Movement joystick update
++                if state.stick_id == Some(touch.id) {
++                    let dx = gx - state.stick_origin.0;
++                    let dy = gy - state.stick_origin.1;
++                    let dist = (dx * dx + dy * dy).sqrt();
++                    let max_r = 38.0;
++                    let clamped = if dist > max_r {
++                        (dx / dist * max_r, dy / dist * max_r)
++                    } else {
++                        (dx, dy)
++                    };
++                    state.stick_offset = clamped;
++
++                    let deadzone = 10.0;
++                    if clamped.1 < -deadzone {
++                        self.keys.insert(KeyCode::KeyW);
++                    } else {
++                        self.keys.remove(&KeyCode::KeyW);
++                    }
++                    if clamped.1 > deadzone {
++                        self.keys.insert(KeyCode::KeyS);
++                    } else {
++                        self.keys.remove(&KeyCode::KeyS);
++                    }
++                    if clamped.0 < -deadzone {
++                        self.keys.insert(KeyCode::KeyA);
++                    } else {
++                        self.keys.remove(&KeyCode::KeyA);
++                    }
++                    if clamped.0 > deadzone {
++                        self.keys.insert(KeyCode::KeyD);
++                    } else {
++                        self.keys.remove(&KeyCode::KeyD);
++                    }
++                    return;
++                }
++
++                // Camera swipe update
++                if state.look_id == Some(touch.id) {
++                    let cur = (touch.location.x as f32, touch.location.y as f32);
++                    let dx = cur.0 - state.look_prev.0;
++                    let dy = cur.1 - state.look_prev.1;
++
++                    // Android reuses touch ids, and a gesture interrupted by
++                    // a screen change leaves `look_prev` at its old spot: one
++                    // event then spans most of the screen. A single jump that
++                    // big is never a real swipe — re-anchor here and drop it
++                    // instead of swinging the camera to a screen corner.
++                    let (pw, ph) = (sw * scale, sh * scale);
++                    if dx * dx + dy * dy > (0.6 * pw.min(ph)).powi(2) {
++                        state.look_prev = cur;
++                        state.look_start = cur;
++                        state.look_start_time = Some(Instant::now());
++                        state.look_moved_dist = 0.0;
++                        return;
++                    }
++
++                    state.look_moved_dist += (dx * dx + dy * dy).sqrt();
++                    state.look_prev = cur;
++
++                    // Smooth camera turning (responsive mobile look). Deltas
++                    // arrive in physical pixels, whose count per finger
++                    // distance grows with display density: dividing by the
++                    // GUI scale (which tracks the surface size/density) makes
++                    // a swipe turn the camera by the same angle on any phone,
++                    // tablet or aspect ratio. LOOK_SENSITIVITY is expressed
++                    // per GUI pixel; 0.92 * 3 preserves the previously tuned
++                    // 0.92-per-physical-pixel feel on the reference GUI
++                    // scale 3.
++                    const LOOK_SENSITIVITY: f32 = 0.92 * 3.0;
++                    self.mouse.on_move(
++                        0.0,
++                        0.0,
++                        ((dx / scale) * LOOK_SENSITIVITY) as f64,
++                        ((dy / scale) * LOOK_SENSITIVITY) as f64,
++                        true,
++                        true,
++                    );
++
++                    // Only stop mining if finger performs a sudden fast
++                    // flick/swipe. The speed threshold is in GUI pixels per
++                    // event (= 600 physical px^2 at GUI scale 3), so the
++                    // flick that stops mining needs the same finger speed at
++                    // any density.
++                    const MINING_FLICK_SPEED_SQ: f32 = 600.0 / (3.0 * 3.0);
++                    let speed_sq = (dx * dx + dy * dy) / (scale * scale);
++                    if state.is_mining && speed_sq > MINING_FLICK_SPEED_SQ {
++                        state.is_mining = false;
++                        let _ = self.play_mouse(MouseButton::Left, false);
++                    }
++                    return;
++                }
++            }
++
++            TouchPhase::Ended | TouchPhase::Cancelled => {
++                // Jump button release
++                if state.jump_id == Some(touch.id) {
++                    state.jump_id = None;
++                    self.keys.remove(&KeyCode::Space);
++                }
++
++                // Joystick release
++                if state.stick_id == Some(touch.id) {
++                    state.stick_id = None;
++                    state.stick_offset = (0.0, 0.0);
++                    self.keys.remove(&KeyCode::KeyW);
++                    self.keys.remove(&KeyCode::KeyS);
++                    self.keys.remove(&KeyCode::KeyA);
++                    self.keys.remove(&KeyCode::KeyD);
++                    return;
++                }
++
++                // Look gesture release
++                if state.look_id == Some(touch.id) {
++                    let elapsed = state
++                        .look_start_time
++                        .map_or(0, |t| t.elapsed().as_millis());
++                    let moved = state.look_moved_dist;
++                    let was_mining = state.is_mining;
++                    // A gesture that started on the inventory button's
++                    // enlarged corner zone: a quick tap opens the inventory,
++                    // everything else (swipe, cancel) just releases.
++                    let from_inv_corner = state.inv_corner_id == Some(touch.id);
++                    // A system cancellation (edge navigation, notification
++                    // shade) must only release, never act: no interact /
++                    // place / attack from a touch the user did not finish.
++                    let cancelled = touch.phase == TouchPhase::Cancelled;
++
++                    state.look_id = None;
++                    state.is_mining = false;
++                    state.inv_corner_id = None;
++
++                    if from_inv_corner {
++                        if !cancelled && moved < 25.0 && elapsed < 250 {
++                            self.keys.insert(KeyCode::KeyE);
++                            let _ = self.key_pressed(KeyCode::KeyE);
++                            self.keys.remove(&KeyCode::KeyE);
++                            self.cursor = (sw / 2.0, sh / 2.0);
++                            // Opening the inventory ends every in-game
++                            // gesture right here: a camera finger held
++                            // across this tap must not keep mining or turn
++                            // the view with a stale delta later (the next
++                            // event would purge it too, but purge now so
++                            // even the first event after the switch is
++                            // clean).
++                            self.reset_mobile_gestures(&mut state);
++                        }
++                        return;
++                    }
++
++                    if was_mining {
++                        let _ = self.play_mouse(MouseButton::Left, false);
++                    } else if !cancelled && moved < 25.0 && elapsed < 250 {
++                        // Quick tap: interact / place block / attack
++                        if self.pick_entity_hit().is_some() {
++                            let _ = self.play_mouse(MouseButton::Left, true);
++                            let _ = self.play_mouse(MouseButton::Left, false);
++                        } else {
++                            // Place block / interact
++                            let _ = self.play_mouse(MouseButton::Right, true);
++                            let _ = self.play_mouse(MouseButton::Right, false);
++                        }
++                    }
++                    return;
++                }
++            }
++        }
++    }
++
++    /// Handles touch events in menus, titles, inventory, options, and paused screens.
++    fn handle_menu_touch(
++        &mut self,
++        touch: Touch,
++        gx: f32,
++        gy: f32,
++        sw: f32,
++        sh: f32,
++        scale: f32,
++    ) {
++        // 0. The mini side panel (when open) sits over the current screen:
++        // its taps are keys and must never leak into the field, buttons or
++        // slots underneath. Taps outside it reach the screen as usual.
++        if self.mobile_panel_touch(&touch, gx, gy, sw, sh) {
++            return;
++        }
++
++        // 1. Non-inventory screens (titles, paused, options, death, dialogs, etc.)
++        if !matches!(self.screen, Screen::Inventory | Screen::Creative) {
++            // A screen switch can leave a stale inventory gesture behind
++            // (a finger was down while the screen changed outside the
++            // gameplay flip): release its virtual buttons and drop the
++            // state, so the next inventory entry starts clean.
++            let mut state = TOUCH_STATE.lock().unwrap();
++            if state.inv_touch_id.is_some() || state.inv_lmb_id.is_some() {
++                self.reset_mobile_gestures(&mut state);
++            }
++            drop(state);
++            self.cursor = (gx, gy);
++            match touch.phase {
++                TouchPhase::Started => {
++                    // One tap = exactly one activation: a bounced second
++                    // press of the same tap (same spot within a beat) is
++                    // swallowed. The first press may already have switched
++                    // the screen under the finger, and the bounce would
++                    // otherwise click whatever sits under it there.
++                    let mut state = TOUCH_STATE.lock().unwrap();
++                    let now = Instant::now();
++                    let bounce = state.last_menu_press.is_some_and(|(t, x, y)| {
++                        now.duration_since(t).as_millis() < MENU_BOUNCE_MS
++                            && (gx - x) * (gx - x) + (gy - y) * (gy - y)
++                                <= MENU_BOUNCE_DIST * MENU_BOUNCE_DIST
++                    });
++                    state.last_menu_press = Some((now, gx, gy));
++                    drop(state);
++                    if bounce {
++                        return;
++                    }
++                    // Options screens: the press grabs what is under the
++                    // finger (button, slider, scrollbar); a press on empty
++                    // space starts a scroll drag instead (see Moved).
++                    if self.screen == Screen::Options
++                        && gy >= MENU_SAFE_TOP
++                        && gy <= sh - MENU_SAFE_BOTTOM
++                    {
++                        let hit = self.mobile_options_press();
++                        if !hit {
++                            let mut state = TOUCH_STATE.lock().unwrap();
++                            state.menu_scroll = Some((touch.id, gy));
++                        }
++                        return;
++                    }
++                    let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                }
++                TouchPhase::Moved => {
++                    // An options scroll drag: the content follows the
++                    // finger 1:1 (options_scroll moves 18 px per unit).
++                    {
++                        let mut state = TOUCH_STATE.lock().unwrap();
++                        if let Some((id, last_y)) = state.menu_scroll {
++                            if touch.id == id {
++                                let dy = gy - last_y;
++                                state.menu_scroll = Some((id, gy));
++                                drop(state);
++                                self.options_scroll(dy / 18.0);
++                                return;
++                            }
++                        }
++                    }
++                    if let Some(title) = &mut self.title {
++                        title.drag(self.cursor, (sw, sh));
++                        title.drag_field(&self.gui.atlas, self.cursor.0);
++                    }
++                    if self.screen == Screen::Options {
++                        // Sliders and scrollbars follow the finger; buttons
++                        // never re-fire on movement (the old full click
++                        // here made every tap activate a second item).
++                        self.mobile_options_drag();
++                    }
++                }
++                TouchPhase::Ended | TouchPhase::Cancelled => {
++                    // Finish a scroll drag (the release also clears the
++                    // grabbed-widget state the press set).
++                    let scrolled = {
++                        let mut state = TOUCH_STATE.lock().unwrap();
++                        state.menu_scroll.take().is_some()
++                    };
++                    let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++                    if !scrolled && self.screen == Screen::Dead {
++                        let _ = self.death_click();
++                    }
++                    // Glow fix: clear hovered button highlight on finger release
++                    self.cursor = (-1000.0, -1000.0);
++                }
++            }
++            return;
++        }
++
++        // 2. Inventory / container screens (Screen::Inventory | Screen::Creative)
++        // Ensure cursor is initialized to center if parked offscreen — but a
++        // legitimate touch may land exactly on the pixel column/row 0, so
++        // "on the boundary" must not count as uninitialized.
++        if cursor_uninitialized(self.cursor, sw, sh) {
++            self.cursor = (sw / 2.0, sh / 2.0);
++        }
++
++        // Quick close zone (top-right corner) -> Escape. Deliberately much
++        // larger than the old 35 x 40 strip and strictly separated from the
++        // slot area: a tap just below the old strip used to fall through to
++        // the inventory slot handler and click a slot (or the panel) at the
++        // screen edge. Nothing interactive sits in this corner in either
++        // inventory screen (the panels are centred), so the whole corner is
++        // reserved for closing.
++        if gy < 60.0 && gx > sw - 60.0 && touch.phase == TouchPhase::Started {
++            // Release a held second-finger LMB before closing, so the
++            // virtual mouse button never sticks across the screen change.
++            let mut state = TOUCH_STATE.lock().unwrap();
++            let lmb_held = state.inv_lmb_id.take().is_some();
++            drop(state);
++            if lmb_held {
++                let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++            }
++            self.keys.insert(KeyCode::Escape);
++            let _ = self.key_pressed(KeyCode::Escape);
++            self.keys.remove(&KeyCode::Escape);
++            self.cursor = (-1000.0, -1000.0);
++            let mut state = TOUCH_STATE.lock().unwrap();
++            state.inv_touch_id = None;
++            state.inv_start_pos = (0.0, 0.0);
++            state.inv_last = (0.0, 0.0);
++            state.inv_start_time = None;
++            state.inv_pressed = false;
++            state.inv_is_right = false;
++            state.inv_moved = false;
++            return;
++        }
++
++        match touch.phase {
++            TouchPhase::Started => {
++                let mut state = TOUCH_STATE.lock().unwrap();
++                // Virtual-mouse model (reference UX): the FIRST finger moves
++                // the inventory cursor relatively and never teleports it, so
++                // the finger never covers the slot being aimed at. A SECOND
++                // finger acts as a held Left mouse button (logic-only port
++                // of the reference's on-screen LMB button): press it, sweep
++                // the cursor with the first finger — that is the stack drag
++                // (quick-craft distribute, creative scrollbar). A third
++                // finger is ignored.
++                if state.inv_touch_id.is_none() {
++                    state.inv_touch_id = Some(touch.id);
++                    state.inv_start_pos = (gx, gy);
++                    state.inv_last = (gx, gy);
++                    state.inv_start_time = Some(Instant::now());
++                    state.inv_moved = false;
++                    state.inv_pressed = false;
++                    state.inv_is_right = false;
++                    // Deliberately no `self.cursor = (gx, gy)` here: in the
++                    // relative model touching down must not teleport the
++                    // cursor (same as the reference's virtual mouse).
++                } else if state.inv_lmb_id.is_none() && state.inv_touch_id != Some(touch.id) {
++                    state.inv_lmb_id = Some(touch.id);
++                    drop(state);
++                    // Press at the current cursor position.
++                    let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                }
++            }
++
++            TouchPhase::Moved => {
++                let mut state = TOUCH_STATE.lock().unwrap();
++                if state.inv_touch_id == Some(touch.id) {
++                    // Relative cursor movement: the cursor follows the
++                    // finger's delta (INV_CURSOR_SENSITIVITY GUI px per
++                    // finger GUI px), clamped to the screen.
++                    let cursor = self.cursor;
++                    self.cursor = (
++                        (cursor.0 + (gx - state.inv_last.0) * INV_CURSOR_SENSITIVITY)
++                            .clamp(0.0, (sw - 1.0).max(0.0)),
++                        (cursor.1 + (gy - state.inv_last.1) * INV_CURSOR_SENSITIVITY)
++                            .clamp(0.0, (sh - 1.0).max(0.0)),
++                    );
++                    state.inv_last = (gx, gy);
++
++                    let dx = gx - state.inv_start_pos.0;
++                    let dy = gy - state.inv_start_pos.1;
++                    // Reference drag threshold: 3 GUI px of travel marks the
++                    // gesture as a cursor move, suppressing the release tap.
++                    if !state.inv_moved && dx * dx + dy * dy > INV_DRAG_DIST_SQ {
++                        state.inv_moved = true;
++                    }
++                } else if state.inv_lmb_id != Some(touch.id) {
++                    // Neither the cursor finger nor the LMB finger.
++                    return;
++                }
++
++                let held = state.inv_pressed || state.inv_lmb_id.is_some();
++                drop(state);
++                if held {
++                    // A mouse button is held (RMB hold-drag or the
++                    // second-finger LMB): feed the moved-through slots
++                    // (quick-craft distribute), the creative scrollbar and
++                    // the loom.
++                    self.inventory_drag_move();
++                    if self.screen == Screen::Creative {
++                        let b = HudBatch::new([
++                            (sw * scale).round() as u32,
++                            (sh * scale).round() as u32,
++                        ]);
++                        let (_, oy) = Self::creative_origin(&b);
++                        self.creative_screen.drag_scrollbar(self.cursor.1 - oy);
++                    }
++                    if self.screen == Screen::Inventory {
++                        self.loom_drag();
++                    }
++                }
++            }
++
++            TouchPhase::Ended | TouchPhase::Cancelled => {
++                let mut state = TOUCH_STATE.lock().unwrap();
++                if state.inv_lmb_id == Some(touch.id) {
++                    // The LMB finger releases: release the held button.
++                    state.inv_lmb_id = None;
++                    drop(state);
++                    let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++                    return;
++                }
++                if state.inv_touch_id == Some(touch.id) {
++                    let pressed = state.inv_pressed;
++                    let is_right = state.inv_is_right;
++                    let moved = state.inv_moved;
++                    let elapsed = state.inv_start_time.map_or(0, |t| t.elapsed().as_millis());
++
++                    state.inv_touch_id = None;
++                    state.inv_start_pos = (0.0, 0.0);
++                    state.inv_last = (0.0, 0.0);
++                    state.inv_start_time = None;
++                    state.inv_pressed = false;
++                    state.inv_is_right = false;
++                    state.inv_moved = false;
++                    drop(state);
++
++                    if !pressed {
++                        // Quick Tap (<500ms, unmoved): Vanilla Left Click at
++                        // the CURSOR position (not the finger position).
++                        // - If empty hand: picks up entire stack
++                        // - If holding stack: places entire stack / swaps
++                        // A moved or cancelled touch only releases: it never
++                        // counts as a tap (no accidental stack pickup).
++                        if touch.phase == TouchPhase::Ended && !moved && elapsed < 500 {
++                            let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                            let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++                        }
++                    } else {
++                        // Release active RMB hold (click or sweep).
++                        let button = if is_right {
++                            MouseButton::Right
++                        } else {
++                            MouseButton::Left
++                        };
++                        let _ = self.dispatch_menu_mouse(false, button, None);
++                    }
++
++                    // In inventory, NEVER reset cursor to (-1000, -1000)!
++                    // The cursor keeps its position: in the relative model
++                    // it is the virtual mouse pointer, and the carried item
++                    // renders under it.
++                }
++            }
++        }
++    }
++
++    /// Ticked once per frame / engine tick to update hold gestures (continuous mining & inventory RMB hold).
++    pub(crate) fn tick_mobile(&mut self) {
++        let (sw, sh) = if let Some(r) = &self.renderer {
++            let b = HudBatch::new([r.config.width, r.config.height]);
++            (b.width, b.height)
++        } else {
++            (854.0, 480.0)
++        };
++
++        // Ensure cursor is centered when in inventory if parked offscreen
++        // (not merely on the boundary: a touch at pixel (0, y) is valid).
++        if matches!(self.screen, Screen::Inventory | Screen::Creative) {
++            if cursor_uninitialized(self.cursor, sw, sh) {
++                self.cursor = (sw / 2.0, sh / 2.0);
++            }
++        } else if self.screen == Screen::Playing && self.cursor.0 >= 0.0 {
++            self.cursor = (-1000.0, -1000.0);
++        }
++
++        let Ok(mut state) = TOUCH_STATE.try_lock() else {
++            return;
++        };
++
++        // Screen changed without any touch traffic in between (death
++        // screen, keyboard-driven menus, ...): drop the gestures of the
++        // previous screen, exactly like handle_mobile_touch does.
++        let gameplay = self.screen == Screen::Playing
++            && self.title.is_none()
++            && !self.is_overlay_open();
++        if state.was_gameplay != gameplay {
++            state.was_gameplay = gameplay;
++            self.reset_mobile_gestures(&mut state);
++        }
++
++        // The keyboard follows the focused text field even without touch
++        // traffic (chat opened from the HUD button, sign editor, ...).
++        self.sync_mobile_keyboard(&mut state);
++
++        // 1. In-game continuous mining (>250ms hold). A look gesture that
++        // started on the inventory button's corner zone never mines: holding
++        // near the button must not attack whatever the crosshair points at.
++        if self.screen == Screen::Playing
++            && state.look_id.is_some()
++            && state.inv_corner_id.is_none()
++            && !state.is_mining
++            && state
++                .look_start_time
++                .is_some_and(|t| t.elapsed() >= std::time::Duration::from_millis(250))
++        {
++            state.is_mining = true;
++            let _ = self.play_mouse(MouseButton::Left, true);
++        }
++
++        // 2. Inventory hold (>=500ms stationary hold) -> Right Click (RMB),
++        // fires before release (reference UX):
++        // - If hand empty: takes half stack
++        // - If hand carrying stack: places 1 item into slot, and initiates
++        //   the RMB distribute sweep (deposit 1 per traversed slot)
++        if matches!(self.screen, Screen::Inventory | Screen::Creative)
++            && state.inv_touch_id.is_some()
++            && !state.inv_moved
++            && !state.inv_pressed
++            && state
++                .inv_start_time
++                .is_some_and(|t| t.elapsed().as_millis() >= INV_HOLD_RIGHT_MS)
++        {
++            state.inv_pressed = true;
++            state.inv_is_right = true;
++            drop(state);
++            let _ = self.dispatch_menu_mouse(true, MouseButton::Right, None);
++        }
++    }
++
++    /// Renders minimal on-screen touch controls: the mini side keyboard
++    /// panel (when toggled), round movement joystick, jump button, chat
++    /// button, keyboard edge button, inventory button.
++    pub(crate) fn draw_mobile_hud(&self, batch: &mut HudBatch) {
++        let atlas = &self.gui.atlas;
++        let Ok(state) = TOUCH_STATE.try_lock() else {
++            return;
++        };
++
++        // 0. Mini side keyboard panel, whenever the player toggled it on.
++        if state.osk_open {
++            self.draw_mobile_panel(batch, atlas, &state);
++        }
++
++        if self.screen != Screen::Playing
++            || self.title.is_some()
++            || self.is_overlay_open()
++        {
++            return;
++        }
++
++        let sw = batch.width;
++        let sh = batch.height;
++
++        // Panel edge button (right edge, vertically centred at sh * 0.4).
++        // Only while the panel is closed: when it is open, its spot is a
++        // panel key and the panel closes through its own "x" tab.
++        if !state.osk_open {
++            let pb_center = (sw - 14.0, sh * 0.4);
++            draw_circle_fan(atlas, batch, pb_center.0, pb_center.1, 15.0, rgba(255, 255, 255, 45));
++            draw_circle_ring(
++                atlas,
++                batch,
++                pb_center.0,
++                pb_center.1,
++                13.5,
++                15.0,
++                rgba(255, 255, 255, 100),
++            );
++            let pb_text = "KBD";
++            let pbtw = HudBatch::text_width(atlas, pb_text);
++            batch.text(
++                atlas,
++                pb_text,
++                pb_center.0 - pbtw / 2.0,
++                pb_center.1 - 4.0,
++                rgba(255, 255, 255, 230),
++                false,
++            );
++        }
++
++        // 1. Round movement joystick (bottom-left)
++        let stick_center = if state.stick_id.is_some() {
++            state.stick_origin
++        } else {
++            (60.0, sh - 60.0)
++        };
++        // Base outer ring & translucent fill
++        draw_circle_fan(atlas, batch, stick_center.0, stick_center.1, 40.0, rgba(255, 255, 255, 30));
++        draw_circle_ring(
++            atlas,
++            batch,
++            stick_center.0,
++            stick_center.1,
++            38.5,
++            40.0,
++            rgba(255, 255, 255, 75),
++        );
++
++        // Knob
++        let knob_pos = (
++            stick_center.0 + state.stick_offset.0,
++            stick_center.1 + state.stick_offset.1,
++        );
++        draw_circle_fan(atlas, batch, knob_pos.0, knob_pos.1, 18.0, rgba(255, 255, 255, 110));
++        draw_circle_ring(
++            atlas,
++            batch,
++            knob_pos.0,
++            knob_pos.1,
++            16.5,
++            18.0,
++            rgba(255, 255, 255, 200),
++        );
++
++        // 2. Jump button (bottom-right: center at sw - 48.0, sh - 48.0)
++        let jump_center = (sw - 48.0, sh - 48.0);
++        let jump_pressed = state.jump_id.is_some();
++        let jump_fill = if jump_pressed {
++            rgba(255, 255, 255, 130)
++        } else {
++            rgba(255, 255, 255, 45)
++        };
++        draw_circle_fan(atlas, batch, jump_center.0, jump_center.1, 26.0, jump_fill);
++        draw_circle_ring(
++            atlas,
++            batch,
++            jump_center.0,
++            jump_center.1,
++            24.5,
++            26.0,
++            rgba(255, 255, 255, 100),
++        );
++        let jump_text = "JUMP";
++        let tw = HudBatch::text_width(atlas, jump_text);
++        batch.text(
++            atlas,
++            jump_text,
++            jump_center.0 - tw / 2.0,
++            jump_center.1 - 4.0,
++            rgba(255, 255, 255, 230),
++            false,
++        );
++
++        // 3. Inventory button (top-right: center at sw - 30.0, 26.0)
++        let inv_center = (sw - 30.0, 26.0);
++        draw_circle_fan(atlas, batch, inv_center.0, inv_center.1, 18.0, rgba(255, 255, 255, 45));
++        draw_circle_ring(
++            atlas,
++            batch,
++            inv_center.0,
++            inv_center.1,
++            16.5,
++            18.0,
++            rgba(255, 255, 255, 100),
++        );
++        let inv_text = "INV";
++        let itw = HudBatch::text_width(atlas, inv_text);
++        batch.text(
++            atlas,
++            inv_text,
++            inv_center.0 - itw / 2.0,
++            inv_center.1 - 4.0,
++            rgba(255, 255, 255, 230),
++            false,
++        );
++
++        // 4. Chat button (top-right under INV: center at sw - 30.0, 82.0).
++        // Opens the chat; the system keyboard (IME) is raised over it.
++        let kb_center = (sw - 30.0, 82.0);
++        draw_circle_fan(atlas, batch, kb_center.0, kb_center.1, 18.0, rgba(255, 255, 255, 45));
++        draw_circle_ring(
++            atlas,
++            batch,
++            kb_center.0,
++            kb_center.1,
++            16.5,
++            18.0,
++            rgba(255, 255, 255, 100),
++        );
++        let kb_text = "ABC";
++        let ktw = HudBatch::text_width(atlas, kb_text);
++        batch.text(
++            atlas,
++            kb_text,
++            kb_center.0 - ktw / 2.0,
++            kb_center.1 - 4.0,
++            rgba(255, 255, 255, 230),
++            false,
++        );
++    }
++
++    /// Keeps the Android system keyboard (IME) in step with the focused
++    /// text field: raised while any field is focused (its text arrives
++    /// through the same `WindowEvent::KeyboardInput` path a physical
++    /// keyboard uses), lowered otherwise. Only acts on transitions, so a
++    /// manually closed IME is not fought. Sticky panel modifiers are
++    /// dropped as soon as the mini panel is hidden.
++    fn sync_mobile_keyboard(&mut self, state: &mut MobileTouchState) {
++        let active = self.mobile_text_input_active();
++        if active != state.osk_ime {
++            if let Some(w) = &self.window {
++                w.set_ime_allowed(active);
++            }
++            state.osk_ime = active;
++        }
++        if !state.osk_open
++            && (self.keys.contains(&KeyCode::ControlLeft)
++                || self.keys.contains(&KeyCode::AltLeft))
++        {
++            self.mobile_keyboard_clear_mods();
++        }
++    }
++
++    /// Routes a touch on the mini side keyboard panel. Returns true when
++    /// the touch was consumed: everything inside the panel is a key (or a
++    /// tab switch) and never reaches the game underneath; taps outside the
++    /// panel pass through untouched, so the game stays fully usable while
++    /// the panel is open.
++    fn mobile_panel_touch(&mut self, touch: &Touch, gx: f32, gy: f32, sw: f32, sh: f32) -> bool {
++        let Ok(mut state) = TOUCH_STATE.lock() else {
++            return false;
++        };
++        if !state.osk_open {
++            return false;
++        }
++        let layout = panel_layout(sw, sh);
++        let inside = gx >= layout.x0
++            && gx <= layout.x0 + layout.width
++            && gy >= layout.y0
++            && gy <= layout.y0 + layout.height;
++        if !inside {
++            return false;
++        }
++        if touch.phase == TouchPhase::Started {
++            let tabs_y = layout.y0 + layout.pad;
++            if gy < tabs_y + layout.tabs_h {
++                // The tab strip: F / abc / 123 / x (close).
++                let cells = 4.0;
++                let tw = (layout.width - 2.0 * layout.pad) / cells;
++                let idx = (((gx - layout.x0 - layout.pad) / tw).floor() as usize).min(3);
++                match idx {
++                    0 => state.osk_tab = OskTab::Func,
++                    1 => state.osk_tab = OskTab::Letters,
++                    2 => state.osk_tab = OskTab::Digits,
++                    _ => {
++                        state.osk_open = false;
++                        self.mobile_keyboard_clear_mods();
++                    }
++                }
++            } else if let Some(key) = panel_key_at(&layout, state.osk_tab, gx, gy) {
++                osk_press_key(&mut state, key);
++            }
++        }
++        true
++    }
++
++    /// Draws the mini side keyboard panel docked to the right edge: a tab
++    /// strip (F / abc / 123 / x) over the active tab's compact key grid, in
++    /// the same translucent HUD style as the rest of the mobile controls.
++    /// All sizes derive from the actual GUI width — nothing is hardcoded
++    /// for a particular phone.
++    fn draw_mobile_panel(&self, batch: &mut HudBatch, atlas: &HudAtlas, state: &MobileTouchState) {
++        let layout = panel_layout(batch.width, batch.height);
++        let rows: &[OskRow] = match state.osk_tab {
++            OskTab::Func => &FUNC,
++            OskTab::Letters => &LETTERS,
++            OskTab::Digits => &DIGITS,
++        };
++        let quad = |x0: f32, y0: f32, w: f32, h: f32| {
++            [
++                [x0, y0],
++                [x0 + w, y0],
++                [x0 + w, y0 + h],
++                [x0, y0 + h],
++            ]
++        };
++
++        // Panel background.
++        batch.fill_quad(
++            atlas,
++            quad(layout.x0, layout.y0, layout.width, layout.height),
++            rgba(16, 16, 16, 190),
++        );
++
++        // Tab strip: F / abc / 123 / x.
++        let tabs_y = layout.y0 + layout.pad;
++        let cells = 4.0;
++        let tw = (layout.width - 2.0 * layout.pad) / cells;
++        let tabs = ["F", "abc", "123", "x"];
++        for (i, label) in tabs.iter().enumerate() {
++            let x = layout.x0 + layout.pad + i as f32 * tw;
++            let active = matches!(
++                (i, state.osk_tab),
++                (0, OskTab::Func) | (1, OskTab::Letters) | (2, OskTab::Digits)
++            );
++            let fill = if active {
++                rgba(255, 255, 255, 130)
++            } else {
++                rgba(255, 255, 255, 55)
++            };
++            batch.fill_quad(atlas, quad(x, tabs_y, tw - layout.gap, layout.tabs_h), fill);
++            let lw = HudBatch::text_width(atlas, label);
++            batch.text(
++                atlas,
++                label,
++                x + (tw - layout.gap - lw) / 2.0,
++                tabs_y + layout.tabs_h / 2.0 - 4.0,
++                rgba(255, 255, 255, 230),
++                false,
++            );
++        }
++
++        // The active tab's keys.
++        let ctrl_on = self.keys.contains(&KeyCode::ControlLeft);
++        let alt_on = self.keys.contains(&KeyCode::AltLeft);
++        let keys_y = tabs_y + layout.tabs_h + layout.gap;
++        for (r, row) in rows.iter().enumerate() {
++            let y = keys_y + r as f32 * (layout.key_h + layout.gap);
++            let mut left = 0.0;
++            for (key, units) in row.iter() {
++                let x = layout.x0 + layout.pad + left * (layout.unit + layout.gap);
++                let w = units * layout.unit + (units - 1.0) * layout.gap;
++                left += units;
++
++                let lit = (matches!(key, OskKey::Shift) && state.osk_shift)
++                    || (matches!(key, OskKey::Mod(OskMod::Ctrl)) && ctrl_on)
++                    || (matches!(key, OskKey::Mod(OskMod::Alt)) && alt_on);
++                let fill = if lit {
++                    rgba(255, 255, 255, 130)
++                } else if matches!(key, OskKey::Char(_)) {
++                    rgba(255, 255, 255, 40)
++                } else {
++                    rgba(255, 255, 255, 70)
++                };
++                batch.fill_quad(atlas, quad(x, y, w, layout.key_h), fill);
++
++                let label = key.label(state.osk_shift);
++                let tw = HudBatch::text_width(atlas, &label);
++                batch.text(
++                    atlas,
++                    &label,
++                    x + (w - tw) / 2.0,
++                    y + layout.key_h / 2.0 - 4.0,
++                    rgba(255, 255, 255, 230),
++                    false,
++                );
++            }
++        }
++    }
++
++    /// Hands the keyboard's queued outputs to the engine: each one goes to
++    /// the focused text field (or, for special keys in gameplay, into the
++    /// physical keyboard's own path). Drained after every touch event, from
++    /// the `window_event` touch hook.
++    pub(crate) fn flush_mobile_keyboard(&mut self) {
++        let Ok(mut state) = TOUCH_STATE.lock() else {
++            return;
++        };
++        let mut queue = std::mem::take(&mut state.osk_queue);
++        drop(state);
++        for out in queue.drain(..) {
++            self.mobile_keyboard_output(out);
++        }
++    }
++
++    pub(crate) fn is_overlay_open(&self) -> bool {
++        self.book.is_some() || self.sign_edit.is_some()
++    }
++    /// Whether a text field is currently focused, so the Android on-screen
++    /// keyboard should show: the pad's typing screens (`pad_typing`) plus
++    /// the other screens' single text boxes (command block, world options,
++    /// dialogs, the title's caret fields).
++    pub(crate) fn mobile_text_input_active(&mut self) -> bool {
++        (self.screen == Screen::Chat && self.title.is_none())
++            || self.sign_edit.is_some()
++            || matches!(self.book, Some(books::BookScreen::Edit { .. }))
++            || (self.screen == Screen::Creative && self.creative_screen.tab().search)
++            || self.recipe_search_focused()
++            || self.station_typing()
++            || self.screen == Screen::CommandBlock
++            || self.dialog_open()
++            || self.screen == Screen::WorldOptions
++            || self.title.as_mut().is_some_and(|t| t.has_caret_field())
++    }
++    /// Routes one Android keyboard output (mini side panel or system IME)
++    /// into whatever text field has focus, with the same handlers a typed
++    /// physical key reaches (a mobile mirror of the pad's
++    /// `pad_osk_output`); special keys with no field go through the
++    /// physical keyboard's own gameplay path (debug keys, then keybinds).
++    pub(crate) fn mobile_keyboard_output(&mut self, out: crate::mobile::OskOut) {
++        use crate::mobile::{OskMod, OskOut};
++        match out {
++            OskOut::Mod(m) => {
++                let (key, bit) = match m {
++                    OskMod::Ctrl => (
++                        KeyCode::ControlLeft,
++                        winit::keyboard::ModifiersState::CONTROL,
++                    ),
++                    OskMod::Alt => (
++                        KeyCode::AltLeft,
++                        winit::keyboard::ModifiersState::ALT,
++                    ),
++                };
++                if self.keys.contains(&key) {
++                    self.mobile_keyboard_clear_mods();
++                } else {
++                    self.keys.insert(key);
++                    self.physical_keys.insert(key);
++                    self.modifiers = self.modifiers.union(bit);
++                }
++                return;
++            }
++            OskOut::Text(t) => self.mobile_keyboard_text(Some(&t), None),
++            OskOut::Backspace => self.mobile_keyboard_text(None, Some(KeyCode::Backspace)),
++            OskOut::Enter => self.mobile_keyboard_text(None, Some(KeyCode::Enter)),
++            OskOut::Key(key) => self.mobile_keyboard_text(None, Some(key)),
++        }
++    }
++    /// The field routing behind [`Self::mobile_keyboard_output`]: `text`
++    /// types into the focused field, `key` presses a key into it. With no
++    /// field focused, special keys behave like the physical keyboard's
++    /// gameplay path (F1 HUD, F3 debug, F5 view, F11 fullscreen, Esc, ...).
++    fn mobile_keyboard_text(&mut self, text: Option<&str>, key: Option<KeyCode>) {
++        use horizon_client::debug_keys::KeyAction;
++        let backspace = key == Some(KeyCode::Backspace);
++        if self.screen == Screen::Chat && self.title.is_none() {
++            match text {
++                Some(t) => self.chat_type(t),
++                None => self.chat_key_code(key.expect("a chat key"), None),
++            }
++        } else if self.sign_edit.is_some() {
++            self.sign_input(key, text);
++        } else if self.book.is_some() {
++            self.book_input(key, text);
++        } else if self.screen == Screen::Creative && self.creative_screen.tab().search {
++            if backspace {
++                self.creative_search_backspace(false);
++            } else if key == Some(KeyCode::Escape) {
++                let _ = self.key_pressed(KeyCode::Escape);
++            } else if key.is_none() {
++                self.creative_search_edit(text);
++            }
++        } else if self.recipe_search_focused() {
++            if key == Some(KeyCode::Escape) {
++                let _ = self.key_pressed(KeyCode::Escape);
++            } else if key.is_none() {
++                self.recipe_text(text, backspace);
++            }
++        } else if self.station_typing() {
++            if key == Some(KeyCode::Escape) {
++                let _ = self.key_pressed(KeyCode::Escape);
++            } else if key.is_none() {
++                self.station_text(text, backspace);
++            }
++        } else if self.screen == Screen::WorldOptions {
++            match key {
++                Some(KeyCode::Escape) => self.world_options_escape(),
++                _ => self.world_options_text(text),
++            }
++        } else if self.screen == Screen::CommandBlock {
++            self.command_block_input(key.expect("a command block key"), text);
++        } else if self.dialog_open() {
++            let result = match text {
++                Some(t) => {
++                    self.dialog_type(t);
++                    Ok(())
++                }
++                None => self.dialog_key(key.expect("a dialog key"), None, None),
++            };
++            if let Err(e) = result {
++                log::warn!("Horizon: on-screen keyboard: {e}");
++            }
++        } else if self.screen == Screen::Options {
++            let result = match text {
++                Some(t) => {
++                    self.ui.options.type_text(&self.gui.atlas, t);
++                    Ok(())
++                }
++                None => self.options_key(key.expect("an options key"), None),
++            };
++            if let Err(e) = result {
++                log::warn!("Horizon: on-screen keyboard: {e}");
++            }
++        } else if self.title.is_some() {
++            match key {
++                Some(KeyCode::Enter) => {
++                    if let Some(t) = self.title.as_mut() {
++                        t.confirm_edit();
++                    }
++                }
++                Some(KeyCode::Backspace) => self.title_edit(None, true),
++                Some(KeyCode::Escape) => {
++                    if let Some(t) = self.title.as_mut() {
++                        t.escape();
++                    }
++                    self.save_title_options();
++                }
++                Some(KeyCode::Tab) => {
++                    if let Some(t) = self.title.as_mut() {
++                        t.tab();
++                    }
++                }
++                _ => self.title_edit(text, false),
++            }
++        } else if let Some(key) = key {
++            // No field focused: a panel tap is a FULL physical keystroke —
++            // press (debug keys first, then keybinds) followed by the
++            // release a real keyboard always sends. The release is not
++            // optional: F3's overlay toggles on it and the debug modifier
++            // un-latches there — without it a later Esc ran as F3+Esc
++            // (the "Game Paused"-without-menu screen) and stayed consumed.
++            if !self.debug_key(key, KeyAction::Press) {
++                self.keys.insert(key);
++                let _ = self.key_pressed(key);
++            }
++            self.debug_key(key, KeyAction::Release);
++            self.keys.remove(&key);
++        }
++    }
++    /// Releases the sticky modifiers the mini panel set (Ctrl/Alt), so a
++    /// hidden panel never leaves the engine's key state stuck. Also drops
++    /// the debug-keys' F3 modifier latch, so a closed panel can never leave
++    /// Escape behaving like F3+Escape.
++    pub(crate) fn mobile_keyboard_clear_mods(&mut self) {
++        for key in [KeyCode::ControlLeft, KeyCode::AltLeft] {
++            self.keys.remove(&key);
++            self.physical_keys.remove(&key);
++        }
++        self.modifiers = self.modifiers.difference(
++            winit::keyboard::ModifiersState::CONTROL | winit::keyboard::ModifiersState::ALT,
++        );
++        self.debug_keys.modifier_down = false;
++        self.debug_keys.used_debug_key_as_modifier = false;
++    }
++    /// An Android touch press on an options screen: like
++    /// [`Self::options_mouse`] pressed (grabs buttons, sliders and
++    /// scrollbars), but reports whether the press hit an interactive
++    /// widget — a press on empty space becomes a touch scroll instead.
++    pub(crate) fn mobile_options_press(&mut self) -> bool {
++        // Binding a mouse button: the waiting grab consumes the press.
++        if self.options_waiting_for_key() {
++            if let Err(e) = self.options_bind_mouse(MouseButton::Left) {
++                log::warn!("Horizon: mobile options bind: {e}");
++            }
++            return true;
++        }
++        self.dragging = true;
++        let size = self.gui_size();
++        let framebuffer = self
++            .renderer
++            .as_ref()
++            .map_or([1280, 720], |r| {
++                [r.config.width as i32, r.config.height as i32]
++            });
++        let mut ui = std::mem::take(&mut self.ui.options);
++        let events = ui.click(
++            &mut self.settings,
++            &self.gui.atlas,
++            self.cursor.0,
++            self.cursor.1,
++            size,
++            framebuffer,
++            false,
++            false,
++        );
++        let hit = !events.is_empty() || ui.dragging.is_some() || ui.scrollbar_drag_y.is_some();
++        self.ui.options = ui;
++        if let Err(e) = self.handle_option_events(events) {
++            log::warn!("Horizon: mobile options press: {e}");
++        }
++        hit
++    }
++    /// An Android touch move over an options screen: sliders and
++    /// scrollbars follow the finger (only while a press holds them);
++    /// buttons never re-fire on movement.
++    pub(crate) fn mobile_options_drag(&mut self) {
++        if self.dragging
++            && let Err(e) = self.options_drag()
++        {
++            log::warn!("Horizon: mobile options drag: {e}");
++        }
++    }
++
++    /// The mobile on-screen keyboard's output for the command box: the same
++    /// key handling as `command_block_key`, without a winit event to hand
++    /// over (no edit shortcuts — the touch keyboard produces none).
++    pub(crate) fn command_block_input(&mut self, key: KeyCode, typed: Option<&str>) {
++        match key {
++            KeyCode::Escape => return self.close_command_block(),
++            KeyCode::Enter | KeyCode::NumpadEnter => {
++                if let Some(s) = self.command_block_screen.take() {
++                    self.set_command_block(&s);
++                }
++                return self.close_command_block();
++            }
++            _ => {}
++        }
++        let ctrl = self.keys.contains(&KeyCode::ControlLeft);
++        let shift = self.keys.contains(&KeyCode::ShiftLeft);
++        let consumed = {
++            let Some(s) = self.command_block_screen.as_mut() else {
++                return;
++            };
++            s.command.key(key, ctrl, shift)
++        };
++        if !consumed && !ctrl {
++            self.command_block_type(typed.unwrap_or(""));
++        }
++    }
++
++    /// Universal dispatcher for menu and GUI mouse clicks across all screens.
++    pub(crate) fn dispatch_menu_mouse(
++        &mut self,
++        pressed: bool,
++        button: MouseButton,
++        event_loop: Option<&ActiveEventLoop>,
++    ) -> Result<()> {
++        if self.link_prompt.is_some() {
++            if pressed && button == MouseButton::Left {
++                self.link_prompt_click();
++            }
++            return Ok(());
++        }
++        if self.server_packs.prompt.is_some() {
++            if pressed && button == MouseButton::Left {
++                self.pack_prompt_click()?;
++            }
++            return Ok(());
++        }
++        if self.dialog_open() {
++            if pressed && button == MouseButton::Left {
++                self.dialog_click()?;
++            }
++            return Ok(());
++        }
++        if self.screen == Screen::Win {
++            return Ok(());
++        }
++        if self.screen == Screen::Options {
++            if self.options_waiting_for_key() && pressed {
++                self.options_bind_mouse(button)?;
++            } else if matches!(button, MouseButton::Left | MouseButton::Right) {
++                self.options_mouse(
++                    pressed,
++                    button == MouseButton::Right,
++                )?;
++            }
++            return Ok(());
++        }
++        if self.title.is_some() && self.screen != Screen::Options {
++            if !pressed && button == MouseButton::Left {
++                if let Some(title) = &mut self.title {
++                    title.release();
++                    title.release_field();
++                }
++            } else if pressed && button == MouseButton::Left {
++                let size = self
++                    .renderer
++                    .as_ref()
++                    .map(|r| [r.config.width, r.config.height])
++                    .unwrap_or([1, 1]);
++                let b = HudBatch::new(size);
++                let atlas = &self.gui.atlas;
++                let shift = self.has_shift_down();
++                let (action, sound) = self.title.as_mut().map_or((Action::None, false), |t| {
++                    let clicked = t.click(self.cursor.0, self.cursor.1, (b.width, b.height));
++                    t.press_field(atlas, self.cursor, (b.width, b.height), shift);
++                    let rules = t.press_rules(atlas, self.cursor, (b.width, b.height));
++                    (clicked.0, clicked.1 || rules)
++                });
++                self.save_title_options();
++                if sound {
++                    self.audio.play_button_click();
++                }
++                match action {
++                    Action::Quit => {
++                        if let Some(el) = event_loop {
++                            el.exit();
++                        }
++                    }
++                    Action::Options => self.open_options(true),
++                    Action::Accessibility => self
++                        .open_options_at(true, horizon_client::options_ui::Page::Accessibility),
++                    Action::Language => {
++                        self.open_options_at(true, horizon_client::options_ui::Page::Language)
++                    }
++                    Action::Play { folder } => {
++                        self.open_world(&folder, None, None, false, None)?
++                    }
++                    Action::Create {
++                        folder,
++                        name,
++                        seed,
++                        creative,
++                        options,
++                    } => {
++                        self.open_world(&folder, Some(&name), seed, creative, Some(&options))?
++                    }
++                    Action::Connect { address } => {
++                        self.connect_server(&address, &self.options.player_name())?
++                    }
++                    Action::None => {}
++                }
++            }
++            return Ok(());
++        }
++        if self.title.is_some() {
++            return Ok(());
++        }
++        if self.book.is_some() {
++            if pressed && button == MouseButton::Left {
++                let size = self
++                    .renderer
++                    .as_ref()
++                    .map(|r| [r.config.width, r.config.height])
++                    .unwrap_or([1, 1]);
++                self.book_click(size);
++            }
++            return Ok(());
++        }
++        if self.sign_edit.is_some() {
++            if pressed && button == MouseButton::Left {
++                let size = self
++                    .renderer
++                    .as_ref()
++                    .map(|r| [r.config.width, r.config.height])
++                    .unwrap_or([1, 1]);
++                self.sign_edit_click(size);
++            }
++            return Ok(());
++        }
++        if matches!(self.screen, Screen::Inventory | Screen::Creative)
++            && let Some(key) = self
++                .settings
++                .keys
++                .container_mouse_key(button, self.creative)
++        {
++            if pressed && self.carried.is_none() {
++                self.inventory_hotkey(key);
++            }
++            return Ok(());
++        }
++        if pressed && self.sort_mouse_press(button) {
++            return Ok(());
++        }
++        match self.screen {
++            Screen::Inventory | Screen::Creative
++                if !matches!(button, MouseButton::Left | MouseButton::Right) =>
++            {
++                if self.settings.keys.get("key.pickItem")
++                    == horizon_client::keybinds::mouse_name(button)
++                {
++                    if pressed {
++                        self.inventory_pick_press();
++                    } else {
++                        self.inventory_pick_release();
++                    }
++                    if let Some(key) = self.container {
++                        self.container_changed(key);
++                    }
++                }
++            }
++            Screen::Inventory if pressed => {
++                self.inventory_press(button == MouseButton::Right);
++                if let Some(key) = self.container {
++                    self.container_changed(key);
++                }
++            }
++            Screen::Inventory => {
++                self.inventory_mouse_release(button == MouseButton::Right);
++                self.loom_release();
++            }
++            Screen::Chat if pressed && button == MouseButton::Left => self.chat_click(),
++            Screen::Creative if pressed => {
++                self.click_creative(button == MouseButton::Right);
++            }
++            Screen::Creative => {
++                if button == MouseButton::Left {
++                    self.creative_screen.release();
++                }
++                self.inventory_mouse_release(button == MouseButton::Right);
++            }
++            Screen::Paused
++                if pressed && button == MouseButton::Left && self.pause_menu =>
++            {
++                self.pause_click()?
++            }
++            Screen::WorldOptions if pressed && button == MouseButton::Left => {
++                self.world_options_click()
++            }
++            Screen::ServerLinks if pressed && button == MouseButton::Left => {
++                self.server_links_click()?
++            }
++            Screen::ConfirmLink if pressed && button == MouseButton::Left => {
++                self.confirm_link_click()
++            }
++            Screen::DialogWarning if pressed && button == MouseButton::Left => {
++                self.dialog_warning_click()?
++            }
++            Screen::WorldOptions if button == MouseButton::Left => {
++                self.world_options_release()
++            }
++            Screen::Friends if pressed && button == MouseButton::Left => {
++                self.friends_screen_click()
++            }
++            Screen::CommandBlock if pressed && button == MouseButton::Left => {
++                self.command_block_click()
++            }
++            Screen::Dead if pressed && button == MouseButton::Left => {
++                self.death_click()?
++            }
++            Screen::Advancements if button == MouseButton::Left => {
++                let size = self
++                    .renderer
++                    .as_ref()
++                    .map_or([1, 1], |r| [r.config.width, r.config.height]);
++                self.advancements_mouse(pressed, size);
++            }
++            Screen::Stats if pressed && button == MouseButton::Left => {
++                let size = self
++                    .renderer
++                    .as_ref()
++                    .map_or([1, 1], |r| [r.config.width, r.config.height]);
++                self.stats_click(size);
++            }
++            Screen::Stats if button == MouseButton::Left => self.stats_release(),
++            Screen::Mod if pressed => self.mod_screen_click(button),
++            _ => {}
++        }
++        Ok(())
++    }
++}
++
++/// Where `Options::read` finds the installed resources on Android: the
++/// launcher's copy on the shared storage (`files/resources`).
++pub(crate) fn resources_dir() -> std::path::PathBuf {
++    std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files/resources")
++}
++
++/// The Android app handle `android_main` received, for the event loop
++/// builders (winit needs it before it can create its event loop).
++static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> =
++    std::sync::OnceLock::new();
++
++/// Stores the Android app handle; called from `android_main` (via the
++/// one-line delegate in `game.rs`).
++pub(crate) fn set_android_app(app: android_activity::AndroidApp) {
++    let _ = ANDROID_APP.set(app);
++}
++
++/// Builds and runs the winit event loop on Android: unlike desktop, the
++/// builder must receive the `AndroidApp` handle `android_main` got.
++pub(crate) fn run_android_event_loop<T: winit::application::ApplicationHandler>(
++    app: &mut T,
++) -> Result<()> {
++    use winit::platform::android::EventLoopBuilderExtAndroid;
++    if let Some(android_app) = ANDROID_APP.get() {
++        Ok(EventLoop::builder()
++            .with_android_app(android_app.clone())
++            .build()?
++            .run_app(app)?)
++    } else {
++        Ok(EventLoop::new()?.run_app(app)?)
++    }
++}
++
++/// The Android back gesture (and back button) arrives as the browser Back
++/// key: remap it to Escape so every screen treats it as "go back one step",
++/// like the physical keyboard's Escape would.
++pub(crate) fn remap_back_key(mut event: WindowEvent) -> WindowEvent {
++    if let WindowEvent::KeyboardInput { event: ref mut key_event, .. } = event {
++        let is_back = matches!(key_event.physical_key, PhysicalKey::Code(KeyCode::BrowserBack))
++            || matches!(
++                &key_event.logical_key,
++                winit::keyboard::Key::Named(
++                    winit::keyboard::NamedKey::GoBack | winit::keyboard::NamedKey::BrowserBack
++                )
++            );
++        if is_back {
++            key_event.physical_key = PhysicalKey::Code(KeyCode::Escape);
++            key_event.logical_key = winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape);
++        }
++    }
++    event
++}
++
++/// Whether the cursor is parked offscreen (the `(-1000, -1000)` sentinel) or
++/// still at its default `(0, 0)` origin, i.e. it was never placed by a real
++/// touch on this screen. A legitimate touch can land exactly on the pixel
++/// column/row 0 or on the opposite screen edge, so the test is "strictly
++/// outside the screen bounds" (plus the exact origin), never "on the
++/// boundary".
++fn cursor_uninitialized(cursor: (f32, f32), sw: f32, sh: f32) -> bool {
++    cursor.0 < 0.0
++        || cursor.1 < 0.0
++        || cursor.0 > sw
++        || cursor.1 > sh
++        || (cursor.0 == 0.0 && cursor.1 == 0.0)
++}
++
++/// Draws a filled regular polygon (approximating a circle) into the HUD batch.
++fn draw_circle_fan(
++    atlas: &HudAtlas,
++    batch: &mut HudBatch,
++    cx: f32,
++    cy: f32,
++    r: f32,
++    color: u32,
++) {
++    const SEGMENTS: usize = 16;
++    let mut pts = [[0.0f32; 2]; SEGMENTS];
++    for i in 0..SEGMENTS {
++        let angle = (i as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
++        pts[i] = [cx + r * angle.cos(), cy + r * angle.sin()];
++    }
++    // Draw 8 quads pairing adjacent triangles around center
++    for i in (0..SEGMENTS).step_by(2) {
++        let p0 = pts[i];
++        let p1 = pts[(i + 1) % SEGMENTS];
++        let p2 = pts[(i + 2) % SEGMENTS];
++        batch.fill_quad(atlas, [[cx, cy], p0, p1, p2], color);
++    }
++}
++
++/// Draws an outline ring for a circle into the HUD batch.
++fn draw_circle_ring(
++    atlas: &HudAtlas,
++    batch: &mut HudBatch,
++    cx: f32,
++    cy: f32,
++    r_inner: f32,
++    r_outer: f32,
++    color: u32,
++) {
++    const SEGMENTS: usize = 16;
++    for i in 0..SEGMENTS {
++        let a0 = (i as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
++        let a1 = ((i + 1) as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
++        let p0 = [cx + r_inner * a0.cos(), cy + r_inner * a0.sin()];
++        let p1 = [cx + r_outer * a0.cos(), cy + r_outer * a0.sin()];
++        let p2 = [cx + r_outer * a1.cos(), cy + r_outer * a1.sin()];
++        let p3 = [cx + r_inner * a1.cos(), cy + r_inner * a1.sin()];
++        batch.fill_quad(atlas, [p0, p1, p2, p3], color);
++    }
++}
++
++// ---- Mini side keyboard + system IME ----
++
++/// The mini panel's tabs: F (special keys), letters, digits/symbols.
++#[derive(Clone, Copy, PartialEq, Default)]
++pub(crate) enum OskTab {
++    #[default]
++    Func,
++    Letters,
++    Digits,
++}
++
++/// A sticky modifier toggled from the panel's F tab (lit state lives in
++/// `Game::keys`, so real key handlers see it; cleared with the panel).
++#[derive(Clone, Copy, PartialEq)]
++pub(crate) enum OskMod {
++    Ctrl,
++    Alt,
++}
++
++/// One key of the mini side keyboard.
++#[derive(Clone, Copy, PartialEq)]
++enum OskKey {
++    Char(char),
++    Shift,
++    Space,
++    Backspace,
++    Enter,
++    Esc,
++    Tab,
++    /// A special key sent as its key code: F1–F12, Delete, Home, End and
++    /// the arrows.
++    Func(KeyCode),
++    Mod(OskMod),
++}
++
++impl OskKey {
++    fn label(&self, shift: bool) -> String {
++        match self {
++            OskKey::Char(ch) => {
++                if shift {
++                    ch.to_ascii_uppercase().to_string()
++                } else {
++                    ch.to_string()
++                }
++            }
++            OskKey::Shift => "shf".into(),
++            OskKey::Space => "space".into(),
++            OskKey::Backspace => "del".into(),
++            OskKey::Enter => "ent".into(),
++            OskKey::Esc => "esc".into(),
++            OskKey::Tab => "tab".into(),
++            OskKey::Func(KeyCode::F1) => "F1".into(),
++            OskKey::Func(KeyCode::F2) => "F2".into(),
++            OskKey::Func(KeyCode::F3) => "F3".into(),
++            OskKey::Func(KeyCode::F4) => "F4".into(),
++            OskKey::Func(KeyCode::F5) => "F5".into(),
++            OskKey::Func(KeyCode::F6) => "F6".into(),
++            OskKey::Func(KeyCode::F7) => "F7".into(),
++            OskKey::Func(KeyCode::F8) => "F8".into(),
++            OskKey::Func(KeyCode::F9) => "F9".into(),
++            OskKey::Func(KeyCode::F10) => "F10".into(),
++            OskKey::Func(KeyCode::F11) => "F11".into(),
++            OskKey::Func(KeyCode::F12) => "F12".into(),
++            OskKey::Func(KeyCode::Delete) => "del".into(),
++            OskKey::Func(KeyCode::Home) => "hm".into(),
++            OskKey::Func(KeyCode::End) => "end".into(),
++            OskKey::Func(KeyCode::ArrowUp) => "up".into(),
++            OskKey::Func(KeyCode::ArrowDown) => "dn".into(),
++            OskKey::Func(KeyCode::ArrowLeft) => "<".into(),
++            OskKey::Func(KeyCode::ArrowRight) => ">".into(),
++            OskKey::Func(_) => String::new(),
++            OskKey::Mod(OskMod::Ctrl) => "ctrl".into(),
++            OskKey::Mod(OskMod::Alt) => "alt".into(),
++        }
++    }
++}
++
++/// What a keyboard tap feeds into the engine. `flush_mobile_keyboard`
++/// routes each output to the focused text field through the same handlers
++/// a physical keystroke reaches (see `Game::mobile_keyboard_output`).
++pub(crate) enum OskOut {
++    Text(String),
++    Backspace,
++    Enter,
++    /// A special key: F1–F12, Esc, Tab, arrows, Delete, Home, End.
++    Key(KeyCode),
++    /// Toggle a sticky modifier (Ctrl/Alt) in the engine's key state.
++    Mod(OskMod),
++}
++
++/// A row of keys and their widths in key units (a full row is 6 units:
++/// the panel is a compact 6-key-wide strip docked to the right edge).
++type OskRow = &'static [(OskKey, f32)];
++
++const fn k(ch: char) -> (OskKey, f32) {
++    (OskKey::Char(ch), 1.0)
++}
++const fn fk(code: KeyCode) -> (OskKey, f32) {
++    (OskKey::Func(code), 1.0)
++}
++
++/// F tab: the PC's special keys — F1–F12, Esc, Tab, sticky Ctrl/Alt,
++/// Delete, Enter, the arrows, Home/End. Available straight in gameplay
++/// (F1 HUD, F3 debug, F5 view, F11 fullscreen, ...) and over any screen.
++const FUNC: [OskRow; 4] = [
++    &[
++        fk(KeyCode::F1),
++        fk(KeyCode::F2),
++        fk(KeyCode::F3),
++        fk(KeyCode::F4),
++        fk(KeyCode::F5),
++        fk(KeyCode::F6),
++    ],
++    &[
++        fk(KeyCode::F7),
++        fk(KeyCode::F8),
++        fk(KeyCode::F9),
++        fk(KeyCode::F10),
++        fk(KeyCode::F11),
++        fk(KeyCode::F12),
++    ],
++    &[
++        (OskKey::Esc, 1.0),
++        (OskKey::Tab, 1.0),
++        (OskKey::Mod(OskMod::Ctrl), 1.0),
++        (OskKey::Mod(OskMod::Alt), 1.0),
++        fk(KeyCode::Delete),
++        (OskKey::Enter, 1.0),
++    ],
++    &[
++        fk(KeyCode::ArrowUp),
++        fk(KeyCode::ArrowDown),
++        fk(KeyCode::ArrowLeft),
++        fk(KeyCode::ArrowRight),
++        fk(KeyCode::Home),
++        fk(KeyCode::End),
++    ],
++];
++
++/// abc tab: QWERTY for names, chat and commands (with one-shot Shift and
++/// a space bar). Taps reach the focused field like typed keys.
++const LETTERS: [OskRow; 6] = [
++    &[k('q'), k('w'), k('e'), k('r'), k('t'), k('y')],
++    &[k('u'), k('i'), k('o'), k('p'), k('a'), k('s')],
++    &[k('d'), k('f'), k('g'), k('h'), k('j'), k('k')],
++    &[k('l'), k('z'), k('x'), k('c'), k('v'), k('b')],
++    &[k('n'), k('m'), k(','), k('.'), k('-'), k('/')],
++    &[
++        (OskKey::Shift, 1.2),
++        (OskKey::Space, 2.8),
++        (OskKey::Backspace, 1.0),
++        (OskKey::Enter, 1.0),
++    ],
++];
++
++/// 123 tab: digits and the full PC punctuation/symbol set.
++const DIGITS: [OskRow; 7] = [
++    &[k('1'), k('2'), k('3'), k('4'), k('5'), k('6')],
++    &[k('7'), k('8'), k('9'), k('0'), k('-'), k('_')],
++    &[k('='), k('+'), k('['), k(']'), k('{'), k('}')],
++    &[k('\\'), k('|'), k(';'), k(':'), k('\''), k('"')],
++    &[k('`'), k('~'), k('!'), k('@'), k('#'), k('$')],
++    &[k('%'), k('^'), k('&'), k('*'), k('('), k(')')],
++    &[k(','), k('.'), k('/'), k('<'), k('>'), k('?')],
++];
++
++/// Geometry of the mini panel for one frame. The key unit scales with the
++/// actual GUI width (capped, so tablets don't grow giant keys) and the
++/// panel docks to the right screen edge, vertically centred.
++struct PanelLayout {
++    x0: f32,
++    y0: f32,
++    width: f32,
++    height: f32,
++    unit: f32,
++    gap: f32,
++    key_h: f32,
++    tabs_h: f32,
++    pad: f32,
++}
++
++fn panel_layout(sw: f32, sh: f32) -> PanelLayout {
++    let gap = 3.0;
++    let pad = 5.0;
++    let unit = ((sw * 0.26) / 6.0).clamp(22.0, 34.0);
++    let key_h = (unit * 0.9).clamp(22.0, 32.0);
++    let tabs_h = 20.0;
++    let width = 6.0 * unit + 5.0 * gap + 2.0 * pad;
++    // Tall enough for the 123 tab's 7 rows; other tabs just use the top.
++    let height = 2.0 * pad + tabs_h + gap + 7.0 * (key_h + gap) - gap;
++    PanelLayout {
++        x0: sw - width,
++        y0: (sh - height) / 2.0,
++        width,
++        height,
++        unit,
++        gap,
++        key_h,
++        tabs_h,
++        pad,
++    }
++}
++
++/// The key under a GUI-space point on the given tab, if it lands on one
++/// (gaps between keys hit nothing, but stay consumed by the panel).
++fn panel_key_at(layout: &PanelLayout, tab: OskTab, gx: f32, gy: f32) -> Option<OskKey> {
++    let rows: &[OskRow] = match tab {
++        OskTab::Func => &FUNC,
++        OskTab::Letters => &LETTERS,
++        OskTab::Digits => &DIGITS,
++    };
++    let keys_y = layout.y0 + layout.pad + layout.tabs_h + layout.gap;
++    let rel_y = gy - keys_y;
++    if rel_y < 0.0 {
++        return None;
++    }
++    let r = ((rel_y / (layout.key_h + layout.gap)).floor() as usize).min(rows.len() - 1);
++    let row = rows[r];
++    let mut left = 0.0;
++    for (key, units) in row.iter() {
++        let x = layout.x0 + layout.pad + left * (layout.unit + layout.gap);
++        let w = units * layout.unit + (units - 1.0) * layout.gap;
++        if gx >= x && gx < x + w {
++            let in_key = rel_y - r as f32 * (layout.key_h + layout.gap) <= layout.key_h;
++            return in_key.then_some(*key);
++        }
++        left += units;
++    }
++    None
++}
++
++/// Applies a pressed key to the panel state: queues its output and updates
++/// the one-shot shift.
++fn osk_press_key(state: &mut MobileTouchState, key: OskKey) {
++    match key {
++        OskKey::Char(ch) => {
++            let ch = if state.osk_shift {
++                ch.to_ascii_uppercase()
++            } else {
++                ch
++            };
++            if ch.is_ascii_alphabetic() {
++                state.osk_shift = false;
++            }
++            state.osk_queue.push(OskOut::Text(ch.to_string()));
++        }
++        OskKey::Shift => state.osk_shift = !state.osk_shift,
++        OskKey::Space => state.osk_queue.push(OskOut::Text(" ".into())),
++        OskKey::Backspace => state.osk_queue.push(OskOut::Backspace),
++        OskKey::Enter => state.osk_queue.push(OskOut::Enter),
++        OskKey::Esc => state.osk_queue.push(OskOut::Key(KeyCode::Escape)),
++        OskKey::Tab => state.osk_queue.push(OskOut::Key(KeyCode::Tab)),
++        OskKey::Func(code) => state.osk_queue.push(OskOut::Key(code)),
++        OskKey::Mod(m) => state.osk_queue.push(OskOut::Mod(m)),
++    }
++}
+diff --git a/crates/horizon-client/src/official_install.rs b/crates/horizon-client/src/official_install.rs
+new file mode 100644
+index 0000000..4d193c3
+--- /dev/null
++++ b/crates/horizon-client/src/official_install.rs
+@@ -0,0 +1,561 @@
++#![cfg(target_os = "android")]
++//! On-device installation of the official Minecraft resources from Mojang's
++//! HTTPS endpoints, triggered on demand by the launcher through a flag file
++//! (the desktop launcher's "Download" button, mobile edition).
++//!
++//! Flow (never automatic — the user decides, the launcher shows progress):
++//! 1. The launcher writes `<home>/install-assets.flag` (content: the desired
++//!    Horizon resources version, empty = the supported one) and starts the
++//!    game process.
++//! 2. `android_main` sees the flag BEFORE the engine looks for resources and
++//!    calls [`install`]: the engine tables bundled in the APK
++//!    (`assets/engine-data.zip`, or a launcher-supplied
++//!    `<home>/engine-data-<version>.zip`) are merged with the vanilla client
++//!    jar, its `data/` datapack and the asset-index objects (textures and
++//!    sounds) downloaded from `piston-meta.mojang.com`,
++//!    `piston-data.mojang.com` and `resources.download.minecraft.net` — the
++//!    same official endpoints the desktop launcher uses.
++//! 3. Progress is published to `<home>/install-progress.txt` for the
++//!    launcher, plus the regular log.
++//! 4. After the attempt (success or failure) the process exits without
++//!    entering the game; the launcher reads the result and relaunches.
++//!
++//! Nothing is hosted or redistributed: files are downloaded from Mojang to
++//! the user's device, verified by SHA-1, and combined with the engine's own
++//! generated tables. Every URL is restricted to the official Mojang hosts.
++
++use crate::Result;
++use sha1::{Digest, Sha1};
++use std::{
++    fs,
++    io::{Read, Write},
++    path::{Component, Path, PathBuf},
++    sync::{
++        Mutex, OnceLock,
++        atomic::{AtomicU64, AtomicUsize, Ordering},
++    },
++    time::{Duration, Instant},
++};
++
++/// The launcher's download button: presence of this file in the game home
++/// directory requests an installation run.
++pub const FLAG_FILE: &str = "install-assets.flag";
++/// Machine-readable progress for the launcher: `stage done total` per line
++/// (atomically replaced), `done 1 1` on success, `error <message>` on failure.
++pub const PROGRESS_FILE: &str = "install-progress.txt";
++/// APK-bundled engine tables (horizon-prepare output: generated JSON/NBT
++/// tables, `worldgen/`, `biome-parameters/`; no vanilla assets).
++const ENGINE_DATA_ASSET: &str = "engine-data.zip";
++
++const CATALOG: &str = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
++/// Pinned Minecraft version metadata (`research-lock.json`), embedded so the
++/// installed resources always match what this engine build implements.
++const LOCK: &str = include_str!("../../../research-lock.json");
++
++static INSTALLATION: Mutex<()> = Mutex::new(());
++
++/// Whether the engine's regular resource lookup would find a usable
++/// `files/resources` installation.
++pub fn resources_ready(home: &Path) -> bool {
++    home.join("resources")
++        .join("horizon-resources.json")
++        .is_file()
++}
++
++/// Whether the launcher requested an installation run.
++pub fn install_requested(home: &Path) -> bool {
++    home.join(FLAG_FILE).is_file()
++}
++
++fn pins() -> Result<serde_json::Value> {
++    Ok(serde_json::from_str::<serde_json::Value>(LOCK)?["minecraft"]
++        .clone())
++}
++
++fn official_url(text: &str) -> Result<()> {
++    let url = url::Url::parse(text)?;
++    if url.scheme() != "https"
++        || !url.username().is_empty()
++        || url.password().is_some()
++        || url.port().is_some_and(|p| p != 443)
++        || !matches!(
++            url.host_str(),
++            Some(
++                "piston-meta.mojang.com"
++                    | "piston-data.mojang.com"
++                    | "resources.download.minecraft.net"
++                    | "launchermeta.mojang.com"
++                    | "launcher.mojang.com"
++            )
++        )
++    {
++        return Err("Download URL is not an official Mojang HTTPS endpoint".into());
++    }
++    Ok(())
++}
++
++fn agent() -> ureq::Agent {
++    // Thousands of sound objects share a host; retain pooled TLS connections.
++    static AGENT: OnceLock<ureq::Agent> = OnceLock::new();
++    AGENT
++        .get_or_init(|| {
++            ureq::AgentBuilder::new()
++                .redirects(0)
++                .timeout_connect(Duration::from_secs(30))
++                .timeout_read(Duration::from_secs(120))
++                .build()
++        })
++        .clone()
++}
++
++fn json(url: &str) -> Result<serde_json::Value> {
++    official_url(url)?;
++    let mut bytes = Vec::new();
++    agent()
++        .get(url)
++        .call()?
++        .into_reader()
++        .take(32 * 1024 * 1024)
++        .read_to_end(&mut bytes)?;
++    Ok(serde_json::from_slice(&bytes)?)
++}
++
++fn hash(path: &Path) -> Result<String> {
++    let mut file = fs::File::open(path)?;
++    let mut digest = Sha1::new();
++    let mut buffer = [0; 65536];
++    loop {
++        let n = file.read(&mut buffer)?;
++        if n == 0 {
++            break;
++        }
++        digest.update(&buffer[..n]);
++    }
++    Ok(format!("{:x}", digest.finalize()))
++}
++
++struct Download {
++    url: String,
++    sha1: String,
++    size: u64,
++    path: PathBuf,
++}
++
++impl Download {
++    fn from(value: &serde_json::Value, path: PathBuf) -> Result<Self> {
++        let file = Self {
++            url: value["url"].as_str().ok_or("Missing download URL")?.into(),
++            sha1: value["sha1"].as_str().ok_or("Missing download hash")?.into(),
++            size: value["size"].as_u64().ok_or("Missing download size")?,
++            path,
++        };
++        official_url(&file.url)?;
++        if file.sha1.len() != 40
++            || !file.sha1.bytes().all(|c| c.is_ascii_hexdigit())
++            || file.size > 1024 * 1024 * 1024
++        {
++            return Err("Invalid Mojang download metadata".into());
++        }
++        Ok(file)
++    }
++
++    /// Downloads (or reuses) the file, verifying size and SHA-1. Retries
++    /// three times; a failed attempt leaves the partial file removed so the
++    /// next run starts clean.
++    fn get(&self) -> Result<()> {
++        if self.path.is_file()
++            && fs::metadata(&self.path)?.len() == self.size
++            && hash(&self.path)? == self.sha1
++        {
++            return Ok(());
++        }
++        fs::create_dir_all(self.path.parent().ok_or("Missing download directory")?)?;
++        let partial = self.path.with_extension("partial");
++        for attempt in 0..3 {
++            let result = (|| -> Result<()> {
++                let mut input = agent()
++                    .get(&self.url)
++                    .call()?
++                    .into_reader()
++                    .take(self.size + 1);
++                let mut output = fs::File::create(&partial)?;
++                let count = std::io::copy(&mut input, &mut output)?;
++                output.flush()?;
++                drop(output);
++                if count != self.size || hash(&partial)? != self.sha1 {
++                    return Err("Mojang file checksum or size mismatch".into());
++                }
++                fs::rename(&partial, &self.path)?;
++                Ok(())
++            })();
++            if result.is_ok() {
++                return result;
++            }
++            let _ = fs::remove_file(&partial);
++            if attempt == 2 {
++                return result;
++            }
++            std::thread::sleep(Duration::from_millis(500 * (attempt + 1)));
++        }
++        unreachable!()
++    }
++}
++
++/// Asset object names are relative paths under `assets/` inside the
++/// resources root; reject anything that could escape it.
++fn relative(name: &str) -> Result<&Path> {
++    let path = Path::new(name);
++    if path
++        .components()
++        .any(|c| !matches!(c, Component::Normal(_)))
++        || name.contains('\\')
++    {
++        return Err("Unsafe asset path".into());
++    }
++    Ok(path)
++}
++
++/// Launcher-facing progress: atomically rewrite `install-progress.txt`
++/// (`stage done total`, or `error <message>`), throttled so thousands of
++/// small file updates do not hammer the storage.
++struct Progress {
++    path: PathBuf,
++    stage: String,
++    done: u64,
++    total: u64,
++    written: Instant,
++}
++
++impl Progress {
++    fn new(home: &Path) -> Self {
++        Self {
++            path: home.join(PROGRESS_FILE),
++            stage: "preparing".into(),
++            done: 0,
++            total: 0,
++            written: Instant::now() - Duration::from_secs(1),
++        }
++    }
++
++    fn report(&mut self, stage: &str, done: u64, total: u64) {
++        self.stage = stage.into();
++        self.done = done;
++        self.total = total;
++        self.flush();
++    }
++
++    /// Download progress hot path: only rewrite every 500 ms (or on stage
++    /// change), always in whole-line atomically replaced writes.
++    fn download(&mut self, done: u64, total: u64) {
++        self.done = done;
++        self.total = total;
++        if self.written.elapsed() >= Duration::from_millis(500) {
++            self.flush();
++        }
++    }
++
++    fn flush(&mut self) {
++        self.written = Instant::now();
++        let percent = if self.total > 0 {
++            self.done * 100 / self.total
++        } else {
++            0
++        };
++        let text = format!("{} {} {}\n", self.stage, percent, self.total);
++        let partial = self.path.with_extension("partial");
++        if fs::write(&partial, text.as_bytes())
++            .and_then(|()| fs::rename(&partial, &self.path))
++            .is_err()
++        {
++            // The launcher tolerates a missing progress file; never fail the
++            // installation because of progress reporting.
++        }
++    }
++}
++
++fn extract_zip_into<R: Read + std::io::Seek>(
++    archive: R,
++    destination: &Path,
++    root_prefixes: &[&str],
++) -> Result<()> {
++    let mut zip = zip::ZipArchive::new(archive)?;
++    for i in 0..zip.len() {
++        let mut entry = zip.by_index(i)?;
++        if entry.is_dir() {
++            continue;
++        }
++        let Some(name) = entry.enclosed_name() else {
++            return Err("Unsafe path in resource archive".into());
++        };
++        if entry.is_symlink() {
++            return Err("Symlink in resource archive".into());
++        }
++        if !root_prefixes.is_empty()
++            && !root_prefixes
++                .iter()
++                .any(|prefix| name.starts_with(prefix))
++        {
++            continue;
++        }
++        let path = destination.join(name);
++        fs::create_dir_all(path.parent().ok_or("Missing resource parent")?)?;
++        std::io::copy(&mut entry, &mut fs::File::create(path)?)?;
++    }
++    Ok(())
++}
++
++/// Runs the installation requested by the flag file. Returns the error on
++/// failure (also written to the progress file); the caller exits afterwards.
++pub fn install(home: &Path, app: &android_activity::AndroidApp) -> Result<()> {
++    let _guard = INSTALLATION.lock().unwrap_or_else(|e| e.into_inner());
++    let mut progress = Progress::new(home);
++    let result = install_inner(home, app, &mut progress);
++    match &result {
++        Ok(()) => progress.report("done", 1, 1),
++        Err(error) => {
++            log::error!("Official resources installation failed: {error}");
++            progress.report(&format!("error {}", error), 0, 0);
++        }
++    }
++    // The flag is consumed either way: the launcher decides on a retry.
++    let _ = fs::remove_file(home.join(FLAG_FILE));
++    result
++}
++
++fn install_inner(
++    home: &Path,
++    app: &android_activity::AndroidApp,
++    progress: &mut Progress,
++) -> Result<()> {
++    let pins = pins()?;
++    let version = pins["version"]
++        .as_str()
++        .ok_or("Missing pinned Minecraft version")?
++        .to_string();
++
++    // The flag's content selects the Horizon resources version; only the
++    // version this engine implements can be installed.
++    let requested = fs::read_to_string(home.join(FLAG_FILE))
++        .unwrap_or_default()
++        .trim()
++        .to_string();
++    if !requested.is_empty()
++        && requested != "latest"
++        && requested != horizon_core::VANILLA_VERSION
++    {
++        return Err(format!(
++            "This engine implements Horizon resources for Minecraft {version} only (requested: {requested})"
++        )
++        .into());
++    }
++
++    progress.report("metadata", 0, 0);
++    let cache = home.join(".local/downloads").join(&version);
++    fs::create_dir_all(&cache)?;
++
++    // Engine tables: prefer a launcher-supplied bundle, else the APK asset.
++    let staged_tables = cache.join("engine-data.zip");
++    let launcher_bundle = home.join(format!("engine-data-{version}.zip"));
++    if launcher_bundle.is_file() {
++        fs::copy(&launcher_bundle, &staged_tables)?;
++    } else {
++        let manager = app.asset_manager();
++        let name = std::ffi::CString::new(ENGINE_DATA_ASSET)?;
++        let Some(asset) = manager.open(&name) else {
++            return Err(format!("APK has no {ENGINE_DATA_ASSET} engine tables").into());
++        };
++        let mut output = fs::File::create(&staged_tables)?;
++        std::io::copy(&mut asset.take(512 * 1024 * 1024), &mut output)?;
++        output.flush()?;
++        drop(output);
++    }
++
++    // Version metadata from Mojang. Mojang may republish version JSONs while
++    // the game jars stay identical, so the manifest SHA-1 is checked against
++    // the pins but only warns on a mismatch; the hard engine-compatibility
++    // guarantee is the pinned client jar hash below.
++    let catalog = json(CATALOG)?;
++    let entry = catalog["versions"]
++        .as_array()
++        .and_then(|vs| vs.iter().find(|v| v["id"] == version.as_str()))
++        .ok_or("Pinned Minecraft version is not listed by Mojang")?;
++    let manifest_url = entry["url"].as_str().ok_or("Missing version metadata URL")?;
++    official_url(manifest_url)?;
++    let mut bytes = Vec::new();
++    agent()
++        .get(manifest_url)
++        .call()?
++        .into_reader()
++        .take(32 * 1024 * 1024)
++        .read_to_end(&mut bytes)?;
++    let manifest: serde_json::Value = serde_json::from_slice(&bytes)?;
++    let manifest_sha1 = format!("{:x}", Sha1::digest(&bytes));
++    let accepted = ["manifest_sha1"]
++        .into_iter()
++        .chain(
++            pins["accepted_manifest_sha1"]
++                .as_array()
++                .map(|a| a.iter().filter_map(|v| v.as_str()))
++                .into_iter()
++                .flatten(),
++        )
++        .collect::<Vec<_>>();
++    if !accepted.contains(&manifest_sha1.as_str()) {
++        log::warn!(
++            "Minecraft {version}: republished version metadata ({manifest_sha1}); game files must still match the pins"
++        );
++    }
++
++    // The client jar is the hard pin: this engine implements exactly it.
++    let client = Download::from(&manifest["downloads"]["client"], cache.join("client.jar"))?;
++    let pinned_client = pins["client_sha1"].as_str().ok_or("Missing client pin")?;
++    if client.sha1 != pinned_client {
++        return Err("Minecraft client jar differs from this engine's pinned version".into());
++    }
++    client.get()?;
++
++    // The asset index lists every vanilla asset object (textures, sounds,
++    // translations) with per-file SHA-1s. Mojang republishes it freely; the
++    // objects themselves are all individually verified on download.
++    let index = Download::from(&manifest["assetIndex"], cache.join("asset-index.json"))?;
++    index.get()?;
++    let index: serde_json::Value = serde_json::from_reader(fs::File::open(&index.path)?)?;
++    let objects = index["objects"]
++        .as_object()
++        .ok_or("Missing asset objects")?;
++
++    let mut files = Vec::new();
++    let mut assets = Vec::new();
++    let mut seen = std::collections::HashSet::new();
++    for (name, object) in objects {
++        relative(name)?;
++        let checksum = object["hash"].as_str().ok_or("Missing asset hash")?;
++        if checksum.len() != 40 || !checksum.bytes().all(|c| c.is_ascii_hexdigit()) {
++            return Err("Invalid asset hash".into());
++        }
++        let path = cache.join("objects").join(checksum);
++        assets.push((name, path.clone()));
++        if seen.insert(checksum) {
++            files.push(Download::from(
++                &serde_json::json!({
++                    "url": format!("https://resources.download.minecraft.net/{}/{checksum}", &checksum[..2]),
++                    "sha1": checksum,
++                    "size": object["size"],
++                }),
++                path,
++            )?);
++        }
++    }
++
++    let total: u64 = files.iter().map(|f| f.size).sum();
++    log::info!(
++        "Minecraft {version}: downloading {} files from Mojang ({} MiB) into {}",
++        files.len(),
++        total / 1048576,
++        cache.display()
++    );
++    progress.report("download", 0, total);
++    let next = AtomicUsize::new(0);
++    let error: Mutex<Option<String>> = Mutex::new(None);
++    // Download workers cannot share the &mut Progress: they push their byte
++    // counts into a shared counter and the scoped main thread publishes
++    // throttled progress while polling for completion.
++    let tick = AtomicU64::new(0);
++    std::thread::scope(|scope| -> Result<()> {
++        for _ in 0..8 {
++            scope.spawn(|| {
++                loop {
++                    if error.lock().unwrap().is_some() {
++                        break;
++                    }
++                    let i = next.fetch_add(1, Ordering::Relaxed);
++                    let Some(file) = files.get(i) else { break };
++                    if let Err(e) = file.get() {
++                        *error.lock().unwrap() = Some(e.to_string());
++                        break;
++                    }
++                    let _ = tick.fetch_add(file.size, Ordering::Relaxed);
++                }
++            });
++        }
++        loop {
++            if let Some(e) = error.lock().unwrap().as_ref() {
++                return Err(e.clone().into());
++            }
++            let current = tick.load(Ordering::Relaxed);
++            progress.download(current.min(total), total);
++            if current >= total && next.load(Ordering::Relaxed) >= files.len() {
++                return Ok(());
++            }
++            std::thread::sleep(Duration::from_millis(120));
++        }
++    })?;
++    if let Some(e) = error.into_inner().unwrap() {
++        return Err(e.into());
++    }
++    progress.report("extract", 0, 0);
++
++    // Assemble the resources root in a staging directory, then activate it
++    // atomically: engine tables from the bundle, vanilla `assets/` + `data/`
++    // from the verified client jar, and the asset objects under `assets/`.
++    let staging = home.join(".resources-install-partial");
++    if staging.exists() {
++        fs::remove_dir_all(&staging)?;
++    }
++    fs::create_dir(&staging)?;
++    let result = (|| -> Result<()> {
++        extract_zip_into(
++            fs::File::open(&staged_tables)?,
++            &staging,
++            &[],
++        )?;
++        extract_zip_into(
++            fs::File::open(&client.path)?,
++            &staging,
++            &["assets/", "data/"],
++        )?;
++        for (name, from) in assets {
++            let path = staging.join("assets").join(relative(name)?);
++            fs::create_dir_all(path.parent().ok_or("Missing asset parent")?)?;
++            fs::copy(from, path)?;
++        }
++        if !staging.join("horizon-resources.json").is_file() {
++            return Err("Engine tables bundle has no horizon-resources.json".into());
++        }
++        // The runtime reads the asset index next to the tables (same file the
++        // PC preparation writes), decoded from the verified download.
++        fs::write(
++            staging.join("asset-index.json"),
++            serde_json::to_vec(&index)?,
++        )?;
++        Ok(())
++    })();
++    if let Err(e) = result {
++        let _ = fs::remove_dir_all(&staging);
++        return Err(e);
++    }
++
++    progress.report("finalize", 0, 0);
++    let destination = home.join("resources");
++    let backup = home.join("resources.previous");
++    if backup.exists() {
++        fs::remove_dir_all(&backup)?;
++    }
++    if destination.exists() {
++        fs::rename(&destination, &backup)?;
++    }
++    if let Err(error) = fs::rename(&staging, &destination) {
++        if backup.exists() {
++            let _ = fs::rename(&backup, &destination);
++        }
++        return Err(format!("Could not activate installed resources: {error}").into());
++    }
++    log::info!(
++        "Official resources for Minecraft {version} installed to {}",
++        destination.display()
++    );
++
++    // Housekeeping: the verified downloads are no longer needed.
++    let _ = fs::remove_dir_all(&cache);
++    Ok(())
++}

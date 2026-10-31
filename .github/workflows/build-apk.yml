@@ -1,0 +1,169 @@
+# CI: сборка Android APK движка Horizon (upstream-исходники + наш мобильный патч).
+#
+# Схема: скачиваем исходники Horizon закреплённого базового коммита, накладываем
+# android/patches/horizon-mobile-overlay.patch (весь наш мобильный код ->
+# crates/horizon-client/src/mobile.rs), собираем cdylib под aarch64-linux-android
+# и упаковываем APK скриптом android/package-apk.sh.
+#
+# Если меняется pin (HORIZON_COMMIT) — надо перегенерить патч,
+# см. android/patches/README.md.
+
+name: build-apk
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *" # ежедневно в 03:00 UTC
+
+env:
+  # --- PIN: базовый коммит Horizon, на котором основан патч (Horizon 26.3) ---
+  HORIZON_COMMIT: "7c839665283157c1ada904d2a10867e52e3443b3"
+  # Репозиторий upstream для скачивания исходников (tarball коммита).
+  HORIZON_REPO: "horizon-rust/horizon"
+  # Прямой URL на horizon-source.tar.gz ИМЕННО базового коммита.
+  # В upstream-репо этого коммита сейчас нет (история ушла вперёд), поэтому
+  # положите tarball базового коммита в свой fork/mirror (например asset'ом
+  # релиза) и впишите URL сюда. Оставьте пустым — тогда пробуем tarball по sha.
+  HORIZON_SOURCE_URL: ""
+  # Версия NDK (для nttld/setup-ndk).
+  NDK_VERSION: "r26"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout лаунчера
+        uses: actions/checkout@v4
+
+      - name: Скачиваем и распаковываем исходники Horizon (pin-коммит)
+        id: source
+        run: |
+          set -euo pipefail
+          mkdir -p horizon-src && cd horizon-src
+          if [ -n "${{ env.HORIZON_SOURCE_URL }}" ]; then
+            # Приоритет: прямой URL на source tarball базового коммита.
+            curl -fL --retry 3 -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
+          else
+            # Fallback: tarball коммита из git-репозитория (работает, если
+            # коммит $HORIZON_COMMIT есть в $HORIZON_REPO).
+            curl -fL --retry 3 -o horizon-source.tar.gz \
+              "https://github.com/${{ env.HORIZON_REPO }}/archive/${{ env.HORIZON_COMMIT }}.tar.gz" \
+              || { echo "::error::Исходники коммита ${{ env.HORIZON_COMMIT }} недоступны ни по HORIZON_SOURCE_URL, ни в ${{ env.HORIZON_REPO }}. См. android/patches/README.md"; exit 1; }
+          fi
+          tar -xzf horizon-source.tar.gz
+          # Tarball GitHub-archive содержит одну папку; некоторые tarball'ы
+          # распаковываются прямо в текущую. Определяем корень исходников.
+          if [ -f Cargo.toml ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1 | sed 's|^\./||')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Android NDK ${{ env.NDK_VERSION }}
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: false
+
+      - name: Генерируем .cargo/config.toml под CI-NDK (не входит в патч)
+        env:
+          NDK_ROOT: ${{ steps.ndk.outputs.ndk-root }}
+        run: |
+          set -euo pipefail
+          cat > "${{ steps.source.outputs.dir }}/.cargo/config.toml" <<EOF
+          [target.aarch64-linux-android]
+          ar = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          linker = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang"
+          rustflags = [
+              "-L", "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/34"
+          ]
+          EOF
+
+      - name: Накладываем мобильный патч (git apply, при неудаче patch -p1)
+        run: |
+          set -euo pipefail
+          cd "${{ steps.source.outputs.dir }}"
+          PATCH="$GITHUB_WORKSPACE/android/patches/horizon-mobile-overlay.patch"
+          if git apply --check "$PATCH" 2>/dev/null; then
+            git apply "$PATCH"
+            echo "Патч применён через git apply"
+          else
+            # patch -p1 терпимее к контексту (допускает fuzz).
+            patch -p1 < "$PATCH"
+            echo "Патч применён через patch -p1"
+          fi
+
+      - name: Rust stable + target aarch64-linux-android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "${{ steps.source.outputs.dir }}"
+
+      - name: JDK 17 (javac для package-apk.sh) и Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: cargo build (aarch64-linux-android, release)
+        env:
+          NDK_ROOT: ${{ steps.ndk.outputs.ndk-root }}
+          # clang/ar из NDK для C-зависимостей (wasmtime и др.).
+          CC_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-root }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang
+          AR_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-root }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: |
+          set -euo pipefail
+          cd "${{ steps.source.outputs.dir }}"
+          cargo build -p horizon-client --target aarch64-linux-android --release \
+            --no-default-features --features audio,mods
+
+      - name: Кладём .so в android/libs/arm64-v8a/
+        run: |
+          set -euo pipefail
+          mkdir -p android/libs/arm64-v8a
+          cp "${{ steps.source.outputs.dir }}/target/aarch64-linux-android/release/libhorizon_client.so" \
+             android/libs/arm64-v8a/
+
+      - name: Распаковываем release-keystore из секрета (если задан)
+        # Как добавить release-ключ: в настройках репо (Settings -> Secrets and
+        # variables -> Actions) создайте секреты:
+        #   ANDROID_KEYSTORE_B64  — keystore, закодированный в base64
+        #                           (base64 -w0 release.keystore)
+        #   ANDROID_KEYSTORE_PASS — пароль keystore
+        #   ANDROID_KEY_ALIAS     — alias ключа
+        #   ANDROID_KEY_PASS      — пароль ключа (если отличается от пароля keystore)
+        # Если секретов нет — package-apk.sh сам сгенерирует debug-keystore
+        # и подпишет APK debug-ключом (годится только для тестов).
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            mkdir -p "$RUNNER_TEMP/keystore"
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore/release.keystore"
+            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/keystore/release.keystore" >> "$GITHUB_ENV"
+          fi
+
+      - name: Упаковка APK (android/package-apk.sh)
+        env:
+          # SDK ставится android-actions/setup-android; путь по умолчанию на runner'ах.
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          # Пароли берутся из secrets, если заданы; иначе скрипт подпишет debug-ключом.
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+        run: bash android/package-apk.sh
+
+      - name: Загружаем APK как артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: horizon-mobile-apk
+          path: dist/android/*.apk
+          if-no-files-found: error
