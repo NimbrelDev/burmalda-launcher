@@ -198,8 +198,15 @@ jobs:
         run: |
           set -euo pipefail
           cd "${{ steps.source.outputs.dir }}"
+          # Диагностика: убеждаемся, что патч дошёл до Cargo.toml и android-activity
+          # в графе с фичей native-activity (в прогоне #4 CI собрал android-activity
+          # БЕЗ backend-фичи и упал на compile_error!, локально тот же граф — ок).
+          grep -n "android-activity" crates/horizon-client/Cargo.toml
+          cargo tree -i android-activity --target aarch64-linux-android -e features,no-dev | grep -m1 -B1 "android-activity v" || true
+          # android-activity/native-activity — явная фиксация backend-фичи через CLI
+          # (features транзитивной зависимости), чтобы unification не потерял её.
           cargo build -p horizon-client --target aarch64-linux-android --release \
-            --no-default-features --features audio,mods
+            --no-default-features --features audio,mods,android-activity/native-activity
 
       - name: Кладём .so в android/libs/arm64-v8a/
         run: |
