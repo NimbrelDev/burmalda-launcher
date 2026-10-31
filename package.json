@@ -6,9 +6,9 @@
   "scripts": {
     "start": "electron desktop/main.js",
     "dev": "electron desktop/main.js",
-    "build:linux": "electron-builder --linux --config.directories.output=dist/linux",
-    "build:win": "electron-builder --windows --config.directories.output=dist/windows",
-    "build:mac": "electron-builder --mac --config.directories.output=dist/mac",
+    "build:linux": "electron-builder --linux --publish never --config.directories.output=dist/linux",
+    "build:win": "electron-builder --windows --publish never --config.directories.output=dist/windows",
+    "build:mac": "electron-builder --mac --publish never --config.directories.output=dist/mac",
     "build:android": "bash android/package-apk.sh",
     "build:all": "npm run build:linux && npm run build:win && npm run build:android",
     "clean": "rm -rf dist/linux/* dist/windows/* dist/android/* android/build"

@@ -28,6 +28,13 @@
 #     остальные таргеты, а pacman просто пропускается (warning), не вали джоб.
 #   - rpm: electron-builder 26 собирает rpm встроенным app-builder (rpmbuild не
 #     нужен), но на всякий случай ставим пакет `rpm`, если rpmbuild отсутствует.
+#   - windows: NSIS-таргет на linux требует wine (electron-builder всегда
+#     прогоняет инсталлятор под wine для извлечения uninstaller stub) — wine
+#     ставится через apt в самой джобе. Иконка/версия в exe патчатся без wine
+#     через scripts/afterpack.js (resedit).
+#   - Все вызовы electron-builder идут с --publish never: в CI он включает
+#     implicit publishing и падает с "GitHub Personal Access Token is not set",
+#     т.к. публикация релиза делает job release, а не electron-builder.
 #   - macOS: unsigned (identity: null + CSC_IDENTITY_AUTO_DISCOVERY=false),
 #     hardenedRuntime не нужен — достаточно для Draft-проверки сборки.
 #   - Зависимости ставим pnpm (в репозитории pnpm-lock.yaml, package-lock.json нет —
@@ -89,10 +96,14 @@ jobs:
             -H "Accept: application/octet-stream" \
             -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
           tar -xzf horizon-source.tar.gz
+          # ВАЖНО: путь в output должен быть АБСОЛЮТНЫМ — последующие шаги
+          # стартуют из GITHUB_WORKSPACE, а не из horizon-src (относительный
+          # "." сломал патч в прогоне #1: cd "." вёл в корень лаунчера).
           if [ -f Cargo.toml ]; then
-            echo "dir=." >> "$GITHUB_OUTPUT"
+            echo "dir=$(pwd)" >> "$GITHUB_OUTPUT"
           else
-            echo "dir=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1 | sed 's|^\./||')" >> "$GITHUB_OUTPUT"
+            D=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1)
+            echo "dir=$(cd "$D" && pwd)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Android NDK ${{ env.NDK_VERSION }}
@@ -239,9 +250,13 @@ jobs:
       - name: Сборка linux (AppImage/deb/rpm/pacman; pacman при падении не валит джоб)
         run: |
           set -uo pipefail
-          if ! pnpm exec electron-builder --linux --config.directories.output=dist/linux AppImage deb rpm pacman; then
-            echo "::warning::Сборка pacman-таргета на ubuntu-latest не удалась — пересобираем без него"
-            pnpm exec electron-builder --linux --config.directories.output=dist/linux AppImage deb rpm
+          # Таргеты берём из package.json (build.linux.target). ВАЖНО: не передаём
+          # таргеты как позиционные аргументы ПОСЛЕ других опций — yargs их не
+          # привязывает ("Unknown arguments: AppImage, deb, rpm" в прогоне #1).
+          if ! pnpm run build:linux; then
+            echo "::warning::Сборка с pacman-таргетом на ubuntu-latest не удалась — пересобираем без него"
+            pnpm exec electron-builder --linux AppImage deb rpm --publish never \
+              --config.directories.output=dist/linux
           fi
 
       - name: Артефакты (AppImage/deb/rpm/pacman)
@@ -272,7 +287,16 @@ jobs:
       - name: Зависимости (pnpm, frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Сборка windows (nsis + portable, без wine — иконку ставит scripts/afterpack.js)
+      - name: Устанавливаем wine (нужен NSIS-таргету на linux)
+        # electron-builder 26 на НЕ-Windows хостах всегда прогоняет собираемый
+        # инсталлятор под wine, чтобы извлечь uninstaller stub (WineVmManager).
+        # Локально сборка работала только потому, что wine установлен в системе.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine
+          wine --version
+
+      - name: Сборка windows (nsis + portable; иконку ставит scripts/afterpack.js через resedit)
         run: pnpm run build:win
 
       - name: Артефакты (Setup.exe + portable exe)
