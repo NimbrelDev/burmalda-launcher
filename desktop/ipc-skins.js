@@ -65,6 +65,8 @@ export function registerSkinHandlers() {
   });
 
   const DEFAULT_SKINS = [
+    { id: 'burmalda', name: 'Бурмалда', model: 'default', filename: 'burmalda.png' },
+    { id: 'burmalda-ember', name: 'Искра', model: 'default', filename: 'burmalda-ember.png' },
     { id: 'steve', name: 'Стив', model: 'default', filename: 'steve.png' },
     { id: 'alex', name: 'Алекс', model: 'slim', filename: 'alex.png' },
     { id: 'noor', name: 'Нур', model: 'default', filename: 'noor.png' },

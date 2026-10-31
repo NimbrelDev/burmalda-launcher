@@ -43,6 +43,11 @@ btnExportApk?.addEventListener('click', async () => {
 // audioCtx already declared above
 function triggerHapticFeedback() {
   if (settingTouchHaptic && !settingTouchHaptic.checked) return;
+  // On Android the bridge already vibrates on touchstart (android-bridge.js);
+  // vibrating again on the follow-up click makes one tap feel doubled — skip.
+  if (typeof window.__burmaldaHapticAt === 'number' && Date.now() - window.__burmaldaHapticAt < 200) {
+    return;
+  }
   try {
     if (navigator && typeof navigator.vibrate === 'function') {
       navigator.vibrate(15);

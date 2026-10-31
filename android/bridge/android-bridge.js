@@ -282,6 +282,7 @@
 
   const DEFAULT_SKINS = [
     { id: 'burmalda', name: 'Бурмалда', model: 'default', filename: 'burmalda.png' },
+    { id: 'burmalda-ember', name: 'Искра', model: 'default', filename: 'burmalda-ember.png' },
     { id: 'steve', name: 'Стив', model: 'default', filename: 'steve.png' },
     { id: 'alex', name: 'Алекс', model: 'slim', filename: 'alex.png' },
     { id: 'noor', name: 'Нур', model: 'default', filename: 'noor.png' },
@@ -784,11 +785,15 @@
     windowClose: () => {}
   };
 
-  // Add tactile feedback to touch interactions
+  // Add tactile feedback to touch interactions.
+  // The bridge vibrates once on touchstart; renderer-side playUiClickSound() must
+  // NOT vibrate again on the follow-up click (that made every tap feel doubled).
+  // triggerHapticFeedback() checks this timestamp and skips within the same tap.
   document.addEventListener('touchstart', (e) => {
     if (e.target && (e.target.closest('button') || e.target.closest('.nav-btn') || e.target.closest('.btn-hero-launch') || e.target.closest('.btn-stage-icon') || e.target.closest('.btn-action-primary') || e.target.closest('.btn-action-secondary') || e.target.closest('.dock-modpack-btn') || e.target.closest('.server-card-clean') || e.target.closest('.dock-player-card') || e.target.closest('.player-nametag-float'))) {
       if (window.AndroidLauncher) {
         try {
+          window.__burmaldaHapticAt = Date.now();
           window.AndroidLauncher.vibrate(15);
         } catch (err) {}
       }

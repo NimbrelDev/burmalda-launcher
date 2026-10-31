@@ -43,7 +43,7 @@ function renderCreationWorkbench() {
     if (currentList.length === 0) {
       fileListContainer.innerHTML = `
         <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 24px 10px;">
-          Список пуст. Перетащите файлы сюда или нажмите «Выбрать файл с ПК».
+          Список пуст. Перетащите файлы сюда или нажмите «Выбрать файл с устройства».
         </div>
       `;
     } else {
