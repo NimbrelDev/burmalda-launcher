@@ -73,10 +73,14 @@ jobs:
           add-to-path: false
 
       - name: Генерируем .cargo/config.toml под CI-NDK (не входит в патч)
-        env:
-          NDK_ROOT: ${{ steps.ndk.outputs.ndk-root }}
         run: |
           set -euo pipefail
+          NDK_ROOT="${{ steps.ndk.outputs.ndk-root }}"
+          : "${NDK_ROOT:=${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}}"
+          [ -n "$NDK_ROOT" ] || NDK_ROOT=$(ls -d /usr/local/lib/android/sdk/ndk/* 2>/dev/null | head -1 || true)
+          [ -n "$NDK_ROOT" ] && [ -d "$NDK_ROOT" ] || { echo "::error::NDK not found (ndk-root='${{ steps.ndk.outputs.ndk-root }}', ANDROID_NDK_HOME='$ANDROID_NDK_HOME')"; ls /usr/local/lib/android/sdk/ndk/ 2>/dev/null || true; exit 1; }
+          echo "NDK_ROOT=$NDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "${{ steps.source.outputs.dir }}/.cargo"
           cat > "${{ steps.source.outputs.dir }}/.cargo/config.toml" <<EOF
           [target.aarch64-linux-android]
           ar = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
@@ -120,10 +124,10 @@ jobs:
 
       - name: cargo build (aarch64-linux-android, release)
         env:
-          NDK_ROOT: ${{ steps.ndk.outputs.ndk-root }}
+          # NDK_ROOT задаётся шагом выше через GITHUB_ENV.
           # clang/ar из NDK для C-зависимостей (wasmtime и др.).
-          CC_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-root }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang
-          AR_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-root }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CC_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang
+          AR_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
         run: |
           set -euo pipefail
           cd "${{ steps.source.outputs.dir }}"
