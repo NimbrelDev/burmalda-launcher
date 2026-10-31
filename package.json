@@ -25,16 +25,37 @@
     ],
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb",
+        "rpm",
+        "pacman"
       ],
       "category": "Game",
+      "maintainer": "Burmalda <support@burmalda-hub.ru>",
+      "homepage": "https://burmalda-hub.ru",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "deb": {
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "rpm": {
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "pacman": {
       "artifactName": "${productName}-${version}.${ext}"
     },
     "win": {
       "target": [
+        "nsis",
         "portable"
       ],
       "artifactName": "${productName}-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "${productName}-${version}-Setup.${ext}"
     }
   },
   "keywords": [
