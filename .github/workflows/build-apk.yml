@@ -41,11 +41,18 @@ jobs:
           mkdir -p horizon-src && cd horizon-src
           if [ -n "${{ env.HORIZON_SOURCE_URL }}" ]; then
             # Приоритет: прямой URL на source tarball базового коммита.
-            curl -fL --retry 3 -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
+            # Ассет в приватном репо требует токен — качаем с GITHUB_TOKEN
+            # (если URL публичный, заголовок просто игнорируется).
+            curl -fL --retry 3 \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -H "Accept: application/octet-stream" \
+              -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
           else
             # Fallback: tarball коммита из git-репозитория (работает, если
             # коммит $HORIZON_COMMIT есть в $HORIZON_REPO).
-            curl -fL --retry 3 -o horizon-source.tar.gz \
+            curl -fL --retry 3 \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -o horizon-source.tar.gz \
               "https://github.com/${{ env.HORIZON_REPO }}/archive/${{ env.HORIZON_COMMIT }}.tar.gz" \
               || { echo "::error::Исходники коммита ${{ env.HORIZON_COMMIT }} недоступны ни по HORIZON_SOURCE_URL, ни в ${{ env.HORIZON_REPO }}. См. android/patches/README.md"; exit 1; }
           fi
