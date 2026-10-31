@@ -1,22 +1,46 @@
 package org.horizon.launcher;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
+import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.View;
 import android.view.WindowManager;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+// NOTE on coding style in this file: the toolchain here is javac 21 + d8 8.2.2,
+// and d8 8.2.2 cannot dex anonymous classes or lambdas (NPE in
+// String.length() during dexing). Everything must be named static nested
+// classes. Do not "modernize" this file back to lambdas.
 
 public class LauncherActivity extends Activity {
     private static final String TAG = "LauncherActivity";
@@ -57,18 +81,330 @@ public class LauncherActivity extends Activity {
 
         webView.setBackgroundColor(0xFF0A0E14);
         webView.addJavascriptInterface(new LauncherBridge(this), "AndroidLauncher");
-        
-        webView.setWebChromeClient(new CustomChromeClient());
+
+        webView.setWebChromeClient(new CustomChromeClient(this));
         webView.setWebViewClient(new CustomWebClient());
 
         webView.loadUrl("file:///android_asset/launcher/index.html");
         setContentView(webView);
     }
 
+    // ------------------------------------------------------------
+    // System file picker plumbing: ACTION_OPEN_DOCUMENT started from the JS
+    // bridge thread, result delivered here, bridge thread released via latch.
+    // ------------------------------------------------------------
+    private static volatile float sDlPercent = -1f;
+    private static volatile long sDlBytes = 0;
+    private static volatile long sDlTotal = 0;
+    private static volatile String sDlStatus = "";
+    private static final AtomicBoolean sDlRunning = new AtomicBoolean(false);
+
+    private static volatile AtomicReference<String> sPendingPick = null;
+    private static volatile CountDownLatch sPendingPickLatch = null;
+    private static volatile String sPendingPickDest = null;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != 42001) return;
+        AtomicReference<String> picked = sPendingPick;
+        CountDownLatch latch = sPendingPickLatch;
+        String destRel = sPendingPickDest;
+        sPendingPick = null;
+        sPendingPickLatch = null;
+        sPendingPickDest = null;
+        if (picked == null || latch == null) return;
+
+        try {
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                picked.set(null);
+                latch.countDown();
+                return;
+            }
+            Uri uri = data.getData();
+            String name = queryDisplayName(uri);
+            if (name == null || name.isEmpty()) name = "picked-" + System.currentTimeMillis() + ".bin";
+            name = name.replaceAll("[/\\\\]", "_");
+            String destRelFull = (destRel == null || destRel.isEmpty()) ? "inbox/" + name : destRel + "/" + name;
+            File dest = safeResolve(this, destRelFull);
+            if (dest == null) {
+                picked.set(null);
+                latch.countDown();
+                return;
+            }
+            InputStream in = getContentResolver().openInputStream(uri);
+            FileOutputStream out = new FileOutputStream(dest);
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            out.flush();
+            out.close();
+            in.close();
+            String rel = relPathOf(dest);
+            picked.set("{\"ok\":true,\"name\":" + jsonStr(name)
+                + ",\"relPath\":" + jsonStr(rel)
+                + ",\"size\":" + dest.length() + "}");
+        } catch (Exception e) {
+            Log.e(TAG, "onActivityResult pick failed", e);
+            picked.set(null);
+        }
+        latch.countDown();
+    }
+
+    private String queryDisplayName(Uri uri) {
+        try {
+            android.database.Cursor c = getContentResolver().query(uri, null, null, null, null);
+            if (c != null) {
+                try {
+                    if (c.moveToFirst()) {
+                        int idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                        if (idx >= 0) return c.getString(idx);
+                    }
+                } finally {
+                    c.close();
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private String relPathOf(File f) {
+        String base = externalBase(this).getAbsolutePath();
+        String full = f.getAbsolutePath();
+        return full.startsWith(base) ? full.substring(base.length() + 1) : full;
+    }
+
+    /** Resolves relPath inside the app's external files dir; null when it escapes it. */
+    static File safeResolve(Context ctx, String relPath) {
+        try {
+            File base = externalBase(ctx);
+            String canonBase = base.getCanonicalPath();
+            File target;
+            if (relPath == null || relPath.trim().isEmpty() || relPath.equals("/") || relPath.equals(".")) {
+                target = base;
+            } else {
+                target = new File(base, relPath);
+            }
+            String canon = target.getCanonicalPath();
+            if (!canon.equals(canonBase) && !canon.startsWith(canonBase + File.separator)) {
+                Log.w(TAG, "Blocked path escape attempt: " + relPath);
+                return null;
+            }
+            return target;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    static File externalBase(Context ctx) {
+        File dir = ctx.getExternalFilesDir(null);
+        if (dir == null) dir = ctx.getFilesDir();
+        return dir;
+    }
+
+    static String jsonStr(String s) {
+        if (s == null) return "null";
+        StringBuilder sb = new StringBuilder("\"");
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"': sb.append("\\\""); break;
+                case '\\': sb.append("\\\\"); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                default:
+                    if (c < 0x20) sb.append(String.format("\\u%04x", (int) c));
+                    else sb.append(c);
+            }
+        }
+        return sb.append('"').toString();
+    }
+
+    // ============================================================
+    // Named runnable / listener classes (no anonymous classes, no lambdas)
+    // ============================================================
+
+    static class JsConfirmListener implements DialogInterface.OnClickListener {
+        private final JsResult result;
+        private final boolean confirm;
+        JsConfirmListener(JsResult result, boolean confirm) {
+            this.result = result;
+            this.confirm = confirm;
+        }
+        @Override
+        public void onClick(DialogInterface d, int w) {
+            if (confirm) result.confirm(); else result.cancel();
+        }
+    }
+
+    static class JsCancelListener implements DialogInterface.OnCancelListener {
+        private final JsResult result;
+        JsCancelListener(JsResult result) { this.result = result; }
+        @Override
+        public void onCancel(DialogInterface d) { result.cancel(); }
+    }
+
+    static class JsDialogTask implements Runnable {
+        private final LauncherActivity activity;
+        private final String message;
+        private final JsResult result;
+        private final String positiveText;
+        private final boolean confirmOnPositive;
+        JsDialogTask(LauncherActivity activity, String message, JsResult result,
+                     String positiveText, boolean confirmOnPositive) {
+            this.activity = activity;
+            this.message = message;
+            this.result = result;
+            this.positiveText = positiveText;
+            this.confirmOnPositive = confirmOnPositive;
+        }
+        @Override
+        public void run() {
+            AlertDialog.Builder b = new AlertDialog.Builder(activity);
+            b.setMessage(message);
+            b.setPositiveButton(positiveText, new JsConfirmListener(result, confirmOnPositive));
+            b.setOnCancelListener(new JsCancelListener(result));
+            b.show();
+        }
+    }
+
+    static class PickStartTask implements Runnable {
+        private final Activity activity;
+        PickStartTask(Activity activity) { this.activity = activity; }
+        @Override
+        public void run() {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            try {
+                activity.startActivityForResult(intent, 42001);
+            } catch (Exception e) {
+                Log.e(TAG, "pickFile failed to start", e);
+                AtomicReference<String> picked = sPendingPick;
+                CountDownLatch latch = sPendingPickLatch;
+                if (latch != null) latch.countDown();
+                if (picked != null) picked.set(null);
+            }
+        }
+    }
+
+    static class CacheFetchTask implements Runnable {
+        private final LauncherBridge bridge;
+        private final String url;
+        private final String key;
+        CacheFetchTask(LauncherBridge bridge, String url, String key) {
+            this.bridge = bridge;
+            this.url = url;
+            this.key = key;
+        }
+        @Override
+        public void run() {
+            String body = bridge.httpGetString(url, 5000);
+            if (body != null) {
+                synchronized (bridge.sHttpCache) {
+                    bridge.sHttpCache.put(key, body);
+                }
+            }
+        }
+    }
+
+    static class DownloadTask implements Runnable {
+        private final String url;
+        private final File dest;
+        DownloadTask(String url, File dest) {
+            this.url = url;
+            this.dest = dest;
+        }
+        @Override
+        public void run() {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(30000);
+                conn.setRequestProperty("User-Agent", "Burmalda-Launcher-Android/1.0");
+                conn.setInstanceFollowRedirects(true);
+                int code = conn.getResponseCode();
+                if (code >= 300 || code < 200) throw new Exception("HTTP " + code);
+                long total = conn.getContentLength();
+                sDlTotal = total;
+                File tmp = new File(dest.getAbsolutePath() + ".part");
+                InputStream in = conn.getInputStream();
+                FileOutputStream out = new FileOutputStream(tmp);
+                byte[] buf = new byte[65536];
+                long done = 0;
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    done += n;
+                    sDlBytes = done;
+                    if (total > 0) {
+                        sDlPercent = Math.min(99f, done * 100f / total);
+                        sDlStatus = "Загрузка: " + (done / 1048576) + " МБ / " + (total / 1048576) + " МБ";
+                    } else {
+                        sDlStatus = "Загрузка: " + (done / 1048576) + " МБ";
+                    }
+                }
+                out.flush();
+                out.close();
+                in.close();
+                File parent = dest.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                if (dest.exists()) dest.delete();
+                if (!tmp.renameTo(dest)) throw new Exception("rename failed");
+                sDlPercent = 100;
+                sDlStatus = "Готово";
+            } catch (Exception e) {
+                Log.e(TAG, "download failed", e);
+                sDlStatus = "Ошибка: " + e.getMessage();
+                sDlPercent = -1;
+            } finally {
+                sDlRunning.set(false);
+            }
+        }
+    }
+
+    static class ToastTask implements Runnable {
+        private final Activity activity;
+        private final String message;
+        ToastTask(Activity activity, String message) {
+            this.activity = activity;
+            this.message = message;
+        }
+        @Override
+        public void run() {
+            android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // ============================================================
+
+    // static: d8 8.2.2 + javac 21 cannot dex non-static inner classes
     public static class CustomChromeClient extends WebChromeClient {
+        private final LauncherActivity activity;
+
+        CustomChromeClient(LauncherActivity activity) {
+            this.activity = activity;
+        }
+
         @Override
         public boolean onConsoleMessage(ConsoleMessage cm) {
             Log.d("LauncherJS", cm.message() + " [" + cm.sourceId() + ":" + cm.lineNumber() + "]");
+            return true;
+        }
+
+        // alert() / confirm() must actually show and return a result: without
+        // this the default WebChromeClient cancels every confirm(), so renderer
+        // code like "confirm(...)" in modpack deletion never proceeds.
+        @Override
+        public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+            activity.runOnUiThread(new JsDialogTask(activity, message, result, "OK", true));
+            return true;
+        }
+
+        @Override
+        public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+            activity.runOnUiThread(new JsDialogTask(activity, message, result, "Удалить", true));
             return true;
         }
     }
@@ -81,17 +417,376 @@ public class LauncherActivity extends Activity {
     }
 
     public static class LauncherBridge {
-        private Context context;
+        private final Activity activity;
+        private final HashMap<String, String> sHttpCache = new HashMap<>();
 
-        public LauncherBridge(Context context) {
-            this.context = context;
+        public LauncherBridge(Activity activity) {
+            this.activity = activity;
+        }
+
+        private File baseDir() {
+            return externalBase(activity);
+        }
+
+        // ------------------------------------------------------------
+        // File operations (all paths are relative to the app files dir)
+        // ------------------------------------------------------------
+
+        @JavascriptInterface
+        public String getFilesPath() {
+            return baseDir().getAbsolutePath();
+        }
+
+        @JavascriptInterface
+        public boolean exists(String relPath) {
+            File f = safeResolve(activity, relPath);
+            return f != null && f.exists();
+        }
+
+        @JavascriptInterface
+        public boolean isDirectory(String relPath) {
+            File f = safeResolve(activity, relPath);
+            return f != null && f.isDirectory();
+        }
+
+        @JavascriptInterface
+        public void mkdir(String relPath) {
+            File f = safeResolve(activity, relPath);
+            if (f != null) f.mkdirs();
+        }
+
+        @JavascriptInterface
+        public String listDir(String relPath) {
+            File dir = safeResolve(activity, relPath);
+            if (dir == null || !dir.isDirectory()) return "[]";
+            File[] files = dir.listFiles();
+            if (files == null) return "[]";
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+            for (File f : files) {
+                if (!first) sb.append(',');
+                first = false;
+                sb.append("{\"name\":").append(jsonStr(f.getName()))
+                  .append(",\"isDir\":").append(f.isDirectory())
+                  .append(",\"size\":").append(f.length())
+                  .append(",\"mtime\":").append(f.lastModified())
+                  .append('}');
+            }
+            return sb.append(']').toString();
+        }
+
+        @JavascriptInterface
+        public boolean deletePath(String relPath) {
+            File f = safeResolve(activity, relPath);
+            if (f == null || !f.exists()) return false;
+            return deleteRecursive(f);
+        }
+
+        private boolean deleteRecursive(File f) {
+            if (f.isDirectory()) {
+                File[] children = f.listFiles();
+                if (children != null) {
+                    for (File c : children) {
+                        if (!deleteRecursive(c)) return false;
+                    }
+                }
+            }
+            return f.delete();
+        }
+
+        @JavascriptInterface
+        public boolean renamePath(String fromRel, String toRel) {
+            File from = safeResolve(activity, fromRel);
+            File to = safeResolve(activity, toRel);
+            if (from == null || to == null) return false;
+            return from.renameTo(to);
+        }
+
+        @JavascriptInterface
+        public boolean copyFile(String fromRel, String toRel) {
+            File from = safeResolve(activity, fromRel);
+            File to = safeResolve(activity, toRel);
+            if (from == null || to == null || !from.isFile()) return false;
+            return copyStreamToFile(from.getAbsolutePath(), to);
+        }
+
+        private boolean copyStreamToFile(String sourcePath, File dest) {
+            try {
+                File parent = dest.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                FileInputStream in = new FileInputStream(sourcePath);
+                FileOutputStream out = new FileOutputStream(dest);
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                out.flush();
+                out.close();
+                in.close();
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "copyStreamToFile failed", e);
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public String readFileText(String relPath) {
+            File f = safeResolve(activity, relPath);
+            if (f == null || !f.isFile()) return null;
+            try {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                FileInputStream in = new FileInputStream(f);
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                in.close();
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        @JavascriptInterface
+        public String readFileBase64(String relPath) {
+            File f = safeResolve(activity, relPath);
+            if (f == null || !f.isFile()) return null;
+            try {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                FileInputStream in = new FileInputStream(f);
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                in.close();
+                return android.util.Base64.encodeToString(bos.toByteArray(), android.util.Base64.NO_WRAP);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        /** text: plain UTF-8 text; set base64=true to write binary from base64. */
+        @JavascriptInterface
+        public boolean writeFileText(String relPath, String text, boolean base64) {
+            File f = safeResolve(activity, relPath);
+            if (f == null) return false;
+            try {
+                File parent = f.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                FileOutputStream out = new FileOutputStream(f);
+                byte[] data = base64
+                    ? android.util.Base64.decode(text, android.util.Base64.NO_WRAP)
+                    : text.getBytes(StandardCharsets.UTF_8);
+                out.write(data);
+                out.flush();
+                out.close();
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "writeFileText failed", e);
+                return false;
+            }
+        }
+
+        /** Reads one entry out of a zip file (used to extract horizon-mod.toml manifest ids). */
+        @JavascriptInterface
+        public String readZipEntry(String relPath, String entryName) {
+            File f = safeResolve(activity, relPath);
+            if (f == null || !f.isFile()) return null;
+            ZipFile zip = null;
+            try {
+                zip = new ZipFile(f);
+                ZipEntry entry = zip.getEntry(entryName);
+                if (entry == null) {
+                    java.util.Enumeration<? extends ZipEntry> en = zip.entries();
+                    while (en.hasMoreElements()) {
+                        ZipEntry e = en.nextElement();
+                        if (e.getName().endsWith(entryName)) { entry = e; break; }
+                    }
+                }
+                if (entry == null) return null;
+                InputStream in = zip.getInputStream(entry);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                in.close();
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return null;
+            } finally {
+                if (zip != null) {
+                    try { zip.close(); } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        /** Reads a bundled APK asset (e.g. "launcher/assets/horizon_releases.json"). */
+        @JavascriptInterface
+        public String readAssetText(String assetPath) {
+            try {
+                InputStream in = activity.getAssets().open(assetPath);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                in.close();
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        // ------------------------------------------------------------
+        // System file picker (content:// URIs cannot be read by path).
+        // Copies the picked document into files/<destRel> and returns JSON.
+        // ------------------------------------------------------------
+        @JavascriptInterface
+        public String pickFile(final String destRel, final String extensions) {
+            final AtomicReference<String> picked = new AtomicReference<>(null);
+            final CountDownLatch latch = new CountDownLatch(1);
+            synchronized (LauncherActivity.class) {
+                sPendingPick = picked;
+                sPendingPickLatch = latch;
+                sPendingPickDest = destRel;
+            }
+            activity.runOnUiThread(new PickStartTask(activity));
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {}
+            return picked.get();
+        }
+
+        // ------------------------------------------------------------
+        // HTTP (blocking, short timeouts; call from JS with care)
+        // ------------------------------------------------------------
+
+        @JavascriptInterface
+        public String httpGetString(String url) {
+            return httpGetString(url, 5000);
+        }
+
+        private String httpGetString(String url, int timeoutMs) {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(timeoutMs);
+                conn.setReadTimeout(timeoutMs);
+                conn.setRequestProperty("User-Agent", "Burmalda-Launcher-Android/1.0");
+                conn.setRequestProperty("Accept", "*/*");
+                int code = conn.getResponseCode();
+                if (code < 200 || code >= 300) return null;
+                InputStream in = conn.getInputStream();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                in.close();
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                Log.w(TAG, "httpGetString failed: " + url + ": " + e.getMessage());
+                return null;
+            }
+        }
+
+        /** Downloads url in the background into files/<destRel>; progress is polled via getDownloadProgress(). */
+        @JavascriptInterface
+        public boolean downloadFileAsync(final String url, final String destRel) {
+            if (!sDlRunning.compareAndSet(false, true)) return false;
+            sDlPercent = 0;
+            sDlBytes = 0;
+            sDlTotal = 0;
+            sDlStatus = "Подключение...";
+            final File dest = safeResolve(activity, destRel);
+            if (dest == null) {
+                sDlRunning.set(false);
+                sDlStatus = "Недопустимый путь";
+                return false;
+            }
+            new Thread(new DownloadTask(url, dest), "horizon-download").start();
+            return true;
+        }
+
+        @JavascriptInterface
+        public boolean isDownloading() {
+            return sDlRunning.get();
+        }
+
+        @JavascriptInterface
+        public String getDownloadProgress() {
+            return "{\"running\":" + sDlRunning.get()
+                + ",\"percent\":" + sDlPercent
+                + ",\"downloadedBytes\":" + sDlBytes
+                + ",\"totalBytes\":" + sDlTotal
+                + ",\"status\":" + jsonStr(sDlStatus) + "}";
+        }
+
+        /** Refreshes a URL into the in-memory cache on a background thread (non-blocking). */
+        @JavascriptInterface
+        public void refreshHttpCache(final String url, final String key) {
+            new Thread(new CacheFetchTask(this, url, key), "horizon-http-cache").start();
+        }
+
+        @JavascriptInterface
+        public String getHttpCache(String key) {
+            synchronized (sHttpCache) {
+                return sHttpCache.get(key);
+            }
+        }
+
+        // ------------------------------------------------------------
+        // Game process control
+        // ------------------------------------------------------------
+
+        @JavascriptInterface
+        public boolean isGameRunning() {
+            return findGamePid() != 0;
+        }
+
+        @JavascriptInterface
+        public boolean killGameProcess() {
+            int pid = findGamePid();
+            if (pid == 0) return false;
+            try {
+                android.os.Process.killProcess(pid);
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "killGameProcess failed", e);
+                return false;
+            }
+        }
+
+        private int findGamePid() {
+            try {
+                ActivityManager am = (ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE);
+                if (am == null) return 0;
+                List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+                if (procs == null) return 0;
+                String gameName = activity.getPackageName() + ":game";
+                for (int i = 0; i < procs.size(); i++) {
+                    ActivityManager.RunningAppProcessInfo p = procs.get(i);
+                    if (gameName.equals(p.processName)) return p.pid;
+                }
+            } catch (Exception ignored) {}
+            return 0;
+        }
+
+        // ------------------------------------------------------------
+        // Misc
+        // ------------------------------------------------------------
+
+        @JavascriptInterface
+        public void openUrl(String url) {
+            try {
+                if (url == null || !(url.startsWith("http://") || url.startsWith("https://"))) return;
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                activity.startActivity(intent);
+            } catch (Exception e) {
+                Log.e(TAG, "openUrl failed", e);
+            }
         }
 
         @JavascriptInterface
         public void launchGame(String username) {
             Log.i(TAG, "Starting NativeActivity with player: " + username);
             try {
-                File dir = context.getExternalFilesDir(null);
+                File dir = baseDir();
                 if (dir != null) {
                     File playerFile = new File(dir, "horizon-player.txt");
                     FileWriter writer = new FileWriter(playerFile);
@@ -102,18 +797,28 @@ public class LauncherActivity extends Activity {
                 Log.e(TAG, "Error writing player name", e);
             }
 
-            Intent intent = new Intent(context, android.app.NativeActivity.class);
-            context.startActivity(intent);
+            Intent intent = new Intent(activity, android.app.NativeActivity.class);
+            activity.startActivity(intent);
         }
 
         @JavascriptInterface
         public void vibrate(int ms) {
             try {
-                Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                Vibrator v = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
                 if (v != null) {
                     v.vibrate(ms);
                 }
             } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void toast(String message) {
+            activity.runOnUiThread(new ToastTask(activity, message));
+        }
+
+        @JavascriptInterface
+        public void log(String message) {
+            Log.i("LauncherJS", message);
         }
     }
 }

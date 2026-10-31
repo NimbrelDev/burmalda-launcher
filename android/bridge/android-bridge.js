@@ -1,17 +1,66 @@
 // Android WebView Bridge for Horizon / Burmalda Launcher
+// All native work goes through window.AndroidLauncher (LauncherBridge in
+// LauncherActivity.java). Every file path used here is relative to the app's
+// external files dir: /sdcard/Android/data/org.horizon.client/files
+//
+// Engine conventions (see horizon-client sources):
+//   - cwd of the game = the files dir above
+//   - mods are scanned in  horizon-mods/  (.hmod files and mod folders)
+//   - a mod is enabled when horizon-mods.txt contains "mod.<id>:true"
+//   - screenshots land in  screenshots/
+//   - player name is kept in horizon-player.txt ("name:<nick>")
 
 (function() {
   console.log("Initializing Android Launcher Bridge...");
+
+  const BUNDLED_ENGINE_TAG = 'v0.2.97';
+  const LAUNCHER_VERSION = '1.0.0';
+  const UPDATE_CONFIG_URLS = [
+    'https://gitflic.ru/project/nimbrel/rust-launcher/blob/raw?file=version.json',
+    'https://codeberg.org/Nimbrel/rust-launcher/raw/branch/main/version.json',
+  ];
+  const BROADCAST_CONFIG_URLS = [
+    'https://gitflic.ru/project/nimbrel/rust-launcher/blob/raw?file=broadcast.json',
+  ];
+
+  function defaultModpacks() {
+    return [
+      {
+        id: 'vanilla',
+        name: 'Ванилла',
+        version: '26.3',
+        isDefault: true,
+        description: 'Чистый официальный клиент Horizon 0.2.97 (Rust Client)',
+        mods: [],
+        texturepacks: [],
+        shaders: []
+      },
+      {
+        id: 'pvp-boost',
+        name: 'PVP & Оптимизация',
+        version: '26.3',
+        isDefault: false,
+        description: 'Оптимизация рендера, высокий FPS и шейдеры',
+        mods: ['Sodium', 'Iris Shaders', 'FastCraft Pro'],
+        texturepacks: ['Faithful 32x'],
+        shaders: ['Complementary Reimagined']
+      }
+    ];
+  }
 
   const DEFAULT_SETTINGS = {
     nickname: 'Player',
     memory: '4G',
     javaArgs: '',
     currentVersion: '26.3',
+    selectedVersion: BUNDLED_ENGINE_TAG,
+    selectedMcVersion: '26.3',
     fullscreen: true,
     fpsLimit: 120,
     renderDistance: 8,
-    activeSkin: 'steve',
+    activeSkin: 'burmalda',
+    activeModpackId: 'vanilla',
+    modpacks: defaultModpacks(),
     touchControls: {
       hudVisible: true,
       joystickScale: 1.0,
@@ -21,12 +70,24 @@
     }
   };
 
+  function A() { return window.AndroidLauncher || null; }
+
+  function parseJson(text, fallback) {
+    try { return JSON.parse(text); } catch (e) { return fallback; }
+  }
+
   function getStoredSettings() {
     try {
       const data = localStorage.getItem('r_launcher_settings');
-      return data ? Object.assign({}, DEFAULT_SETTINGS, JSON.parse(data)) : DEFAULT_SETTINGS;
+      const merged = data
+        ? Object.assign({}, DEFAULT_SETTINGS, JSON.parse(data))
+        : Object.assign({}, DEFAULT_SETTINGS);
+      if (!Array.isArray(merged.modpacks) || merged.modpacks.length === 0) {
+        merged.modpacks = defaultModpacks();
+      }
+      return merged;
     } catch (e) {
-      return DEFAULT_SETTINGS;
+      return Object.assign({}, DEFAULT_SETTINGS);
     }
   }
 
@@ -36,74 +97,762 @@
     } catch (e) {}
   }
 
+  function filesPath() {
+    const a = A();
+    return a ? a.getFilesPath() : '';
+  }
+
+  // file:// URL usable from the WebView for a file stored under the files dir
+  function fileUrl(relPath) {
+    const p = filesPath();
+    if (!p) return relPath;
+    return 'file://' + p + '/' + String(relPath).replace(/^\/+/, '');
+  }
+
+  function basename(p) {
+    return String(p || '').split(/[\\/]/).pop();
+  }
+
+  function sizeFormatted(bytes) {
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+    return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
+  }
+
+  function compareSemver(a, b) {
+    if (!a || !b) return 0;
+    const cleanA = String(a).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    const cleanB = String(b).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(cleanA.length, cleanB.length); i++) {
+      const valA = cleanA[i] || 0;
+      const valB = cleanB[i] || 0;
+      if (valA > valB) return 1;
+      if (valA < valB) return -1;
+    }
+    return 0;
+  }
+
+  // ------------------------------------------------------------
+  // Active modpack -> engine files (horizon-mods/ + horizon-mods.txt)
+  // ------------------------------------------------------------
+
+  function extractModId(manifestText) {
+    if (!manifestText) return null;
+    const m = manifestText.match(/^\s*id\s*=\s*["']([a-z0-9_]{1,64})["']/m);
+    return m ? m[1] : null;
+  }
+
+  // Mirrors the desktop launch args: every file of the active modpack becomes
+  // a real engine addon. The engine reads horizon-mods/ from its cwd.
+  function syncActiveModpack() {
+    const a = A();
+    if (!a) return;
+    const s = getStoredSettings();
+    const packs = Array.isArray(s.modpacks) ? s.modpacks : [];
+    const active = packs.find(p => p.id === s.activeModpackId) || packs.find(p => p.isDefault) || packs[0] || null;
+
+    a.deletePath('horizon-mods');
+
+    const enabledIds = [];
+    if (active) {
+      const all = [].concat(active.mods || [], active.texturepacks || [], active.shaders || []);
+      for (const name of all) {
+        const src = 'mods/' + name;
+        if (!a.exists(src)) continue;
+        const dest = 'horizon-mods/' + name;
+        if (!a.copyFile(src, dest)) continue;
+        const id = extractModId(a.readZipEntry(dest, 'horizon-mod.toml'));
+        if (id) enabledIds.push(id);
+      }
+    }
+
+    let text = '';
+    for (const id of enabledIds) text += 'mod.' + id + ':true\n';
+    a.writeFileText('horizon-mods.txt', text, false);
+    console.log('Modpack sync: active=' + (active ? active.id : 'none') + ', enabled=[' + enabledIds.join(', ') + ']');
+  }
+
+  // ------------------------------------------------------------
+  // Download progress / game exit polling
+  // ------------------------------------------------------------
+
+  const versionProgressCbs = [];
+  let progressTimer = null;
+
+  function startProgressPolling() {
+    if (progressTimer) return;
+    progressTimer = setInterval(() => {
+      const a = A();
+      if (!a) return;
+      const p = parseJson(a.getDownloadProgress(), null);
+      if (!p) return;
+      versionProgressCbs.forEach(cb => {
+        try { cb(p); } catch (e) {}
+      });
+      if (!p.running) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+    }, 400);
+  }
+
+  // wait until the single download slot finishes; resolves with final progress
+  function waitDownloadDone() {
+    return new Promise((resolve) => {
+      const timer = setInterval(() => {
+        const a = A();
+        const p = a ? parseJson(a.getDownloadProgress(), null) : null;
+        if (!p || !p.running) {
+          clearInterval(timer);
+          resolve(p || { percent: -1, status: 'Ошибка' });
+        }
+      }, 400);
+    });
+  }
+
+  const gameExitCbs = [];
+  let gameRunningObserved = A() ? A().isGameRunning() : false;
+
+  setInterval(() => {
+    const a = A();
+    if (!a) return;
+    const running = a.isGameRunning();
+    if (gameRunningObserved && !running) {
+      gameExitCbs.forEach(cb => {
+        try { cb(0); } catch (e) {}
+      });
+    }
+    gameRunningObserved = running;
+  }, 1500);
+
+  // ------------------------------------------------------------
+  // Releases (bundled catalog + cached GitHub refresh)
+  // ------------------------------------------------------------
+
+  function cleanReleaseName(rawName, tagName, isNightly) {
+    if (isNightly) {
+      const d = (rawName || tagName || '').match(/(\d{4}-\d{2}-\d{2})/);
+      return d ? 'Nightly ' + d[1] : 'Horizon Nightly';
+    }
+    const m = (rawName || tagName || '').match(/0\.\d+\.\d+/);
+    if (m) return 'Horizon ' + m[0];
+    return (rawName || tagName || '').split(':')[0].trim() || tagName;
+  }
+
+  function parseSupportedMcVersions(release) {
+    const text = [release.name, release.body, release.tag_name || release.tag].filter(Boolean).join(' ');
+    const found = new Set();
+    (text.match(/\b(26\.\d+|1\.\d+(?:\.\d+)?)\b/g) || []).forEach(m => {
+      if (m.startsWith('26.') || (m.startsWith('1.') && parseFloat(m.slice(2)) >= 14)) found.add(m);
+    });
+    if (release.mcVersion) found.add(release.mcVersion);
+    if (found.size === 0) found.add('26.3');
+    return Array.from(found).sort((a, b) => {
+      const na = a.split('.').map(Number);
+      const nb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+        if ((na[i] || 0) !== (nb[i] || 0)) return (na[i] || 0) - (nb[i] || 0);
+      }
+      return 0;
+    });
+  }
+
+  function bundledReleases() {
+    const a = A();
+    if (!a) return [];
+    const text = a.readAssetText('launcher/assets/horizon_releases.json');
+    const items = parseJson(text, []);
+    if (!Array.isArray(items)) return [];
+    return items.map(r => {
+      const isNightly = Boolean(r.prerelease || (r.tag && r.tag.includes('nightly')));
+      const supported = r.supportedMcVersions || [r.mcVersion || '26.3'];
+      return {
+        tag: r.tag,
+        name: cleanReleaseName(r.name, r.tag, isNightly),
+        prerelease: isNightly,
+        publishedAt: r.publishedAt || '',
+        supportedMcVersions: supported,
+        defaultMcVersion: supported[supported.length - 1] || '26.3',
+        assets: r.assets || [],
+      };
+    });
+  }
+
+  function parseGitHubReleases(text) {
+    const raw = parseJson(text, null);
+    if (!Array.isArray(raw)) return null;
+    return raw
+      .filter(r => !String(r.tag_name || '').startsWith('launcher@'))
+      .map(r => {
+        const isNightly = Boolean(r.prerelease || String(r.tag_name).includes('nightly'));
+        const supported = parseSupportedMcVersions(r);
+        return {
+          tag: r.tag_name,
+          name: cleanReleaseName(r.name, r.tag_name, isNightly),
+          prerelease: isNightly,
+          publishedAt: (r.published_at || '').split('T')[0] || '',
+          supportedMcVersions: supported,
+          defaultMcVersion: supported[supported.length - 1] || '26.3',
+          assets: (r.assets || []).map(a => ({
+            name: a.name,
+            size: a.size,
+            downloadUrl: a.browser_download_url,
+          })),
+        };
+      });
+  }
+
+  async function getReleasesList() {
+    const a = A();
+    if (a) {
+      // background refresh; result is served from cache on later calls
+      a.refreshHttpCache('https://api.github.com/repos/horizon-rust/horizon/releases?per_page=30', 'releases');
+      const cached = a.getHttpCache('releases');
+      const parsed = cached ? parseGitHubReleases(cached) : null;
+      if (parsed && parsed.length > 0) return parsed;
+    }
+    return bundledReleases();
+  }
+
+  function isVersionInstalled(tag) {
+    const a = A();
+    if (!a) return false;
+    // the engine binary ships in the APK; a version is playable once its
+    // resources exist (shared resources dir), or its metadata was stored
+    return resourcesInstalled() || a.exists('versions/' + tag + '/release.json');
+  }
+
+  // The engine installs/prepares resources into files/resources (horizon-prepare
+  // structure); they are shared between all engine versions.
+  function resourcesInstalled() {
+    const a = A();
+    return Boolean(a && a.exists('resources/asset-index.json'));
+  }
+
+  // ------------------------------------------------------------
+  // Engine resource installation handshake:
+  //   1. the launcher writes the empty flag file install-assets.flag
+  //   2. the engine writes install-progress.txt and removes the flag when done
+  // ------------------------------------------------------------
+  const INSTALL_FLAG = 'install-assets.flag';
+  const INSTALL_PROGRESS = 'install-progress.txt';
+
+  function readInstallProgress() {
+    const a = A();
+    if (!a) return { installing: false };
+    if (!a.exists(INSTALL_FLAG)) return { installing: false, done: true };
+    const text = a.readFileText(INSTALL_PROGRESS) || '';
+    let percent = 0;
+    let status = 'Ожидание движка...';
+    if (text.trim().length > 0) {
+      const doneRe = /(done|complete|готов|заверш|100\s*%|100%)/i;
+      const errRe = /(error|ошибка|failed)/i;
+      if (errRe.test(text)) {
+        return { installing: false, failed: true, status: text.trim().split('\n').pop().slice(0, 200) };
+      }
+      if (doneRe.test(text)) {
+        return { installing: false, done: true, percent: 100, status: 'Ресурсы установлены' };
+      }
+      const lines = text.trim().split('\n').filter(l => l.trim().length > 0);
+      status = lines[lines.length - 1].slice(0, 200);
+      const m = status.match(/(\d{1,3})(?:[.,]\d+)?\s*%/);
+      if (m) {
+        percent = Math.min(99, parseInt(m[1], 10));
+      } else {
+        const anyNum = status.match(/\b(\d{1,3})\b/);
+        percent = anyNum ? Math.min(50, parseInt(anyNum[1], 10)) : 1; // indeterminate crawl
+      }
+    }
+    return { installing: true, percent, status };
+  }
+
+  // ------------------------------------------------------------
+  // Default skins (bundled in APK assets)
+  // ------------------------------------------------------------
+
+  const DEFAULT_SKINS = [
+    { id: 'burmalda', name: 'Бурмалда', model: 'default', filename: 'burmalda.png' },
+    { id: 'steve', name: 'Стив', model: 'default', filename: 'steve.png' },
+    { id: 'alex', name: 'Алекс', model: 'slim', filename: 'alex.png' },
+    { id: 'noor', name: 'Нур', model: 'default', filename: 'noor.png' },
+    { id: 'sunny', name: 'Санни', model: 'default', filename: 'sunny.png' },
+    { id: 'ari', name: 'Ари', model: 'default', filename: 'ari.png' },
+    { id: 'zuri', name: 'Зури', model: 'default', filename: 'zuri.png' },
+    { id: 'makena', name: 'Макена', model: 'default', filename: 'makena.png' },
+    { id: 'kai', name: 'Кай', model: 'default', filename: 'kai.png' },
+    { id: 'efe', name: 'Эфе', model: 'default', filename: 'efe.png' },
+  ];
+
+  function defaultSkinUrl(id) {
+    const found = DEFAULT_SKINS.find(s => s.id === id) || DEFAULT_SKINS[0];
+    return { skin: found, url: 'assets/default_skins/' + found.filename };
+  }
+
+  // ============================================================
+
   window.api = {
+    // ---- settings ----
     getSettings: async () => getStoredSettings(),
     saveSettings: async (settings) => {
       saveStoredSettings(settings);
+      if (Array.isArray(settings.modpacks)) syncActiveModpack();
       return { success: true };
     },
-    getStatus: async () => ({
-      online: true,
-      players: 142,
-      maxPlayers: 500,
-      motd: 'Horizon Mobile Engine 26.3'
-    }),
-    getVersions: async () => ({
-      minecraftVersions: [{ version: '26.3', label: 'Horizon 26.3 Mobile' }],
-      selectedMcVersion: '26.3',
-      activeVersion: 'v0.2.97',
-      latestStableTag: 'v0.2.97',
-      versions: [{
-        tag: 'v0.2.97',
-        name: 'Horizon 26.3 Mobile',
-        isInstalled: true,
-        isActive: true,
-        prerelease: false
-      }]
-    }),
-    downloadVersion: async (tag) => ({ success: true }),
-    setVersion: async (tag, mcVersion) => ({ success: true }),
-    rollbackVersion: async () => ({ success: true }),
-    selectSkin: async () => ({ success: true }),
-    resetSkin: async () => ({ success: true }),
-    selectFile: async (opts) => null,
-    getSkin: async () => null,
-    getDefaultSkins: async () => ([
-      { id: 'steve', name: 'Steve', file: 'assets/steve.png' },
-      { id: 'alex', name: 'Alex', file: 'assets/alex.png' }
-    ]),
-    selectDefaultSkin: async (id) => {
+
+    // ---- status / update / broadcast ----
+    getStatus: async () => {
+      const a = A();
+      return {
+        online: true,
+        players: 142,
+        maxPlayers: 500,
+        motd: 'Horizon Mobile Engine 26.3',
+        isGameRunning: a ? a.isGameRunning() : false,
+      };
+    },
+
+    checkLauncherUpdate: async () => {
+      const a = A();
+      if (!a) return { checked: false, currentVersion: LAUNCHER_VERSION, isBlocked: false, hasUpdate: false };
+      UPDATE_CONFIG_URLS.forEach((url, i) => a.refreshHttpCache(url, 'version' + i + '.json'));
+      let best = null;
+      for (let i = 0; i < UPDATE_CONFIG_URLS.length; i++) {
+        const data = parseJson(a.getHttpCache('version' + i + '.json'), null);
+        if (data && data.latestVersion && (!best || compareSemver(data.latestVersion, best.latestVersion) > 0)) {
+          best = data;
+        }
+      }
+      if (!best) return { checked: false, currentVersion: LAUNCHER_VERSION, isBlocked: false, hasUpdate: false };
+      const minSupported = best.minSupportedVersion || '0.0.0';
+      const latest = best.latestVersion;
+      return {
+        checked: true,
+        currentVersion: LAUNCHER_VERSION,
+        latestVersion: latest,
+        minSupportedVersion: minSupported,
+        isBlocked: compareSemver(LAUNCHER_VERSION, minSupported) < 0,
+        hasUpdate: compareSemver(LAUNCHER_VERSION, latest) < 0,
+        downloadUrl: best.downloadUrl || 'https://burmalda.ru',
+        title: best.title || 'Доступно обновление',
+        message: best.message || ('Доступна новая версия лаунчера: ' + latest + '.'),
+        blockedTitle: best.blockedTitle || 'ВЕРСИЯ УСТАРЕЛА',
+        blockedMessage: best.blockedMessage || 'Данная версия лаунчера заблокирована разработчиками.',
+      };
+    },
+
+    checkBroadcastMessage: async () => {
+      const a = A();
+      if (!a) return { hasMessage: false };
+      a.refreshHttpCache(BROADCAST_CONFIG_URLS[0], 'broadcast.json');
+      const data = parseJson(a.getHttpCache('broadcast.json'), null);
+      if (!data || !data.message) return { hasMessage: false };
+      return {
+        hasMessage: true,
+        id: String(data.id || data.message.slice(0, 16)),
+        title: data.title || 'ОБЪЯВЛЕНИЕ',
+        message: data.message,
+        buttonText: data.buttonText || null,
+        buttonUrl: data.buttonUrl || null,
+        canClose: data.canClose !== false,
+      };
+    },
+
+    openExternalUrl: async (url) => {
+      const a = A();
+      if (a && typeof url === 'string' && /^https?:\/\//.test(url)) {
+        a.openUrl(url);
+        return true;
+      }
+      return false;
+    },
+
+    // ---- versions ----
+    getVersions: async () => {
       const s = getStoredSettings();
-      s.activeSkin = id;
-      saveStoredSettings(s);
-      return { success: true };
+      const releases = await getReleasesList();
+      const versions = releases.map(r => ({
+        id: r.tag,
+        tag: r.tag,
+        name: r.name,
+        prerelease: Boolean(r.prerelease),
+        channel: r.prerelease ? 'nightly' : 'stable',
+        status: r.prerelease ? 'Nightly' : 'Релиз',
+        supportedMcVersions: r.supportedMcVersions,
+        defaultMcVersion: r.defaultMcVersion,
+        publishedAt: r.publishedAt,
+        isInstalled: isVersionInstalled(r.tag),
+        isActive: r.tag === (s.selectedVersion || BUNDLED_ENGINE_TAG),
+        assets: r.assets || [],
+      }));
+      const activeTag = s.selectedVersion || (versions.find(v => v.isInstalled)?.tag) || BUNDLED_ENGINE_TAG;
+      const activeVer = versions.find(v => v.tag === activeTag) || versions[0];
+      const supported = activeVer?.supportedMcVersions?.length ? activeVer.supportedMcVersions : ['26.3'];
+      let activeMc = s.selectedMcVersion;
+      if (!activeMc || !supported.includes(activeMc)) {
+        activeMc = activeVer?.defaultMcVersion || supported[supported.length - 1] || '26.3';
+      }
+      return {
+        minecraftVersions: supported.map(v => ({ id: v, name: 'Minecraft ' + v, description: 'Поддерживаемая версия Horizon' })),
+        selectedMcVersion: activeMc,
+        activeVersion: activeTag,
+        latestStableTag: (versions.find(v => !v.prerelease) || {}).tag || activeTag,
+        versions,
+      };
     },
-    getWardrobe: async () => ([]),
-    addToWardrobe: async (name) => ({ success: true }),
-    deleteFromWardrobe: async (id) => ({ success: true }),
-    setActiveWardrobeSkin: async (id) => ({ success: true }),
-    fetchSkinByName: async (username) => ({ success: true, url: 'assets/steve.png' }),
+
+    // Version download, our scheme, manual only (like desktop): the user picks
+    // a concrete Horizon version and presses "Скачать". The launcher writes the
+    // install-assets.flag handshake file, starts the engine (it performs the
+    // installation and exits by itself, streaming install-progress.txt), and
+    // the launcher shows that progress until completion. Play stays blocked
+    // while the flag exists. With an old engine .so that ignores the flag we
+    // fail honestly instead of waiting forever.
+    downloadVersion: async (tag) => {
+      const a = A();
+      if (!a) return { success: false, error: 'Мост недоступен' };
+      try {
+        const emit = (percent, status) => versionProgressCbs.forEach(cb => {
+          try { cb({ tag, percent, status }); } catch (e) {}
+        });
+
+        if (resourcesInstalled()) {
+          emit(100, 'Ресурсы уже установлены');
+          const releases = await getReleasesList();
+          const release = releases.find(r => r.tag === tag);
+          if (release) a.writeFileText('versions/' + tag + '/release.json', JSON.stringify(release), false);
+          const s = getStoredSettings();
+          s.selectedVersion = tag;
+          saveStoredSettings(s);
+          return { success: true, tag };
+        }
+
+        emit(2, 'Запрос установки ресурсов версии ' + tag + '...');
+        if (!a.writeFileText(INSTALL_FLAG, '', false)) {
+          return { success: false, error: 'Не удалось создать файл-флаг установки' };
+        }
+
+        // the engine processes the flag on start, installs and exits
+        const s = getStoredSettings();
+        const nick = (s.nickname && s.nickname.trim()) || 'Player';
+        a.launchGame(nick);
+
+        const started = Date.now();
+        while (true) {
+          await new Promise(res => setTimeout(res, 500));
+          const p = readInstallProgress();
+          if (!p.installing) {
+            if (p.done && resourcesInstalled()) {
+              emit(100, p.status || 'Ресурсы установлены');
+              const releases = await getReleasesList();
+              const release = releases.find(r => r.tag === tag);
+              if (release) a.writeFileText('versions/' + tag + '/release.json', JSON.stringify(release), false);
+              const s2 = getStoredSettings();
+              s2.selectedVersion = tag;
+              saveStoredSettings(s2);
+              return { success: true, tag };
+            }
+            return {
+              success: false,
+              error: p.failed ? ('Установка ресурсов прервана: ' + (p.status || 'ошибка движка'))
+                : 'Установка завершилась без результата. Обновите версию игры.',
+            };
+          }
+          emit(p.percent, p.status || 'Установка ресурсов...');
+          // old .so: the engine ignores the flag and just runs the game
+          if (Date.now() - started > 15000 && !a.exists(INSTALL_PROGRESS)) {
+            a.killGameProcess();
+            return { success: false, error: 'Установленный движок не умеет скачивать ресурсы (устаревшая версия игры). Обновите APK.' };
+          }
+        }
+      } catch (err) {
+        return { success: false, error: err && err.message };
+      }
+    },
+
+    setVersion: async (tag, mcVersion) => {
+      const s = getStoredSettings();
+      s.selectedVersion = tag;
+      if (mcVersion) s.selectedMcVersion = mcVersion;
+      saveStoredSettings(s);
+      return { success: true, activeVersion: tag, selectedMcVersion: s.selectedMcVersion };
+    },
+
+    rollbackVersion: async () => {
+      const s = getStoredSettings();
+      s.selectedVersion = BUNDLED_ENGINE_TAG;
+      saveStoredSettings(s);
+      return { success: true, activeVersion: BUNDLED_ENGINE_TAG };
+    },
+
+    // ---- skins ----
+    getSkin: async () => {
+      const s = getStoredSettings();
+      if (s.skinDataUrl && s.skinPath) {
+        return { skinPath: s.skinPath, skinDataUrl: s.skinDataUrl, skinName: s.skinName || 'Скин', skinModel: s.skinModel || 'default', isDefaultSteve: false };
+      }
+      const def = defaultSkinUrl('burmalda');
+      return { skinPath: def.url, skinDataUrl: def.url, skinName: def.skin.name, skinModel: 'default', isDefaultSteve: false };
+    },
+
+    getDefaultSkins: async () => DEFAULT_SKINS.map(s => ({
+      id: s.id,
+      name: s.name,
+      model: s.model,
+      dataUrl: 'assets/default_skins/' + s.filename,
+    })),
+
+    selectDefaultSkin: async (id) => {
+      const def = defaultSkinUrl(id);
+      const s = getStoredSettings();
+      s.activeSkin = def.skin.id;
+      s.skinPath = def.url;
+      s.skinDataUrl = def.url;
+      s.skinName = def.skin.name;
+      s.skinModel = def.skin.model;
+      saveStoredSettings(s);
+      return { success: true, skinPath: def.url, skinDataUrl: def.url, skinName: def.skin.name, skinModel: def.skin.model, isDefault: true };
+    },
+
+    resetSkin: async () => window.api.selectDefaultSkin('burmalda'),
+
+    selectFile: async (opts) => {
+      const a = A();
+      if (!a) return null;
+      const exts = ((opts && opts.filters) || [])
+        .reduce((acc, f) => acc.concat(f.extensions || []), []).join(',');
+      const res = parseJson(a.pickFile('inbox', exts), null);
+      return res && res.ok ? res.relPath : null;
+    },
+
+    importModFile: async (selectedPath) => {
+      const a = A();
+      if (!a || !selectedPath) return { success: false, error: 'Файл не выбран' };
+      const filename = basename(selectedPath);
+      if (!/\.(hmod|hpack|hshader|zip)$/i.test(filename)) {
+        return { success: false, error: 'Поддерживаются файлы .hmod, .hpack, .hshader' };
+      }
+      if (!a.exists(selectedPath)) return { success: false, error: 'Файл не найден' };
+      const dest = 'mods/' + filename;
+      if (!a.copyFile(selectedPath, dest)) return { success: false, error: 'Не удалось скопировать файл' };
+      const size = 0;
+      try {
+        const info = parseJson(a.listDir('mods'), []).find(f => f.name === filename);
+        return {
+          success: true,
+          filename,
+          fullPath: filesPath() + '/' + dest,
+          size: info ? info.size : size,
+          sizeFormatted: sizeFormatted(info ? info.size : size),
+        };
+      } catch (e) {
+        return { success: true, filename, fullPath: filesPath() + '/' + dest, size, sizeFormatted: sizeFormatted(size) };
+      }
+    },
+
+    scanMods: async () => {
+      const a = A();
+      if (!a) return [];
+      const entries = parseJson(a.listDir('mods'), []);
+      return entries
+        .filter(f => !f.isDir && /\.(hmod|hpack|hshader|zip)$/i.test(f.name))
+        .map(f => ({
+          filename: f.name,
+          path: 'mods/' + f.name,
+          size: f.size,
+          sizeFormatted: sizeFormatted(f.size),
+          updatedAt: f.mtime ? new Date(f.mtime).toLocaleDateString() : '',
+        }));
+    },
+
+    // ---- wardrobe ----
+    getWardrobe: async () => getStoredSettings().wardrobe || [],
+
+    addToWardrobe: async (customName) => {
+      const a = A();
+      if (!a) return { success: false, error: 'Мост недоступен' };
+      const picked = parseJson(a.pickFile('skins', 'png'), null);
+      if (!picked || !picked.ok) return { success: false, canceled: true };
+      const s = getStoredSettings();
+      if (!Array.isArray(s.wardrobe)) s.wardrobe = [];
+      const entry = {
+        id: 'skin-' + Date.now(),
+        name: customName || picked.name.replace(/\.png$/i, ''),
+        dataUrl: fileUrl(picked.relPath),
+        path: picked.relPath,
+        model: 'default',
+      };
+      s.wardrobe.push(entry);
+      s.skinPath = entry.path;
+      s.skinDataUrl = entry.dataUrl;
+      s.skinName = entry.name;
+      saveStoredSettings(s);
+      return { success: true, skin: entry, wardrobe: s.wardrobe };
+    },
+
+    deleteFromWardrobe: async (skinId) => {
+      const s = getStoredSettings();
+      const removed = (s.wardrobe || []).find(w => w.id === skinId);
+      s.wardrobe = (s.wardrobe || []).filter(w => w.id !== skinId);
+      const a = A();
+      if (removed && a) a.deletePath(removed.path);
+      saveStoredSettings(s);
+      return { success: true, wardrobe: s.wardrobe };
+    },
+
+    setActiveWardrobeSkin: async (skinId) => {
+      const s = getStoredSettings();
+      const found = (s.wardrobe || []).find(w => w.id === skinId);
+      if (!found) return { success: false };
+      s.skinPath = found.path;
+      s.skinDataUrl = found.dataUrl;
+      s.skinName = found.name;
+      s.skinModel = found.model || 'default';
+      saveStoredSettings(s);
+      return { success: true, skin: found };
+    },
+
+    fetchSkinByName: async (username) => {
+      const a = A();
+      const clean = (username || '').trim();
+      if (!a || !clean) return { success: false, error: 'Имя не указано' };
+
+      const saveSkin = (relPath) => {
+        const s = getStoredSettings();
+        if (!Array.isArray(s.wardrobe)) s.wardrobe = [];
+        const entry = {
+          id: 'skin-' + Date.now(),
+          name: clean,
+          dataUrl: fileUrl(relPath),
+          path: relPath,
+          model: 'default',
+        };
+        s.wardrobe.push(entry);
+        s.skinPath = entry.path;
+        s.skinDataUrl = entry.dataUrl;
+        s.skinName = entry.name;
+        saveStoredSettings(s);
+        return entry;
+      };
+
+      const tryDownload = (url, dest) => new Promise((resolve) => {
+        if (!a.downloadFileAsync(url, dest)) return resolve(false);
+        startProgressPolling();
+        waitDownloadDone().then(done => resolve(done.percent === 100));
+      });
+
+      // 1. Ely.by open skin API
+      const elyDest = 'skins/ely-' + clean + '.png';
+      if (await tryDownload('https://skin.ely.by/skins/' + encodeURIComponent(clean) + '.png', elyDest)) {
+        return { success: true, source: 'Ely.by', skin: saveSkin(elyDest), wardrobe: getStoredSettings().wardrobe };
+      }
+
+      // 2. Mojang API
+      try {
+        a.refreshHttpCache('https://api.mojang.com/users/profiles/minecraft/' + encodeURIComponent(clean), 'mojang-profile');
+        const profile = parseJson(a.getHttpCache('mojang-profile'), null);
+        if (profile && profile.id) {
+          a.refreshHttpCache('https://sessionserver.mojang.com/session/minecraft/profile/' + profile.id, 'mojang-session');
+          const session = parseJson(a.getHttpCache('mojang-session'), null);
+          const prop = session && session.properties ? session.properties.find(p => p.name === 'textures') : null;
+          if (prop) {
+            const textures = JSON.parse(atob(prop.value));
+            const skinUrl = textures.textures && textures.textures.SKIN && textures.textures.SKIN.url;
+            if (skinUrl) {
+              const dest = 'skins/mojang-' + clean + '.png';
+              if (await tryDownload(skinUrl, dest)) {
+                return { success: true, source: 'Mojang', skin: saveSkin(dest), wardrobe: getStoredSettings().wardrobe };
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
+      return { success: false, error: 'Скин для игрока «' + clean + '» не найден ни на Ely.by, ни в Mojang.' };
+    },
+
+    // ---- game launch / lifecycle ----
     launchGame: async (targetServer) => {
-      console.log("Launching game from WebView bridge...");
+      console.log('Launching game from WebView bridge, server=' + targetServer);
+      const a = A();
       const s = getStoredSettings();
       const nick = (s && s.nickname && s.nickname.trim().length > 0) ? s.nickname.trim() : 'Player';
-      if (window.AndroidLauncher) {
-        try {
-          window.AndroidLauncher.vibrate(60);
-        } catch (e) {}
-        window.AndroidLauncher.launchGame(nick);
+      if (a) {
+        // never start the game while the engine is installing resources
+        const install = readInstallProgress();
+        if (install.installing) {
+          return { success: false, error: 'Идёт установка ресурсов: ' + (install.status || 'подождите') };
+        }
+        if (!resourcesInstalled()) {
+          return { success: false, error: 'Ресурсы игры не установлены. Откройте выбор версии и нажмите «Скачать».' };
+        }
+        try { a.vibrate(60); } catch (e) {}
+        syncActiveModpack(); // active modpack must be in place before the engine reads it
+        a.launchGame(nick);
       } else {
-        alert("Запуск игры: " + nick);
+        alert('Запуск игры: ' + nick);
       }
       return { success: true };
     },
-    killGame: async () => ({ success: true }),
-    openFolder: async (type) => ({ success: true }),
-    scanMods: async () => ([]),
-    getSavedServers: async () => ([
-      { name: 'Horizon Official', ip: 'mc.horizon.org', ping: 18, online: true }
-    ]),
-    saveServers: async (servers) => ({ success: true }),
+
+    killGame: async () => {
+      const a = A();
+      if (a) a.killGameProcess();
+      return { success: true };
+    },
+
+    openFolder: async (type) => {
+      const a = A();
+      if (a) a.toast('Папка: ' + filesPath() + '/' + (type || ''));
+      return { success: true, path: filesPath() };
+    },
+
+    getScreenshots: async () => {
+      const a = A();
+      if (!a) return [];
+      a.mkdir('screenshots');
+      const entries = parseJson(a.listDir('screenshots'), []);
+      return entries
+        .filter(f => !f.isDir && /\.png$/i.test(f.name))
+        .sort((x, y) => (y.mtime || 0) - (x.mtime || 0))
+        .map(f => ({
+          name: f.name,
+          path: 'screenshots/' + f.name,
+          url: fileUrl('screenshots/' + f.name),
+          dataUrl: fileUrl('screenshots/' + f.name),
+          size: f.size,
+          sizeFormatted: sizeFormatted(f.size),
+          updatedAt: f.mtime ? new Date(f.mtime).toLocaleString() : '',
+        }));
+    },
+
+    openScreenshotsFolder: async () => {
+      const a = A();
+      if (a) a.toast('Скриншоты: ' + filesPath() + '/screenshots');
+      return { success: true, path: filesPath() + '/screenshots' };
+    },
+
+    // ---- saved servers / friends (tabs locked, minimal persistence) ----
+    getSavedServers: async () => {
+      const s = getStoredSettings();
+      return s.savedServers || [
+        { id: 'srv-local', name: 'Локальный сервер Horizon', address: '127.0.0.1:25565' }
+      ];
+    },
+    saveServers: async (servers) => {
+      const s = getStoredSettings();
+      s.savedServers = servers;
+      saveStoredSettings(s);
+      return { success: true };
+    },
+    getFriends: async () => getStoredSettings().friends || [],
+    saveFriends: async (friends) => {
+      const s = getStoredSettings();
+      s.friends = friends;
+      saveStoredSettings(s);
+      return { success: true };
+    },
+    generateInviteCode: async () => 'HRZ-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+
+    // ---- touch settings ----
     getTouchSettings: async () => {
       const s = getStoredSettings();
       return s.touchControls || DEFAULT_SETTINGS.touchControls;
@@ -114,14 +863,24 @@
       saveStoredSettings(s);
       return { success: true };
     },
-    exportAndroidApk: async () => ({ success: true }),
-    installAdbApk: async () => ({ success: true }),
-    getFriends: async () => ([]),
-    saveFriends: async (friends) => ({ success: true }),
-    generateInviteCode: async () => 'HRZ-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-    onVersionProgress: (cb) => {},
+
+    // ---- desktop-only features, no-op on the phone ----
+    exportAndroidApk: async () => ({ success: false, error: 'Доступно только вdesktop-версии' }),
+    installAdbApk: async () => ({ success: false, error: 'Доступно только вdesktop-версии' }),
+
+    // ---- event subscriptions ----
+    onVersionProgress: (cb) => {
+      if (typeof cb === 'function') versionProgressCbs.push(cb);
+    },
     onGameLog: (cb) => {},
-    onGameExit: (cb) => {},
+    onGameExit: (cb) => {
+      if (typeof cb === 'function') gameExitCbs.push(cb);
+    },
+    onGameCrashed: (cb) => {
+      // same lifecycle signal as onGameExit: any non-manual termination shows as a crash banner
+      if (typeof cb === 'function') gameExitCbs.push(cb);
+    },
+
     windowMin: () => {},
     windowMax: () => {},
     windowClose: () => {}
@@ -138,5 +897,5 @@
     }
   }, { passive: true });
 
-  console.log("Android Launcher Bridge ready!");
+  console.log("Android Launcher Bridge ready! filesDir=" + filesPath());
 })();

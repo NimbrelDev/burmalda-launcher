@@ -40,6 +40,9 @@ AAPT_LINK_ARGS=(
 "$BUILD_TOOLS/aapt2" link "${AAPT_LINK_ARGS[@]}" "$WORK_DIR/compiled_res.zip"
 
 # 4. Compile Launcher Java code & DEX
+# NOTE: LauncherActivity.java must not use lambdas or anonymous classes:
+# d8 8.2.2 (with javac 21) fails with an NPE dexing them. Keep everything
+# as named static nested classes (see the header comment in the .java file).
 if [ -d "$SCRIPT_DIR/src" ]; then
     echo "Compiling Launcher Java code..."
     mkdir -p "$WORK_DIR/classes"

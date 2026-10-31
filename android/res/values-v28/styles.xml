@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Draw the window edge-to-edge so the game and the WebView render under
+         the camera cutout instead of leaving a black stripe (API 28+). -->
+    <style name="AppTheme" parent="@android:style/Theme.NoTitleBar.Fullscreen">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>
