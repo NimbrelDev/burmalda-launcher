@@ -297,8 +297,8 @@
         </div>
 
         <div class="settings-group">
-          <!-- RAM -->
-          <div class="setting-card">
+          <!-- RAM (desktop-only: the phone engine manages its own memory) -->
+          <div class="setting-card desktop-only">
             <div class="setting-info">
               <span class="setting-label">Выделение оперативной памяти (ОЗУ)</span>
               <span class="setting-sub">Объем памяти для быстрой подгрузки чанков и текстур</span>
@@ -312,8 +312,8 @@
             </select>
           </div>
 
-          <!-- Discrete GPU -->
-          <div class="setting-card">
+          <!-- Discrete GPU (desktop-only) -->
+          <div class="setting-card desktop-only">
             <div class="setting-info">
               <span class="setting-label">Дискретная видеокарта</span>
               <span class="setting-sub">Принудительно использовать производительный GPU (NVIDIA / AMD)</span>
@@ -336,8 +336,8 @@
             </label>
           </div>
 
-          <!-- Custom Args -->
-          <div class="setting-card" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <!-- Custom Args (desktop-only: no java/CLI args on the phone) -->
+          <div class="setting-card desktop-only" style="flex-direction: column; align-items: flex-start; gap: 8px;">
             <div class="setting-info">
               <span class="setting-label">Пользовательские параметры запуска</span>
               <span class="setting-sub">Дополнительные аргументы командной строки</span>
@@ -345,15 +345,15 @@
             <input type="text" id="setting-custom-args" class="input-clean" placeholder="--fps-limit 144 --vsync" style="width: 100%;">
           </div>
 
-          <!-- Native Folders -->
-          <div class="panel-header" style="margin-top: 14px; margin-bottom: 8px;">
+          <!-- Native Folders (desktop-only: no file explorer on the phone) -->
+          <div class="panel-header desktop-only" style="margin-top: 14px; margin-bottom: 8px;">
             <div class="panel-title">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               <span>Системные каталоги и файлы</span>
             </div>
           </div>
 
-          <div class="setting-card">
+          <div class="setting-card desktop-only">
             <div class="setting-info">
               <span class="setting-label">Папка миров (saves)</span>
               <span class="setting-sub">Локальные сохранения одиночной игры</span>
@@ -361,7 +361,7 @@
             <button class="btn-action-secondary" data-open="saves">Открыть в проводнике</button>
           </div>
 
-          <div class="setting-card">
+          <div class="setting-card desktop-only">
             <div class="setting-info">
               <span class="setting-label">Папка модов (mods)</span>
               <span class="setting-sub">Локальные файлы модификаций</span>
@@ -369,7 +369,7 @@
             <button class="btn-action-secondary" data-open="mods">Открыть в проводнике</button>
           </div>
 
-          <div class="setting-card">
+          <div class="setting-card desktop-only">
             <div class="setting-info">
               <span class="setting-label">Каталог игры</span>
               <span class="setting-sub">Корневая папка файлов лаунчера</span>
@@ -442,13 +442,6 @@
   <!-- MODAL: MODPACKS & ASSEMBLIES MANAGER -->
   <div class="modal-backdrop" id="modal-modpacks">
     <div class="modal-dialog">
-      <div class="modal-header">
-        <div style="font-family: var(--font-minecraft); font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px;">СБОРКИ И МОДЫ</div>
-        <button class="win-btn" id="btn-close-modpacks-modal" title="Закрыть">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-
       <div class="modal-body">
         <!-- 1. VIEW: MODPACKS GRID LIST -->
         <div id="view-modpack-list" style="display: flex; flex-direction: column; height: 100%;">
@@ -470,17 +463,18 @@
               <div class="creation-tabs-row">
                 <button class="create-cat-tab active" data-tab-cat="mods" id="tab-cat-mods">
                   <span>Моды</span>
-                  <span class="create-cat-badge" id="badge-cat-mods">0</span>
                 </button>
                 <button class="create-cat-tab" data-tab-cat="textures" id="tab-cat-textures">
                   <span>Текстурпаки</span>
-                  <span class="create-cat-badge" id="badge-cat-textures">0</span>
                 </button>
                 <button class="create-cat-tab" data-tab-cat="shaders" id="tab-cat-shaders">
                   <span>Шейдеры</span>
-                  <span class="create-cat-badge" id="badge-cat-shaders">0</span>
                 </button>
               </div>
+
+              <button class="btn-action-primary" id="btn-save-new-pack" style="padding: 8px 20px; font-size: 11px;">
+                Готово
+              </button>
             </div>
 
             <!-- Unified Workbench Body -->
@@ -494,37 +488,8 @@
                 </button>
               </div>
 
-              <!-- Drag and Drop Target Area -->
-              <div class="drag-drop-box" id="modpack-drag-drop">
-                <div style="font-size: 12px; font-weight: 700; color: #ffffff;">Перетащите файлы сюда</div>
-                <div id="drag-drop-hint" style="font-size: 11px; color: var(--text-muted);">Формат: .hmod</div>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);" id="label-current-cat-files">ОЧЕРЕДЬ ЗАГРУЗКИ (0):</span>
-                <span style="font-size: 10px; color: var(--text-muted);">Перетаскивайте элементы мышью для смены приоритета</span>
-              </div>
-
-              <!-- Reorderable List of Added Addons -->
+              <!-- Chosen addons of the active category -->
               <div class="file-items-scroll" id="current-cat-file-list"></div>
-            </div>
-
-            <!-- Footer Action Bar -->
-            <div class="creation-footer-bar">
-              <div class="creation-summary-badge">
-                <span id="summary-mods-badge">0 модов</span>
-                <span>/</span>
-                <span id="summary-tex-badge">0 текстурпаков</span>
-                <span>/</span>
-                <span id="summary-sha-badge">0 шейдеров</span>
-              </div>
-
-              <div style="display: flex; gap: 10px;">
-                <button class="btn-action-secondary" id="btn-cancel-create-pack" style="padding: 8px 16px;">Отмена</button>
-                <button class="btn-action-primary" id="btn-save-new-pack" style="padding: 8px 20px; font-size: 11px;">
-                  Сохранить сборку
-                </button>
-              </div>
             </div>
           </div>
         </div>

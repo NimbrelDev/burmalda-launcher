@@ -21,9 +21,11 @@
       user-select: none;
     }
 
-    .btn-hero-launch:hover {
-      filter: brightness(1.08);
-      background: #10b981 !important;
+    @media (hover: hover) {
+      .btn-hero-launch:hover {
+        filter: brightness(1.08);
+        background: #10b981 !important;
+      }
     }
 
     .btn-hero-launch:active {

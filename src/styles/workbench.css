@@ -33,9 +33,11 @@
       gap: 8px;
       transition: background 0.12s, color 0.12s;
     }
-    .create-cat-tab:hover {
-      color: #ffffff;
-      background: #1a2334;
+    @media (hover: hover) {
+      .create-cat-tab:hover {
+        color: #ffffff;
+        background: #1a2334;
+      }
     }
     .create-cat-tab.active {
       background: #2563eb;
@@ -91,9 +93,11 @@
       background: rgba(37, 99, 235, 0.15);
       border-color: #60a5fa;
     }
-    .drag-drop-box:hover {
-      border-color: #60a5fa;
-      background: rgba(30, 41, 59, 0.4);
+    @media (hover: hover) {
+      .drag-drop-box:hover {
+        border-color: #60a5fa;
+        background: rgba(30, 41, 59, 0.4);
+      }
     }
 
     /* REORDERABLE ADDONS QUEUE LIST */
@@ -138,8 +142,10 @@
       align-items: center;
       cursor: grab;
     }
-    .file-addon-row:hover .drag-handle-btn {
-      color: #94a3b8;
+    @media (hover: hover) {
+      .file-addon-row:hover .drag-handle-btn {
+        color: #94a3b8;
+      }
     }
 
     .file-addon-queue-num {
@@ -176,10 +182,12 @@
       border: 1px solid rgba(239, 68, 68, 0.2);
       transition: all 0.12s;
     }
-    .file-addon-del:hover {
-      color: #ffffff;
-      background: #dc2626;
-      border-color: #dc2626;
+    @media (hover: hover) {
+      .file-addon-del:hover {
+        color: #ffffff;
+        background: #dc2626;
+        border-color: #dc2626;
+      }
     }
 
     /* FOOTER BAR OF WORKBENCH */
@@ -197,7 +205,4 @@
       gap: 12px;
       font-size: 11px;
       color: var(--text-secondary);
-    }
-      font-size: 10px;
-      color: #ffffff;
     }

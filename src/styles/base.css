@@ -155,10 +155,12 @@
       transition: max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, margin-left 0.28s ease;
     }
 
-    .nav-btn:hover {
-      background: #1c2738;
-      color: #f8fafc;
-      border-color: #3b506b;
+    @media (hover: hover) {
+      .nav-btn:hover {
+        background: #1c2738;
+        color: #f8fafc;
+        border-color: #3b506b;
+      }
     }
 
     .nav-btn:active {
@@ -190,9 +192,29 @@
       opacity: 0.55;
       cursor: pointer;
     }
-    .nav-btn.btn-inactive:hover {
-      opacity: 0.85;
-      border-color: #f59e0b;
-      color: #fbbf24;
+    @media (hover: hover) {
+      .nav-btn.btn-inactive:hover {
+        opacity: 0.85;
+        border-color: #f59e0b;
+        color: #fbbf24;
+      }
+    }
+
+    /* ---- Android (phone) adjustments: html.android is set by android-bridge.js ---- */
+    /* The top tab dock works on the phone too, but only with the three tabs
+       that exist there (ИГРА / СБОРКИ / НАСТРОЙКИ): locked tabs (Серверы,
+       Друзья, Гардероб) and the desktop window controls are removed. */
+    html.android .nav-btn[data-locked] {
+      display: none !important;
+    }
+
+    html.android .window-controls {
+      display: none !important;
+    }
+
+    /* Settings/UI blocks that do not exist or do not work on the phone
+       (folder openers, file paths, java args / memory allocation) */
+    html.android .desktop-only {
+      display: none !important;
     }
 

@@ -84,20 +84,24 @@
       transition: all 0.12s ease;
     }
 
-    .win-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: var(--border-subtle);
-      color: var(--text-primary);
+    @media (hover: hover) {
+      .win-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--border-subtle);
+        color: var(--text-primary);
+      }
     }
 
     .win-btn:active {
       transform: translateY(1px);
     }
 
-    .win-btn.close:hover {
-      background: #dc2626;
-      border-color: #ef4444;
-      color: #ffffff;
+    @media (hover: hover) {
+      .win-btn.close:hover {
+        background: #dc2626;
+        border-color: #ef4444;
+        color: #ffffff;
+      }
     }
 
     /* Main Viewport */

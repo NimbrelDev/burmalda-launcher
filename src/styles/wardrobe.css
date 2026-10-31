@@ -51,10 +51,12 @@
       transition: all 0.12s ease;
     }
 
-    .skin-thumbnail-card:hover {
-      border-color: var(--rust-orange);
-      background: rgba(234, 88, 12, 0.08);
-      transform: translateY(-2px);
+    @media (hover: hover) {
+      .skin-thumbnail-card:hover {
+        border-color: var(--rust-orange);
+        background: rgba(234, 88, 12, 0.08);
+        transform: translateY(-2px);
+      }
     }
 
     .skin-thumbnail-card.selected {
@@ -113,8 +115,10 @@
       color: #ffffff;
       transition: background 0.12s ease;
     }
-    .btn-action-primary:hover {
-      background: var(--mc-emerald-hover);
+    @media (hover: hover) {
+      .btn-action-primary:hover {
+        background: var(--mc-emerald-hover);
+      }
     }
 
     .btn-action-secondary {
@@ -132,8 +136,10 @@
       color: var(--text-primary);
       transition: all 0.12s ease;
     }
-    .btn-action-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--border-hover);
+    @media (hover: hover) {
+      .btn-action-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--border-hover);
+      }
     }
 

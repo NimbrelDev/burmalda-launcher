@@ -18,20 +18,49 @@ function initSkinViewer(skinSrc) {
       // Exactly 1.0 scale for Steve
       const baseSteveScale = 1.0;
 
+      // Height fit: the player model always occupies the same fraction of the
+      // viewport height and fits entirely (never cropped), on any screen /
+      // phone aspect ratio. The perspective camera's vertical frustum is
+      // fraction-of-height exact, so one distance formula covers every device.
+      const STEVE_FIT_FRACTION = 0.56;  // part of the screen height taken by the model
+      const STEVE_HALF_HEIGHT = 16.5;   // model half-height in world units (32 body + small margin)
+      const VIEW_SHIFT_UNITS = 1.5;     // raises the model slightly: room for the nametag above and the buttons below
+
+      function applyHeightFit() {
+        if (!skinViewer) return;
+        const w = window.innerWidth || 1040;
+        const h = window.innerHeight || 700;
+        if (w <= 0 || h <= 0) return;
+        skinViewer.setSize(w, h);
+        if (skinViewer.playerWrapper) {
+          skinViewer.playerWrapper.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
+        } else if (skinViewer.playerObject) {
+          skinViewer.playerObject.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
+        }
+        // On short screens (landscape phone) shrink the model so that Steve's
+        // feet stay above the button bar + bottom dock (130 CSS px reserve).
+        let fraction = STEVE_FIT_FRACTION;
+        const maxFraction = (0.5 - 130 / h) / (14.5 / 33);
+        if (maxFraction > 0.25) fraction = Math.min(fraction, maxFraction);
+        const fovRad = (skinViewer.fov || 50) * Math.PI / 180;
+        const dist = STEVE_HALF_HEIGHT / (Math.tan(fovRad / 2) * fraction);
+        const cy = -0.5 - VIEW_SHIFT_UNITS;
+        skinViewer.camera.position.set(0, cy, dist);
+        skinViewer.camera.position.x = 0;
+        skinViewer.camera.position.y = cy;
+        skinViewer.camera.lookAt(0, cy, 0);
+        if (skinViewer.controls) skinViewer.controls.target.set(0, cy, 0);
+      }
+
       if (skinViewer.playerWrapper) {
         skinViewer.playerWrapper.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
       } else if (skinViewer.playerObject) {
         skinViewer.playerObject.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
       }
 
-      const initialHeightRatio = Math.max(0.70, initialHeight / 700);
-      skinViewer.zoom = 0.85;
-      skinViewer.camera.position.x = 0;
-      skinViewer.camera.position.y = -0.5;
-      skinViewer.camera.position.z = 52 * initialHeightRatio;
-      skinViewer.camera.lookAt(0, -0.5, 0);
-      skinViewer.controls.target.set(0, -0.5, 0);
+      skinViewer.zoom = 1; // no internal camera-distance adjustment; we fit manually
       skinViewer.fov = 50;
+      applyHeightFit();
       skinViewer.controls.enableRotate = false; // We handle dragging and physics directly!
       skinViewer.controls.enableZoom = false;
       skinViewer.controls.enablePan = false;
@@ -44,44 +73,13 @@ function initSkinViewer(skinSrc) {
       spawnSteve3DShadow(skinViewer);
       updateSteveUIPositions();
 
-      // Responsive canvas resizing: camera distance dynamically compensates for fullscreen height
-      function updateViewerDimensions() {
-        if (!skinViewer) return;
-        const w = window.innerWidth || 1040;
-        const h = window.innerHeight || 700;
-        if (w > 0 && h > 0) {
-          skinViewer.setSize(w, h);
-          // Fixed 1.0 model scale so Steve stays consistent
-          if (skinViewer.playerWrapper) {
-            skinViewer.playerWrapper.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
-          } else if (skinViewer.playerObject) {
-            skinViewer.playerObject.scale.set(baseSteveScale, baseSteveScale, baseSteveScale);
-          }
-
-          // Camera distance moves back proportionally on taller/fullscreen resolutions
-          const heightRatio = Math.max(0.70, h / 700);
-          const baseZ = 52 * heightRatio;
-
-          const aspect = w / h;
-          if (aspect < 1.3) {
-            skinViewer.camera.position.z = baseZ + (1.3 - aspect) * 16;
-          } else {
-            skinViewer.camera.position.z = baseZ;
-          }
-          skinViewer.camera.position.x = 0;
-          skinViewer.camera.position.y = -0.5;
-          skinViewer.camera.lookAt(0, -0.5, 0);
-          if (skinViewer.controls) skinViewer.controls.target.set(0, -0.5, 0);
-        }
-        updateSteveUIPositions();
-      }
-
-      window.addEventListener('resize', updateViewerDimensions);
-      const resizeObserver = new ResizeObserver(updateViewerDimensions);
+      // Responsive canvas resizing: the model is refitted to the new height
+      window.addEventListener('resize', applyHeightFit);
+      const resizeObserver = new ResizeObserver(applyHeightFit);
       resizeObserver.observe(document.body);
     } else if (skinViewer) {
       skinViewer.loadSkin(resolved);
-      if (skinViewer.playerWrapper) skinViewer.playerWrapper.scale.set(0.50, 0.50, 0.50);
+      if (skinViewer.playerWrapper) skinViewer.playerWrapper.scale.set(1.0, 1.0, 1.0);
       updateSteveUIPositions();
     }
   } catch (err) {
@@ -113,19 +111,23 @@ function updateSteveUIPositions() {
       headTop.project(skinViewer.camera);
       const nameX = Math.round((headTop.x * 0.5 + 0.5) * w);
       const nameY = Math.round((-headTop.y * 0.5 + 0.5) * h);
+      // fixed: projection coordinates are viewport coordinates (the parent
+      // .hero-stage may be offset by the header bar on desktop)
+      nametag.style.position = 'fixed';
       nametag.style.left = `${nameX}px`;
       nametag.style.top = `${nameY}px`;
     }
 
-    // 2. Position action buttons bar comfortably below Steve's feet
+    // 2. Position action buttons comfortably below Steve's feet
     if (stageIconBar) {
       const feet = new Vector3();
       feet.set(skinViewer.playerObject.position.x, skinViewer.playerObject.position.y - feetOffsetY, 0);
       feet.project(skinViewer.camera);
       const feetX = Math.round((feet.x * 0.5 + 0.5) * w);
       const feetY = Math.round((-feet.y * 0.5 + 0.5) * h);
+      stageIconBar.style.position = 'fixed';
       stageIconBar.style.left = `${feetX}px`;
-      stageIconBar.style.top = `${Math.min(feetY + 16, h - 140)}px`;
+      stageIconBar.style.top = `${Math.min(feetY + 12, h - 125)}px`;
       stageIconBar.style.bottom = 'auto';
     }
   } catch (_) {}

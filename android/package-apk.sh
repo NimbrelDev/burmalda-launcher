@@ -19,6 +19,45 @@ mkdir -p "$WORK_DIR/assets/launcher"
 cp -r "$PROJECT_ROOT/src/"* "$WORK_DIR/assets/launcher/"
 cp "$SCRIPT_DIR/bridge/android-bridge.js" "$WORK_DIR/assets/launcher/android-bridge.js"
 
+# 1b. Engine tables (horizon-prepare output) for the on-device Minecraft
+# asset installer. The engine reads them from assets/engine-data.zip when the
+# launcher requests an install through install-assets.flag (see
+# official_install.rs in the engine patch). The zip is built once from the
+# locally prepared horizon-client data and cached in android/build/.
+ENGINE_DATA_ZIP="$WORK_DIR/engine-data.zip"
+if [ ! -f "$ENGINE_DATA_ZIP" ]; then
+    PREPARED_DIR="${HORIZON_PREPARED_DIR:-$HOME/.burmalda-launcher/versions/v0.2.97/.local/horizon-client/26.3}"
+    if [ -d "$PREPARED_DIR" ]; then
+        echo "Building engine-data.zip from $PREPARED_DIR ..."
+        python3 - "$PREPARED_DIR" "$ENGINE_DATA_ZIP" <<'PYEOF'
+import os, sys, zipfile
+src, dst = sys.argv[1], sys.argv[2]
+skip_dirs = {'assets', 'data'}
+skip_files = {'asset-index.json'}
+count = 0
+with zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+    for root, dirs, files in os.walk(src):
+        rel = os.path.relpath(root, src)
+        if rel != '.' and rel.split(os.sep)[0] in skip_dirs:
+            dirs[:] = []
+            continue
+        for f in files:
+            if f in skip_files or f.endswith('-export.log') or f == 'export.log':
+                continue
+            full = os.path.join(root, f)
+            z.write(full, os.path.relpath(full, src))
+            count += 1
+assert 'horizon-resources.json' in zipfile.ZipFile(dst).namelist(), 'tables bundle is broken'
+print('engine-data.zip: %d files, %d bytes' % (count, os.path.getsize(dst)))
+PYEOF
+    else
+        echo "WARNING: no prepared engine tables at $PREPARED_DIR; APK will have no engine-data.zip (СКАЧАТЬ will fail on device)." >&2
+    fi
+fi
+if [ -f "$ENGINE_DATA_ZIP" ]; then
+    cp "$ENGINE_DATA_ZIP" "$WORK_DIR/assets/engine-data.zip"
+fi
+
 # Inject android-bridge.js before the first renderer module script if not already present.
 # renderer.js is the entry point and must stay the LAST script tag (see index.html);
 # renderer/*.js scripts call window.api at load time, so the bridge must precede them all.

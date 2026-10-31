@@ -782,6 +782,34 @@ public class LauncherActivity extends Activity {
             }
         }
 
+        // ------------------------------------------------------------
+        // Engine tables for the on-device asset installer. The installer
+        // (official_install.rs) prefers a launcher-supplied bundle at
+        // <files>/engine-data-<mc>.zip over the APK asset, so we materialize
+        // the bundled asset into the files dir before requesting an install.
+        // ------------------------------------------------------------
+
+        @JavascriptInterface
+        public boolean prepareEngineData() {
+            // The pinned Minecraft version of the bundled engine is 26.3
+            // (research-lock.json); the installer expects engine-data-<mc>.zip.
+            File dest = safeResolve(activity, "engine-data-26.3.zip");
+            if (dest == null) return false;
+            if (dest.isFile() && dest.length() > 0) return true;
+            try (InputStream in = activity.getAssets().open("engine-data.zip");
+                 FileOutputStream out = new FileOutputStream(dest)) {
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                out.flush();
+                Log.i(TAG, "engine-data-26.3.zip staged: " + dest.length() + " bytes");
+                return dest.length() > 0;
+            } catch (Exception e) {
+                Log.e(TAG, "prepareEngineData failed", e);
+                return false;
+            }
+        }
+
         @JavascriptInterface
         public void launchGame(String username) {
             Log.i(TAG, "Starting NativeActivity with player: " + username);
@@ -797,8 +825,32 @@ public class LauncherActivity extends Activity {
                 Log.e(TAG, "Error writing player name", e);
             }
 
+            // Asset-install runs (install-assets.flag present) show a plain
+            // black engine window while the resources download from Mojang.
+            // The engine needs its window created to get through startup, so
+            // let it run in the foreground until it reports progress, then
+            // bring the launcher WebView back on top: the user watches the
+            // launcher progress bar instead of the black engine window.
+            boolean installing = new File(baseDir(), "install-assets.flag").isFile();
+
             Intent intent = new Intent(activity, android.app.NativeActivity.class);
+            if (installing) intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             activity.startActivity(intent);
+
+            if (installing) {
+                File progress = new File(baseDir(), "install-progress.txt");
+                long deadline = System.currentTimeMillis() + 8000;
+                while (System.currentTimeMillis() < deadline) {
+                    if (progress.isFile() && progress.length() > 0) break;
+                    try { Thread.sleep(200); } catch (InterruptedException e) { break; }
+                }
+                if (progress.isFile() && progress.length() > 0) {
+                    Log.i(TAG, "Engine is installing resources; returning launcher UI to front");
+                    Intent self = new Intent(activity, LauncherActivity.class);
+                    self.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    activity.startActivity(self);
+                }
+            }
         }
 
         @JavascriptInterface

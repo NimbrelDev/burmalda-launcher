@@ -1,45 +1,49 @@
 // --- STEVE 3D PHYSICAL RAGDOLL & SPRING SIMULATION ---
+// Soft, slow springs: reactions swing widely but lazily and glide back to
+// the resting pose smoothly instead of snapping (k = stiffness, d = damping).
 const stevePhysics = {
   // Head degrees of freedom
-  headPitch: { x: 0, v: 0, k: 0.12, d: 0.82 },
-  headYaw:   { x: 0, v: 0, k: 0.12, d: 0.82 },
-  headRoll:  { x: 0, v: 0, k: 0.14, d: 0.78 },
+  headPitch: { x: 0, v: 0, k: 0.065, d: 0.88 },
+  headYaw:   { x: 0, v: 0, k: 0.065, d: 0.88 },
+  headRoll:  { x: 0, v: 0, k: 0.077, d: 0.85 },
 
   // Torso / Body degrees of freedom
-  bodyPitch: { x: 0, v: 0, k: 0.11, d: 0.79 },
-  bodyRoll:  { x: 0, v: 0, k: 0.11, d: 0.79 },
-  bodyYaw:   { x: 0, v: 0, k: 0.11, d: 0.79 },
+  bodyPitch: { x: 0, v: 0, k: 0.06, d: 0.86 },
+  bodyRoll:  { x: 0, v: 0, k: 0.06, d: 0.86 },
+  bodyYaw:   { x: 0, v: 0, k: 0.06, d: 0.86 },
 
   // Left Arm degrees of freedom
-  lArmPitch: { x: 0, v: 0, k: 0.08, d: 0.84 },
-  lArmRoll:  { x: 0, v: 0, k: 0.08, d: 0.84 },
-  lArmYaw:   { x: 0, v: 0, k: 0.08, d: 0.84 },
+  lArmPitch: { x: 0, v: 0, k: 0.044, d: 0.90 },
+  lArmRoll:  { x: 0, v: 0, k: 0.044, d: 0.90 },
+  lArmYaw:   { x: 0, v: 0, k: 0.044, d: 0.90 },
 
   // Right Arm degrees of freedom
-  rArmPitch: { x: 0, v: 0, k: 0.08, d: 0.84 },
-  rArmRoll:  { x: 0, v: 0, k: 0.08, d: 0.84 },
-  rArmYaw:   { x: 0, v: 0, k: 0.08, d: 0.84 },
+  rArmPitch: { x: 0, v: 0, k: 0.044, d: 0.90 },
+  rArmRoll:  { x: 0, v: 0, k: 0.044, d: 0.90 },
+  rArmYaw:   { x: 0, v: 0, k: 0.044, d: 0.90 },
 
   // Left Leg degrees of freedom
-  lLegPitch: { x: 0, v: 0, k: 0.10, d: 0.81 },
-  lLegRoll:  { x: 0, v: 0, k: 0.10, d: 0.81 },
+  lLegPitch: { x: 0, v: 0, k: 0.055, d: 0.88 },
+  lLegRoll:  { x: 0, v: 0, k: 0.055, d: 0.88 },
 
   // Right Leg degrees of freedom
-  rLegPitch: { x: 0, v: 0, k: 0.10, d: 0.81 },
-  rLegRoll:  { x: 0, v: 0, k: 0.10, d: 0.81 },
+  rLegPitch: { x: 0, v: 0, k: 0.055, d: 0.88 },
+  rLegRoll:  { x: 0, v: 0, k: 0.055, d: 0.88 },
 
   // Global root displacement & tilt
-  recoilZ:   { x: 0, v: 0, k: 0.09, d: 0.82 },
-  recoilY:   { x: 0, v: 0, k: 0.10, d: 0.80 },
-  recoilX:   { x: 0, v: 0, k: 0.10, d: 0.80 },
-  tiltZ:     { x: 0, v: 0, k: 0.09, d: 0.80 }
+  recoilZ:   { x: 0, v: 0, k: 0.05, d: 0.89 },
+  recoilY:   { x: 0, v: 0, k: 0.055, d: 0.88 },
+  recoilX:   { x: 0, v: 0, k: 0.055, d: 0.88 },
+  tiltZ:     { x: 0, v: 0, k: 0.05, d: 0.88 }
 };
 
-// Step single degree of freedom with viscous damped harmonic motion
-function stepSpringDOF(dof) {
+// Step single degree of freedom with viscous damped harmonic motion.
+// norm = frame-rate scale (1.0 at 60 fps, see updateSteveFrame).
+function stepSpringDOF(dof, norm) {
+  const f = norm === undefined ? 1 : norm;
   const force = -dof.k * dof.x - (1 - dof.d) * dof.v;
-  dof.v += force;
-  dof.x += dof.v;
+  dof.v += force * f;
+  dof.x += dof.v * f;
   if (Math.abs(dof.x) < 0.0001 && Math.abs(dof.v) < 0.0001) {
     dof.x = 0;
     dof.v = 0;

@@ -49,8 +49,10 @@
       transition: border-color 0.15s ease;
     }
 
-    .server-card-clean:hover {
-      border-color: var(--border-hover);
+    @media (hover: hover) {
+      .server-card-clean:hover {
+        border-color: var(--border-hover);
+      }
     }
 
     .srv-top-row {
@@ -97,8 +99,10 @@
       background: var(--mc-emerald);
       color: #ffffff;
     }
-    .btn-srv-act.play:hover {
-      background: var(--mc-emerald-hover);
+    @media (hover: hover) {
+      .btn-srv-act.play:hover {
+        background: var(--mc-emerald-hover);
+      }
     }
 
     .btn-srv-act.del {
@@ -107,7 +111,9 @@
       flex: 0.3;
       padding: 6px 6px;
     }
-    .btn-srv-act.del:hover {
-      color: #ef4444;
+    @media (hover: hover) {
+      .btn-srv-act.del:hover {
+        color: #ef4444;
+      }
     }
 

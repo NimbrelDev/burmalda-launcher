@@ -31,15 +31,46 @@ function setupSteveInteractiveControls() {
       const angleYaw = Math.atan2(dx, 450);
       const anglePitch = Math.atan2(dy, 450);
 
-      // Clamped to natural anatomical neck range
-      targetHeadYaw = Math.max(-0.65, Math.min(0.65, angleYaw - steveBodyRotationY));
-      targetHeadPitch = Math.max(-0.45, Math.min(0.45, anglePitch));
+      // Clamped to a natural mob-like neck range (wide horizontal turn)
+      targetHeadYaw = Math.max(-1.0, Math.min(1.0, angleYaw - steveBodyRotationY));
+      targetHeadPitch = Math.max(-0.5, Math.min(0.6, anglePitch));
     } catch (_) {}
   });
+
+  // Any tap/ movement on the screen makes Steve's HEAD turn toward the point
+  // (Minecraft-style mob look): the body stays put, only the head rotates,
+  // smoothly interpolated in the frame loop via targetHeadYaw/Pitch.
+  function aimHeadAtPoint(clientX, clientY) {
+    if (!skinViewer || !skinViewer.playerObject || !skinViewer.playerObject.skin) return;
+    try {
+      const Vector3 = skinViewer.camera.position.constructor;
+      const headWorld = new Vector3();
+      skinViewer.playerObject.skin.head.getWorldPosition(headWorld);
+      headWorld.project(skinViewer.camera);
+
+      const w = window.innerWidth || 1040;
+      const h = window.innerHeight || 700;
+      const headScreenX = (headWorld.x * 0.5 + 0.5) * w;
+      const headScreenY = (-headWorld.y * 0.5 + 0.5) * h;
+
+      const dx = clientX - headScreenX;
+      const dy = clientY - headScreenY;
+
+      const angleYaw = Math.atan2(dx, 300);
+      const anglePitch = Math.atan2(dy, 300);
+
+      // Mob-like range: wide horizontal turn, moderate vertical
+      targetHeadYaw = Math.max(-1.0, Math.min(1.0, angleYaw - steveBodyRotationY));
+      targetHeadPitch = Math.max(-0.5, Math.min(0.6, anglePitch));
+    } catch (_) {}
+  }
 
   // Pointer input unified handlers (Mouse & Touch)
   function handlePointerDown(clientX, clientY) {
     if (isShotgunActive) return;
+
+    // Every tap is a "look there" command, even before we know what was hit
+    aimHeadAtPoint(clientX, clientY);
 
     // Hit-test on actual 3D limbs: if clicked outside Steve, ignore completely!
     const hit = getLimbAtPointer(clientX, clientY);
@@ -137,9 +168,13 @@ function setupSteveInteractiveControls() {
   }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
-    if (isDraggingSteve && e.touches && e.touches[0]) {
+    if (isShotgunActive || !e.touches || !e.touches[0]) return;
+    if (isDraggingSteve) {
       e.preventDefault();
       handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    } else {
+      // finger sweep across the screen: the head follows the last position
+      aimHeadAtPoint(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, { passive: false });
 
@@ -151,9 +186,16 @@ function setupSteveInteractiveControls() {
   });
 
   // Main Unified Render & Physics Animation Loop
-  function updateSteveFrame() {
+  let lastSteveFrameTs = 0;
+  function updateSteveFrame(ts) {
     window.__stepSteveFrame = updateSteveFrame;
-    simTime += 0.025;
+    // Frame-rate independent scaling: norm = 1.0 at 60 fps. All lerps, springs
+    // and the idle clock below are multiplied by it so animations run at the
+    // same (deliberately slow) speed on 60 / 90 / 120 Hz screens.
+    const dt = lastSteveFrameTs ? Math.min(100, ts - lastSteveFrameTs) : 16.7;
+    lastSteveFrameTs = ts;
+    const norm = Math.max(0.25, Math.min(3, dt / 16.7));
+    simTime += 0.012 * norm;
 
     if (skinViewer && skinViewer.playerObject && skinViewer.playerObject.skin) {
       const skin = skinViewer.playerObject.skin;
@@ -724,21 +766,25 @@ function setupSteveInteractiveControls() {
         // --- NATURAL BREATHING & SPRING PHYSICS SIMULATION ---
         skinViewer.playerObject.position.x += (0 - skinViewer.playerObject.position.x) * 0.15;
 
-        // 1. Natural cursor-follow interpolation
-        currentHeadYaw += (targetHeadYaw - currentHeadYaw) * 0.12;
-        currentHeadPitch += (targetHeadPitch - currentHeadPitch) * 0.12;
+        // 1. Natural cursor-follow interpolation (slow, heavily smoothed)
+        const headLerp = 1 - Math.pow(0.955, norm); // ~0.045 per 60 fps frame
+        currentHeadYaw += (targetHeadYaw - currentHeadYaw) * headLerp;
+        currentHeadPitch += (targetHeadPitch - currentHeadPitch) * headLerp;
 
-        // 2. Step all spring degrees of freedom
-        Object.keys(stevePhysics).forEach((k) => stepSpringDOF(stevePhysics[k]));
+        // 2. Step all spring degrees of freedom (soft, slow return to pose)
+        Object.keys(stevePhysics).forEach((k) => stepSpringDOF(stevePhysics[k], norm));
 
-        // 3. Spinning inertia & Shortest-direction Return
-        steveSpinVelocity *= 0.88;
+        // 3. Spinning inertia & smooth shortest-path return to facing front
+        // (the body stays put on taps — only the HEAD follows the taps)
+        steveSpinVelocity *= Math.pow(0.88, norm);
         steveBodyRotationY += steveSpinVelocity;
         steveBodyRotationY = normalizeAngle(steveBodyRotationY);
 
-        // When not dragging, rotate smoothly to front (0 rad) along the shortest path (max half-turn)
+        // When not dragging, rotate smoothly back to front (0 rad)
         if (!isDraggingSteve && Math.abs(steveSpinVelocity) < 0.008) {
-          steveBodyRotationY += (0 - steveBodyRotationY) * 0.12;
+          const turnLerp = 1 - Math.pow(0.93, norm); // ~0.07 per 60 fps frame
+          const diff = normalizeAngle(0 - steveBodyRotationY);
+          steveBodyRotationY = normalizeAngle(steveBodyRotationY + diff * turnLerp);
           if (Math.abs(steveBodyRotationY) < 0.001) steveBodyRotationY = 0;
         }
         skinViewer.playerObject.rotation.y = steveBodyRotationY;
@@ -746,7 +792,7 @@ function setupSteveInteractiveControls() {
         // 4. Stretch physics: activates ONLY when pulled strongly downwards or jerked violently
         // Normal horizontal spinning leaves limbs 100% attached, solid and stable!
         const targetGlitch = Math.min(1.0, Math.max(0, targetLimbStretch));
-        limbGlitchFactor += (targetGlitch - limbGlitchFactor) * 0.22;
+        limbGlitchFactor += (targetGlitch - limbGlitchFactor) * (1 - Math.pow(0.78, norm));
 
         if (limbGlitchFactor > 0.01) {
           const gf = limbGlitchFactor;
@@ -829,9 +875,9 @@ function setupSteveInteractiveControls() {
           }
         }
 
-        // 5. Gentle sinusoidal idle breathing
-        const breath = Math.sin(simTime * 1.5) * 0.024;
-        const armSway = Math.sin(simTime * 1.1) * 0.032;
+        // 5. Gentle sinusoidal idle breathing (deliberately slow, Minecraft-like)
+        const breath = Math.sin(simTime * 1.1) * 0.02;
+        const armSway = Math.sin(simTime * 0.9) * 0.026;
 
         // 6. Apply spring displacement + breathing to 3D bones
         if (head) {
