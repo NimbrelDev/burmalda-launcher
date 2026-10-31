@@ -1,0 +1,100 @@
+    /* Pure 3D Minecraft Emerald Launch Button («В БОЙ») */
+    .btn-hero-launch {
+      height: 48px;
+      min-width: 170px;
+      background: #10b981 !important;
+      border: 1px solid #34d399;
+      border-bottom: 5px solid #047857 !important; /* Authentic 3D solid edge */
+      border-radius: 8px;
+      color: #ffffff;
+      font-family: var(--font-minecraft);
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 3px 0 #023829;
+      transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.06s ease;
+      user-select: none;
+    }
+
+    .btn-hero-launch:hover {
+      filter: brightness(1.08);
+      background: #10b981 !important;
+    }
+
+    .btn-hero-launch:active {
+      transform: translateY(4px);
+      border-bottom: 1px solid #047857 !important;
+      box-shadow: 0 0 0 #023829;
+    }
+
+    .btn-hero-launch.download-mode {
+      background: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      border-bottom: 5px solid #0369a1 !important;
+      box-shadow: 0 3px 0 #02486f;
+    }
+
+    .btn-hero-launch.download-mode:active {
+      transform: translateY(4px);
+      border-bottom: 1px solid #0369a1 !important;
+      box-shadow: 0 0 0 #02486f;
+    }
+
+    .btn-hero-launch.running-mode {
+      background: #ef4444 !important;
+      border-color: #f87171 !important;
+      border-bottom: 5px solid #b91c1c !important;
+      box-shadow: 0 3px 0 #7f1d1d;
+    }
+
+    .btn-hero-launch.running-mode:active {
+      transform: translateY(4px);
+      border-bottom: 1px solid #b91c1c !important;
+      box-shadow: 0 0 0 #7f1d1d;
+    }
+
+    /* Download progress strip */
+    .download-strip {
+      display: none;
+      width: min(880px, calc(100vw - 40px));
+      position: fixed;
+      bottom: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111722;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 12px;
+      z-index: 90;
+    }
+
+    .download-strip-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .download-track {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .download-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--mc-emerald);
+      border-radius: 3px;
+      transition: width 0.15s ease;
+    }
+

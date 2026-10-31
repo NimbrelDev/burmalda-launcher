@@ -19,9 +19,11 @@ mkdir -p "$WORK_DIR/assets/launcher"
 cp -r "$PROJECT_ROOT/src/"* "$WORK_DIR/assets/launcher/"
 cp "$SCRIPT_DIR/bridge/android-bridge.js" "$WORK_DIR/assets/launcher/android-bridge.js"
 
-# Inject android-bridge.js before renderer.js if not already present
+# Inject android-bridge.js before the first renderer module script if not already present.
+# renderer.js is the entry point and must stay the LAST script tag (see index.html);
+# renderer/*.js scripts call window.api at load time, so the bridge must precede them all.
 if ! grep -q "android-bridge.js" "$WORK_DIR/assets/launcher/index.html"; then
-    sed -i 's|<script src="renderer.js"></script>|<script src="android-bridge.js"></script>\n  <script src="renderer.js"></script>|' "$WORK_DIR/assets/launcher/index.html"
+    sed -i 's|<script src="renderer/core.js"></script>|<script src="android-bridge.js"></script>\n  <script src="renderer/core.js"></script>|' "$WORK_DIR/assets/launcher/index.html"
 fi
 
 # 2. Compile resources

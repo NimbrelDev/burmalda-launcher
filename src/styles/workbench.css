@@ -1,0 +1,203 @@
+    /* ASSEMBLY CREATION WORKBENCH */
+    .creation-workbench {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+      height: 100%;
+    }
+    .creation-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .creation-tabs-row {
+      display: flex;
+      gap: 8px;
+    }
+    .create-cat-tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #121824;
+      color: var(--text-secondary);
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.12s, color 0.12s;
+    }
+    .create-cat-tab:hover {
+      color: #ffffff;
+      background: #1a2334;
+    }
+    .create-cat-tab.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+    .create-cat-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #93c5fd;
+    }
+    .create-cat-tab.active .create-cat-badge {
+      background: #1d4ed8;
+      color: #ffffff;
+    }
+
+    /* SINGLE UNIFIED WORKBENCH BODY */
+    .creation-unified-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      background: #111722;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .workbench-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .drag-drop-box {
+      border: 2px dashed rgba(96, 165, 250, 0.35);
+      background: rgba(30, 41, 59, 0.25);
+      border-radius: 6px;
+      padding: 18px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .drag-drop-box.drag-over {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: #60a5fa;
+    }
+    .drag-drop-box:hover {
+      border-color: #60a5fa;
+      background: rgba(30, 41, 59, 0.4);
+    }
+
+    /* REORDERABLE ADDONS QUEUE LIST */
+    .file-items-scroll {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+      min-height: 120px;
+    }
+
+    .file-addon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #161e2c;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      user-select: none;
+      cursor: grab;
+      transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+    }
+    .file-addon-row:active {
+      cursor: grabbing;
+    }
+    .file-addon-row.dragging {
+      opacity: 0.4;
+      background: #1e293b;
+      border-color: #3b82f6;
+    }
+    .file-addon-row.drag-target {
+      border-top: 2px solid #3b82f6;
+    }
+
+    .drag-handle-btn {
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      cursor: grab;
+    }
+    .file-addon-row:hover .drag-handle-btn {
+      color: #94a3b8;
+    }
+
+    .file-addon-queue-num {
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      color: var(--text-muted);
+      min-width: 28px;
+    }
+
+    .file-addon-name {
+      color: #e2e8f0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .file-addon-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #93c5fd;
+      background: rgba(37, 99, 235, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .file-addon-del {
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      transition: all 0.12s;
+    }
+    .file-addon-del:hover {
+      color: #ffffff;
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+
+    /* FOOTER BAR OF WORKBENCH */
+    .creation-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: auto;
+    }
+    .creation-summary-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+      font-size: 10px;
+      color: #ffffff;
+    }

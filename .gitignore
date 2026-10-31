@@ -4,3 +4,4 @@ android/build/
 android/compiled_res/
 *.log
 .DS_Store
+android/libs/

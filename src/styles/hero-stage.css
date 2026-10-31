@@ -1,0 +1,190 @@
+    /* --- TAB 1: HERO STAGE (COMPLETELY DECOUPLED & RESPONSIVE LAYOUT) --- */
+    .hero-stage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* 1. Authentic 1:1 Vanilla Minecraft nametag plate with in-place editing */
+    .player-nametag-float {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      background: rgba(0, 0, 0, 0.40);
+      padding: 3px 6px;
+      border-radius: 0;
+      border: 1px solid transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: background 0.1s ease, padding 0.12s ease;
+      z-index: 20;
+      white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player-nametag-float:hover {
+      background: rgba(0, 0, 0, 0.65);
+    }
+
+    .player-nametag-float.editing {
+      background: #000000 !important;
+      border: 2px solid #ffffff !important;
+      padding: 5px 12px !important;
+      box-shadow: 0 0 0 1px #000000, 0 10px 24px rgba(0, 0, 0, 0.8) !important;
+      cursor: text;
+    }
+
+    .nametag-hidden-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      cursor: text;
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      z-index: 5;
+    }
+
+    .player-nametag-float.editing .nametag-hidden-input {
+      pointer-events: auto;
+    }
+
+    .nametag-cursor {
+      font-family: 'Minecraft Rus', 'Minecraftia', monospace;
+      font-size: 16px;
+      line-height: 1;
+      color: #ffffff;
+      text-shadow: 2px 2px 0px #3f3f3f;
+      display: inline-block;
+      margin-left: 2px;
+      animation: mcCursorBlink 0.75s step-start infinite;
+    }
+
+    @keyframes mcCursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    .nametag-text {
+      font-family: 'Minecraft Rus', 'Minecraftia', monospace;
+      font-size: 16px;
+      line-height: 1;
+      letter-spacing: 0;
+      color: #ffffff;
+      text-shadow: 2px 2px 0px #3f3f3f;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+      image-rendering: pixelated;
+      text-rendering: geometricPrecision;
+      display: block;
+    }
+
+    /* 2. Independent interactive touch/drag zone over hero stage (hitbox calculated via 3D meshes) */
+    .steve-interactive-zone {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: default;
+      pointer-events: auto;
+      z-index: 5;
+    }
+
+    /* Fullscreen 3D Viewport: Steve and debris fly across the entire window without invisible walls */
+    .stage-viewport {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    #skin-viewer-3d {
+      width: 100vw !important;
+      height: 100vh !important;
+      display: block;
+      pointer-events: none;
+    }
+
+    .stage-shadow-pedestal {
+      display: none !important; /* Authentic 3D shadows rendered directly inside Three.js */
+    }
+
+    /* 3. Independent action buttons under Steve's pedestal strictly above bottom dock */
+    .stage-icon-bar {
+      position: absolute;
+      bottom: clamp(100px, 14vh, 125px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    @media (max-height: 680px) {
+      .stage-icon-bar {
+        bottom: 96px;
+      }
+    }
+
+    .btn-stage-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #141c28;
+      border: 1px solid #28374a;
+      border-bottom: 4px solid #0c121b; /* 3D tactile bevel */
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #080d14;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .btn-stage-icon:hover {
+      background: #1b2637;
+      color: #ffffff;
+      border-color: #3b506d;
+    }
+
+    .btn-stage-icon:active {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 #080d14;
+    }
+
+    .btn-stage-icon.btn-inactive {
+      opacity: 0.55;
+      cursor: pointer;
+    }
+
+    .btn-stage-icon.btn-inactive:hover {
+      opacity: 0.85;
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+
