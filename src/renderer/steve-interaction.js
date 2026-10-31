@@ -1,4 +1,10 @@
 function setupSteveInteractiveControls() {
+  // The listeners and the shared frame loop are viewer-independent (they read
+  // the global skinViewer), so they must be registered exactly once — even
+  // when the viewer itself is re-created after a WebGL context loss.
+  if (window.__steveControlsReady) return;
+  window.__steveControlsReady = true;
+
   const steveHitbox = document.getElementById('steve-interactive-zone') || skinViewerCanvas;
   if (!steveHitbox) return;
 

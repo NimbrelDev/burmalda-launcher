@@ -124,14 +124,8 @@ async function initApp() {
   // Load Modpack Dock UI
   updateDockModpackUI();
 
-  // Load Saved Servers & Popular Servers
-  await loadSavedServers();
-
   // Load Versions
   await refreshVersions();
-
-  // Pre-load Wardrobe
-  await refreshWardrobeUI();
 
   // Pre-load Touch Controls
   await loadTouchSettingsUI();

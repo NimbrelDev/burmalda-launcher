@@ -10,8 +10,6 @@
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/chrome.css">
   <link rel="stylesheet" href="styles/hero-stage.css">
-  <link rel="stylesheet" href="styles/servers.css">
-  <link rel="stylesheet" href="styles/wardrobe.css">
   <link rel="stylesheet" href="styles/settings.css">
   <link rel="stylesheet" href="styles/dock.css">
   <link rel="stylesheet" href="styles/dock-actions.css">
@@ -51,37 +49,8 @@
         <span class="nav-label">СБОРКИ</span>
       </button>
 
-      <button class="nav-btn btn-inactive" data-tab="servers" data-locked="true" title="Серверы (В разработке)">
-        <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-        </span>
-        <span class="nav-label">СЕРВЕРЫ</span>
-      </button>
 
-      <button class="nav-btn btn-inactive" data-tab="friends" data-locked="true" title="Друзья (В разработке)">
-        <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-        </span>
-        <span class="nav-label">ДРУЗЬЯ</span>
-      </button>
 
-      <button class="nav-btn btn-inactive" data-tab="wardrobe" data-locked="true" title="Гардероб (В разработке)">
-        <span class="nav-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
-          </svg>
-        </span>
-        <span class="nav-label">ГАРДЕРОБ</span>
-      </button>
 
       <button class="nav-btn" data-tab="settings" title="Настройки">
         <span class="nav-icon">
@@ -131,9 +100,6 @@
 
         <!-- EXACTLY 3 Clean Icon-Only Action Buttons under Steve -->
         <div class="stage-icon-bar">
-          <button class="btn-stage-icon btn-inactive" id="btn-stage-wardrobe" data-locked="true" title="Гардероб (В разработке)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-          </button>
 
           <button class="btn-stage-icon" id="btn-stage-settings" title="Настройки">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -147,144 +113,8 @@
       </div>
     </section>
 
-    <!-- 2. TAB: SERVERS -->
-    <section class="tab-content" id="pane-servers">
-      <div class="panel-container">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <span>Популярные серверы Minecraft</span>
-          </div>
-        </div>
 
-        <div class="servers-grid" id="popular-servers-grid"></div>
 
-        <div class="panel-header" style="margin-top: 10px;">
-          <div class="panel-title" style="font-size: 14px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-            <span>Мои серверы и прямое подключение</span>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <input type="text" id="input-play-server" class="input-clean" placeholder="IP:порт (например mc.funtime.su)" value="127.0.0.1:25565" style="flex: 1;">
-          <button class="btn-action-primary" id="btn-direct-connect">Подключиться</button>
-        </div>
-
-        <div class="servers-grid" id="real-servers-list" style="margin-bottom: 12px;"></div>
-
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="input-new-srv-name" class="input-clean" placeholder="Название сервера" style="flex: 1;">
-          <input type="text" id="input-new-srv-addr" class="input-clean" placeholder="Адрес (IP:порт)" style="flex: 1.5;">
-          <button class="btn-action-secondary" id="btn-add-server">+ Добавить в список</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. TAB: FRIENDS -->
-    <section class="tab-content" id="pane-friends">
-      <div class="panel-container">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span>Друзья & Совместная игра (P2P)</span>
-          </div>
-          <span style="font-size: 11px; font-weight: 700; color: #22c55e;">LAN / P2P Активен</span>
-        </div>
-
-        <div class="setting-card" style="margin-bottom: 12px;">
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span class="setting-label">Подключение по инвайт-коду</span>
-              <span class="setting-sub">Без настройки роутера</span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="input-friend-invite-code" class="input-clean" placeholder="hzn://7b9f-44a1" style="flex: 1;">
-              <button class="btn-action-primary" id="btn-join-friend-code">Присоединиться</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-card" style="margin-bottom: 16px;">
-          <div class="setting-info">
-            <span class="setting-label">Мой код приглашения</span>
-            <span class="setting-sub" id="my-invite-code-label">Для входа друга в ваш одиночный мир</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <code id="display-my-invite-code" style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">hzn://offline</code>
-            <button class="btn-action-secondary" id="btn-copy-my-code">Скопировать</button>
-            <button class="btn-action-secondary" id="btn-refresh-my-code" title="Обновить код" style="padding: 6px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">СПИСОК ДРУЗЕЙ</span>
-          <button class="btn-action-secondary" id="btn-open-add-friend" style="padding: 4px 10px;">+ Добавить друга</button>
-        </div>
-
-        <div id="friends-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;"></div>
-      </div>
-    </section>
-
-    <!-- 4. TAB: WARDROBE -->
-    <section class="tab-content" id="pane-wardrobe">
-      <div class="panel-container">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-            <span>Гардероб и персонализация</span>
-          </div>
-        </div>
-
-        <div class="wardrobe-layout">
-          <div class="wardrobe-preview-box">
-            <canvas class="wardrobe-avatar-canvas" id="wardrobe-avatar-canvas" width="140" height="140"></canvas>
-            <div class="wardrobe-active-name" id="wardrobe-skin-name">Скин: Стив</div>
-            
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
-              <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Игровой никнейм:</label>
-              <div style="display: flex; gap: 6px;">
-                <input type="text" id="input-profile-nickname" class="input-clean" value="Player" maxlength="16">
-                <button class="btn-action-primary" id="btn-save-profile" style="padding: 7px 12px;">OK</button>
-              </div>
-            </div>
-
-            <button class="btn-action-primary" id="btn-upload-new-skin" style="width: 100%; margin-top: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>+ Загрузить .png</span>
-            </button>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 14px;">
-            <div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
-                Стандартные образы Minecraft (Mojang)
-              </div>
-              <div class="default-skins-grid" id="mojang-default-skins-grid"></div>
-            </div>
-
-            <div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">
-                Моя коллекция скинов
-              </div>
-              <div class="custom-skins-strip" id="custom-wardrobe-strip"></div>
-            </div>
-
-            <div style="background: #141b26; border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
-                Загрузить скин по нику (Ely.by / Mojang):
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <input type="text" id="input-fetch-skin-nick" class="input-clean" placeholder="Никнейм игрока">
-                <button class="btn-action-secondary" id="btn-fetch-skin-by-nick">Скачать</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 5. TAB: SETTINGS -->
     <section class="tab-content" id="pane-settings">
@@ -588,14 +418,11 @@
   <script src="renderer/skin-viewer.js"></script>
   <script src="renderer/steve-interaction.js"></script>
   <script src="renderer/skins.js"></script>
-  <script src="renderer/wardrobe.js"></script>
-  <script src="renderer/servers.js"></script>
   <script src="renderer/settings.js"></script>
   <script src="renderer/versions.js"></script>
   <script src="renderer/game-launch.js"></script>
   <script src="renderer/modpacks.js"></script>
   <script src="renderer/modpack-create.js"></script>
-  <script src="renderer/friends.js"></script>
   <script src="renderer/touch-settings.js"></script>
   <script src="renderer/touch-export.js"></script>
   <script src="renderer/touch-hud.js"></script>

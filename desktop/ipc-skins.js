@@ -126,66 +126,9 @@ export function registerSkinHandlers() {
     };
   });
 
-  ipcMain.handle('get-wardrobe', () => {
-    const settings = loadSettings();
-    return settings.wardrobe || [];
-  });
 
-  ipcMain.handle('add-to-wardrobe', async (_, customName) => {
-    const result = await dialog.showOpenDialog(appState.mainWindow, {
-      title: 'Выберите файл скина (.png)',
-      filters: [{ name: 'PNG Images', extensions: ['png'] }],
-      properties: ['openFile']
-    });
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, canceled: true };
-    }
 
-    const selectedPath = result.filePaths[0];
-    const skinId = `skin-${Date.now()}`;
-    const destSkin = path.join(SKINS_DIR, `${skinId}.png`);
-    fs.copyFileSync(selectedPath, destSkin);
-
-    const fileBuffer = fs.readFileSync(destSkin);
-    const skinDataUrl = `data:image/png;base64,${fileBuffer.toString('base64')}`;
-    const name = customName || path.basename(selectedPath, '.png');
-
-    const settings = loadSettings();
-    if (!settings.wardrobe) settings.wardrobe = [];
-    const entry = { id: skinId, name, dataUrl: skinDataUrl, path: destSkin, model: 'default' };
-    settings.wardrobe.push(entry);
-
-    settings.skinPath = destSkin;
-    settings.skinDataUrl = skinDataUrl;
-    settings.skinName = name;
-    saveSettings(settings);
-
-    return { success: true, skin: entry, wardrobe: settings.wardrobe };
-  });
-
-  ipcMain.handle('delete-from-wardrobe', (_, skinId) => {
-    const settings = loadSettings();
-    if (settings.wardrobe) {
-      settings.wardrobe = settings.wardrobe.filter(s => s.id !== skinId);
-      saveSettings(settings);
-    }
-    return { success: true, wardrobe: settings.wardrobe || [] };
-  });
-
-  ipcMain.handle('set-active-wardrobe-skin', (_, skinId) => {
-    const settings = loadSettings();
-    const found = (settings.wardrobe || []).find(s => s.id === skinId);
-    if (found) {
-      settings.skinPath = found.path;
-      settings.skinDataUrl = found.dataUrl;
-      settings.skinName = found.name;
-      settings.skinModel = found.model || 'default';
-      saveSettings(settings);
-      return { success: true, skin: found };
-    }
-    return { success: false };
-  });
 
   ipcMain.handle('fetch-skin-by-name', async (_, username) => {
     const cleanUser = (username || '').trim();

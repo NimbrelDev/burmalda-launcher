@@ -30,7 +30,6 @@ const MODS_DIR = path.join(GAME_DIR, 'mods');
 const SKINS_DIR = path.join(GAME_DIR, 'skins');
 const RESOURCES_DIR = path.join(GAME_DIR, 'resources');
 const RELEASES_CACHE_FILE = path.join(GAME_DIR, 'releases_cache.json');
-const FRIENDS_FILE = path.join(GAME_DIR, 'friends.json');
 const MOD_DATA_DIR = path.join(process.env.HOME || USER_DATA, '.horizon-mod-data', 'mobile_touch_controls');
 const TOUCH_SETTINGS_FILE = path.join(MOD_DATA_DIR, 'settings.json');
 
@@ -53,7 +52,6 @@ export {
   SKINS_DIR,
   RESOURCES_DIR,
   RELEASES_CACHE_FILE,
-  FRIENDS_FILE,
   MOD_DATA_DIR,
   TOUCH_SETTINGS_FILE,
 };

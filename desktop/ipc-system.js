@@ -3,7 +3,7 @@
 import { ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { ANDROID_DIR, DIST_DIR, USER_DATA, MOD_DATA_DIR, TOUCH_SETTINGS_FILE, FRIENDS_FILE } from './paths.js';
+import { ANDROID_DIR, DIST_DIR, USER_DATA, MOD_DATA_DIR, TOUCH_SETTINGS_FILE } from './paths.js';
 
 const DEFAULT_TOUCH_SETTINGS = {
   enabled: true,
@@ -46,24 +46,6 @@ const DEFAULT_FRIENDS = [
   { id: 'f_notch', nickname: 'Miner2026', status: 'offline', activity: 'Был 2 ч. назад', ping: 0, worldCode: null }
 ];
 
-function loadFriends() {
-  try {
-    if (fs.existsSync(FRIENDS_FILE)) {
-      return JSON.parse(fs.readFileSync(FRIENDS_FILE, 'utf-8'));
-    }
-  } catch (_) {}
-  return DEFAULT_FRIENDS;
-}
-
-function saveFriends(friends) {
-  try {
-    fs.writeFileSync(FRIENDS_FILE, JSON.stringify(friends, null, 2), 'utf-8');
-    return true;
-  } catch (err) {
-    console.error('Failed writing friends:', err);
-    return false;
-  }
-}
 
 export function registerSystemHandlers() {
   ipcMain.handle('get-touch-settings', () => loadTouchSettings());
@@ -135,8 +117,6 @@ function resolveAdb(execSync) {
     }
   });
 
-  ipcMain.handle('get-friends', () => loadFriends());
-  ipcMain.handle('save-friends', (_, friends) => saveFriends(friends));
   ipcMain.handle('generate-invite-code', () => {
     const hex = () => Math.random().toString(16).substring(2, 6);
     return `hzn://${hex()}-${hex()}`;

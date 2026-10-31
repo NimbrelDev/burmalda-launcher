@@ -1,12 +1,4 @@
 // --- POPULAR MINECRAFT SERVERS (Curated) ---
-const POPULAR_SERVERS = [
-  { name: 'Hypixel Network', address: 'mc.hypixel.net', desc: 'Мини-игры, BedWars, SkyBlock' },
-  { name: 'FunTime', address: 'mc.funtime.su', desc: 'Анархия, PvP, Топовый СНГ сервер' },
-  { name: 'ReallyWorld', address: 'mc.reallyworld.ru', desc: 'Гриферский, Выживание, Квесты' },
-  { name: 'HolyWorld', address: 'mc.holyworld.ru', desc: 'Анархия с уникальными боссами' },
-  { name: 'CubeCraft Games', address: 'play.cubecraft.net', desc: 'EggWars, SkyWars, Паркур' },
-  { name: 'Mineplex Studio', address: 'us.mineplex.com', desc: 'Классические аркады и турниры' }
-];
 
 // --- CURATED CATALOG ITEMS ---
 const CATALOG_ITEMS = [

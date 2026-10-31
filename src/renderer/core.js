@@ -16,14 +16,15 @@ const btnOpenNametag = document.getElementById('btn-open-nametag');
 const stagePlayerCursor = document.getElementById('stage-player-cursor');
 const stagePlayerInput = document.getElementById('stage-player-input');
 let isEditingNametag = false;
-const skinViewerCanvas = document.getElementById('skin-viewer-3d');
-const btnStageWardrobe = document.getElementById('btn-stage-wardrobe');
+// Steve Interaction & Physics State
+// let (not const): the canvas element is replaced when the WebGL context is
+// lost after backgrounding the app (Android WebView never restores it)
+let skinViewerCanvas = document.getElementById('skin-viewer-3d');
 const btnStageSettings = document.getElementById('btn-stage-settings');
 const btnStageFolder = document.getElementById('btn-stage-folder');
 
 
 // Servers Tab
-const popularServersGrid = document.getElementById('popular-servers-grid');
 const inputPlayServer = document.getElementById('input-play-server');
 const btnDirectConnect = document.getElementById('btn-direct-connect');
 const realServersList = document.getElementById('real-servers-list');
@@ -37,8 +38,6 @@ const wardrobeSkinName = document.getElementById('wardrobe-skin-name');
 const inputProfileNickname = document.getElementById('input-profile-nickname');
 const btnSaveProfile = document.getElementById('btn-save-profile');
 const btnUploadNewSkin = document.getElementById('btn-upload-new-skin');
-const mojangDefaultSkinsGrid = document.getElementById('mojang-default-skins-grid');
-const customWardrobeStrip = document.getElementById('custom-wardrobe-strip');
 const inputFetchSkinNick = document.getElementById('input-fetch-skin-nick');
 const btnFetchSkinByNick = document.getElementById('btn-fetch-skin-by-nick');
 
@@ -128,7 +127,6 @@ let currentVersionsData = { versions: [], activeVersion: 'v0.2.97', latestStable
 let currentSettings = {};
 let savedServers = [];
 let defaultSkinsList = [];
-let wardrobeList = [];
 let skinViewer = null;
 
 // Steve Interaction & Physics State

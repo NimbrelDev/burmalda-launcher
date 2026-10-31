@@ -7,11 +7,9 @@ function updateSkinUI(dataUrl, skinName = 'Стив') {
   const img = new Image();
   img.onload = () => {
     if (dockAvatar) drawAvatarHead(dockAvatar, img);
-    if (wardrobeAvatarCanvas) drawAvatarHead(wardrobeAvatarCanvas, img);
   };
   img.src = activeUrl;
 
-  if (wardrobeSkinName) wardrobeSkinName.textContent = `Скин: ${skinName}`;
 }
 
 function drawAvatarHead(canvas, img) {

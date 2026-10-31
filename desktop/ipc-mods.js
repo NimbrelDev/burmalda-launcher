@@ -140,18 +140,5 @@ export function registerModHandlers() {
     ];
   });
 
-  // Real Saved Servers Manager
-  ipcMain.handle('get-saved-servers', () => {
-    const settings = loadSettings();
-    return settings.savedServers || [
-      { id: 'srv-local', name: 'Локальный сервер Horizon', address: '127.0.0.1:25565' }
-    ];
-  });
 
-  ipcMain.handle('save-servers', (_, servers) => {
-    const settings = loadSettings();
-    settings.savedServers = servers;
-    saveSettings(settings);
-    return { success: true };
-  });
 }

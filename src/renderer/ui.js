@@ -50,16 +50,6 @@ function switchTab(tabName) {
     return;
   }
 
-  if (['servers', 'friends', 'wardrobe'].includes(tabName)) {
-    const names = {
-      servers: 'Серверы',
-      friends: 'Друзья',
-      wardrobe: 'Гардероб'
-    };
-    showToast(`Раздел «${names[tabName] || tabName}» ещё в разработке ⚙️`);
-    return;
-  }
-
   navBtns.forEach((b) => {
     if (b.getAttribute('data-tab') === tabName) {
       b.classList.add('active');
@@ -84,9 +74,6 @@ navBtns.forEach((btn) => {
   });
 });
 
-btnStageWardrobe?.addEventListener('click', () => {
-  showToast('Гардероб еще в разработке');
-});
 btnStageSettings?.addEventListener('click', () => switchTab('settings'));
 
 // In-place Minecraft Nametag Editing with Blinking Underscore Cursor

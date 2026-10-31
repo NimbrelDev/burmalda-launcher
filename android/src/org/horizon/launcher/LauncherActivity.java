@@ -89,6 +89,25 @@ public class LauncherActivity extends Activity {
         setContentView(webView);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+            // Coming back from background: the WebView surface and the WebGL
+            // context of the 3D stage need a re-layout/repaint kick, otherwise
+            // the launcher can stay black. JS-side handles a context that is
+            // still lost by re-creating the 3D viewer (skin-viewer.js).
+            webView.invalidate();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (webView != null) webView.onPause();
+        super.onPause();
+    }
+
     // ------------------------------------------------------------
     // System file picker plumbing: ACTION_OPEN_DOCUMENT started from the JS
     // bridge thread, result delivered here, bridge thread released via latch.

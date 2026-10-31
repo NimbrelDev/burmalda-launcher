@@ -1,6 +1,11 @@
+// Last skin URL handed to initSkinViewer: needed to rebuild the viewer
+// after a WebGL context loss (see recreateSkinViewer below)
+let skinViewerSrc = '';
+
 function initSkinViewer(skinSrc) {
   if (!skinViewerCanvas) return;
-  const resolved = skinSrc || 'assets/default_skins/steve.png';
+  const resolved = skinSrc || skinViewerSrc || 'assets/default_skins/steve.png';
+  skinViewerSrc = resolved;
 
   try {
     if (window.skinview3d && !skinViewer) {
@@ -67,6 +72,15 @@ function initSkinViewer(skinSrc) {
 
       // DO NOT set skinViewer.animation to avoid internal loop fighting!
       skinViewer.animation = null;
+
+      // Watch WebGL context loss on this canvas (backgrounding the app on
+      // Android kills the context and it never comes back by itself)
+      skinViewerCanvas.addEventListener('webglcontextlost', () => {
+        window.__skinViewerContextLost = true;
+      }, false);
+      skinViewerCanvas.addEventListener('webglcontextrestored', () => {
+        window.__skinViewerContextLost = false;
+      }, false);
 
       setupSteveInteractiveControls();
       spawnCratesPyramid(skinViewer);
@@ -141,3 +155,63 @@ function normalizeAngle(rad) {
 }
 
 // Setup Dragging, Pushing & Punching on Steve (Mouse & Touch)
+
+// ============================================================
+// Backgrounding / WebGL context loss recovery.
+// On Android WebView, switching the app to background destroys the WebGL
+// context of the canvas; skinview3d's own restore path does not bring it
+// back (screen stays black). Recovery: dispose the viewer, replace the
+// canvas element (fresh canvas => fresh context) and re-init everything
+// with the same skin. The interaction listeners and the shared frame loop
+// are viewer-independent (they read the global skinViewer), so they keep
+// working untouched.
+// ============================================================
+function disposeSkinViewer() {
+  if (!skinViewer) return;
+  try { skinViewer.dispose(); } catch (_) {} // cancels rAF loop, disposes controls+renderer
+  skinViewer = null;
+}
+
+function recreateSkinViewer() {
+  if (!window.skinview3d) return;
+  if (isShotgunActive) return; // never mid-easter-egg; retried below
+  disposeSkinViewer();
+  const old = skinViewerCanvas;
+  if (old && old.parentNode) {
+    const fresh = document.createElement('canvas');
+    fresh.id = 'skin-viewer-3d';
+    fresh.setAttribute('style', old.getAttribute('style') || '');
+    old.parentNode.replaceChild(fresh, old);
+    skinViewerCanvas = fresh;
+  }
+  window.__skinViewerContextLost = false;
+  initSkinViewer(skinViewerSrc);
+  // immediately paint one frame so the stage is never black
+  try { if (skinViewer) skinViewer.render(); } catch (_) {}
+}
+
+function handleContextLossRecovery(attempt = 0) {
+  if (isShotgunActive) {
+    // the shotgun easter egg self-resets after ~8s; try again afterwards
+    if (attempt < 10) setTimeout(() => handleContextLossRecovery(attempt + 1), 1500);
+    return;
+  }
+  let gl = null;
+  try {
+    gl = skinViewerCanvas && skinViewerCanvas.getContext('webgl2')
+      || skinViewerCanvas && skinViewerCanvas.getContext('webgl');
+  } catch (_) {}
+  if (!skinViewer || (gl && gl.isContextLost()) || window.__skinViewerContextLost) {
+    recreateSkinViewer();
+  } else if (skinViewer) {
+    // context survived: just nudge one frame to repaint after the pause
+    try { skinViewer.render(); } catch (_) {}
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  // give the WebView compositor a moment, then check twice (late restore)
+  setTimeout(() => handleContextLossRecovery(), 300);
+  setTimeout(() => handleContextLossRecovery(), 1500);
+});
