@@ -33,6 +33,12 @@
 #     `sdkmanager tools`, а этот пакет удалён из репозитория SDK (упал в #2).
 #     SDK предустановлен на runner'е; build-tools;34.0.0 и platforms;android-34
 #     доустанавливаются напрямую через sdkmanager.
+#   - android: патч применяется `patch -p1`, НЕ `git apply` — horizon-src
+#     распакован внутри чекаут-а лаунчера, и git apply из подкаталога git-репо
+#     молча не делает ничего (exit 0, "0 files changed"; прогоны #4/#5), после
+#     чего android-activity находилась в графе только через winit (без
+#     backend-фичи) и падала на compile_error!. Плюс жёсткая верификация
+#     патча по Cargo.toml и явный --features android-activity/native-activity.
 #   - windows: NSIS-таргет на linux требует wine (electron-builder всегда
 #     прогоняет инсталлятор под wine для извлечения uninstaller stub) — wine
 #     ставится через apt в самой джобе. Иконка/версия в exe патчатся без wine
@@ -145,18 +151,27 @@ jobs:
           ]
           EOF
 
-      - name: Накладываем мобильный патч (git apply, при неудаче patch -p1)
+      - name: Накладываем мобильный патч (с верификацией по Cargo.toml)
         run: |
           set -euo pipefail
           cd "${{ steps.source.outputs.dir }}"
           PATCH="$GITHUB_WORKSPACE/android/patches/horizon-mobile-overlay.patch"
-          if git apply --check "$PATCH" 2>/dev/null; then
-            git apply "$PATCH"
-            echo "Патч применён через git apply"
-          else
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            # ВАЖНО: horizon-src лежит ВНУТРИ чекаут-а лаунчера (подкаталог
+            # git-репо). В этом случае `git apply` резолвит пути патча от КОРНЯ
+            # репо, не находит crates/... и МОЛЧА завершается с "0 files
+            # changed" (exit 0!) — так «успешно применился» пустой патч в
+            # прогонах #4/#5, и android-activity собралась только из winit
+            # (без backend-фичи) с последующим compile_error!. `patch -p1`
+            # резолвит пути от текущего каталога — применяем им.
             patch -p1 < "$PATCH"
-            echo "Патч применён через patch -p1"
+          else
+            git apply "$PATCH" || patch -p1 < "$PATCH"
           fi
+          # Жёсткая проверка: патч обязан добавить android-activity в Cargo.toml.
+          grep -q "android-activity" crates/horizon-client/Cargo.toml \
+            || { echo "::error::патч не применился: нет android-activity в crates/horizon-client/Cargo.toml"; exit 1; }
+          echo "Патч применён (верифицировано по crates/horizon-client/Cargo.toml)"
 
       - name: Rust stable + target aarch64-linux-android
         uses: dtolnay/rust-toolchain@stable
