@@ -1,24 +1,24 @@
 {
   "latestVersion": "1.0.0",
   "minSupportedVersion": "1.0.0",
-  "downloadUrl": "https://burmalda.ru",
+  "downloadUrl": "https://burmalda-hub.ru",
   "title": "Доступно обновление",
   "message": "Вышла новая версия лаунчера! Скачайте обновление, чтобы получить новые возможности и улучшения.",
   "blockedTitle": "ВЕРСИЯ УСТАРЕЛА",
   "blockedMessage": "Данная версия лаунчера больше не поддерживается. Для продолжения игры необходимо скачать обновление с официального сайта.",
   "downloads": {
     "windows": {
-      "installer": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0-Setup.exe",
-      "portable": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.exe"
+      "installer": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0-Setup.exe",
+      "portable": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0.exe"
     },
     "linux": {
-      "appimage": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.AppImage",
-      "deb": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.deb",
-      "rpm": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.rpm",
-      "pacman": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.pacman"
+      "appimage": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0.AppImage",
+      "deb": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0.deb",
+      "rpm": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0.rpm",
+      "pacman": "https://burmalda-hub.ru/downloads/Burmalda%20Launcher-1.0.0.pacman"
     },
     "android": {
-      "apk": "https://burmalda.ru/downloads/horizon-mobile-26.3.apk"
+      "apk": "https://burmalda-hub.ru/downloads/horizon-mobile-1.0.0.apk"
     }
   }
 }

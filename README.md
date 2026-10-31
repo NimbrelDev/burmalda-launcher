@@ -11,7 +11,7 @@
 | Windows | NSIS-установщик + portable | готово |
 | Linux | AppImage, deb, rpm, pacman | готово |
 | Android | APK | готово |
-| macOS | dmg | в планах |
+| macOS (ARM64) | dmg, zip | готово (unsigned — при первом запуске: правый клик → «Открыть») |
 
 Готовые сборки: [burmalda-hub.ru](https://burmalda-hub.ru)
 

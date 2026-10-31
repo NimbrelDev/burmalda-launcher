@@ -5,6 +5,20 @@
 # crates/horizon-client/src/mobile.rs), собираем cdylib под aarch64-linux-android
 # и упаковываем APK скриптом android/package-apk.sh.
 #
+# Синхронизировано с .github/workflows/release.yml (джоба android) — там же
+# история отладки CI:
+#   - поиск NDK_ROOT каскадом (output setup-ndk -> env -> SDK -> tool cache),
+#     потому что nttld/setup-ndk иногда не выставляет output ndk-root;
+#   - патч применяется `patch -p1`, НЕ `git apply`: horizon-src лежит ВНУТРИ
+#     чекаут-а лаунчера, и git apply из подкаталога git-репо молча не делает
+#     ничего (exit 0, "0 files changed"), после чего android-activity попадала
+#     в граф только через winit (без backend-фичи) и падала на compile_error!;
+#   - android-actions/setup-android@v3 не используется: он запускает
+#     `sdkmanager tools`, а этот пакет удалён из репозитория SDK. SDK
+#     предустановлен на runner'е, недостающие пакеты доустанавливаются напрямую.
+#   - features транзитивной зависимости android-activity/native-activity
+#     фиксируются явно через CLI, чтобы unification не потерял её.
+#
 # Если меняется pin (HORIZON_COMMIT) — надо перегенерить патч,
 # см. android/patches/README.md.
 
@@ -39,30 +53,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p horizon-src && cd horizon-src
-          if [ -n "${{ env.HORIZON_SOURCE_URL }}" ]; then
-            # Приоритет: прямой URL на source tarball базового коммита.
-            # Ассет в приватном репо требует токен — качаем с GITHUB_TOKEN
-            # (если URL публичный, заголовок просто игнорируется).
-            curl -fL --retry 3 \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -H "Accept: application/octet-stream" \
-              -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
-          else
-            # Fallback: tarball коммита из git-репозитория (работает, если
-            # коммит $HORIZON_COMMIT есть в $HORIZON_REPO).
-            curl -fL --retry 3 \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -o horizon-source.tar.gz \
-              "https://github.com/${{ env.HORIZON_REPO }}/archive/${{ env.HORIZON_COMMIT }}.tar.gz" \
-              || { echo "::error::Исходники коммита ${{ env.HORIZON_COMMIT }} недоступны ни по HORIZON_SOURCE_URL, ни в ${{ env.HORIZON_REPO }}. См. android/patches/README.md"; exit 1; }
-          fi
+          # Прямой URL на source tarball базового коммита. Ассет качаем
+          # с GITHUB_TOKEN + Accept: application/octet-stream.
+          curl -fL --retry 3 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/octet-stream" \
+            -o horizon-source.tar.gz "${{ env.HORIZON_SOURCE_URL }}"
           tar -xzf horizon-source.tar.gz
-          # Tarball GitHub-archive содержит одну папку; некоторые tarball'ы
-          # распаковываются прямо в текущую. Определяем корень исходников.
+          # ВАЖНО: путь в output должен быть АБСОЛЮТНЫМ — последующие шаги
+          # стартуют из GITHUB_WORKSPACE, а не из horizon-src.
           if [ -f Cargo.toml ]; then
-            echo "dir=." >> "$GITHUB_OUTPUT"
+            echo "dir=$(pwd)" >> "$GITHUB_OUTPUT"
           else
-            echo "dir=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1 | sed 's|^\./||')" >> "$GITHUB_OUTPUT"
+            D=$(find . -mindepth 2 -name Cargo.toml -printf '%h\n' | head -1)
+            echo "dir=$(cd "$D" && pwd)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Android NDK ${{ env.NDK_VERSION }}
@@ -72,16 +76,25 @@ jobs:
           ndk-version: ${{ env.NDK_VERSION }}
           add-to-path: false
 
-      - name: Генерируем .cargo/config.toml под CI-NDK (не входит в патч)
+      - name: Генерируем .cargo/config.toml под CI-NDK (каскадный поиск NDK_ROOT)
         run: |
           set -euo pipefail
+          # 1) output экшена setup-ndk; 2) стандартные переменные окружения;
+          # 3) папка SDK; 4) tool cache раннера, куда setup-ndk кладёт NDK.
           NDK_ROOT="${{ steps.ndk.outputs.ndk-root }}"
           : "${NDK_ROOT:=${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}}"
-          [ -n "$NDK_ROOT" ] || NDK_ROOT=$(ls -d /usr/local/lib/android/sdk/ndk/* 2>/dev/null | head -1 || true)
-          [ -n "$NDK_ROOT" ] && [ -d "$NDK_ROOT" ] || { echo "::error::NDK not found (ndk-root='${{ steps.ndk.outputs.ndk-root }}', ANDROID_NDK_HOME='$ANDROID_NDK_HOME')"; ls /usr/local/lib/android/sdk/ndk/ 2>/dev/null || true; exit 1; }
+          if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+            NDK_ROOT=$(ls -d /usr/local/lib/android/sdk/ndk/* 2>/dev/null | head -1 || true)
+          fi
+          if [ -z "$NDK_ROOT" ] || [ ! -d "$NDK_ROOT" ]; then
+            NDK_ROOT=$(ls -d /opt/hostedtoolcache/ndk/*/* 2>/dev/null | head -1 || true)
+          fi
+          [ -n "$NDK_ROOT" ] && [ -d "$NDK_ROOT" ] || { echo "::error::NDK not found (ndk-root='${{ steps.ndk.outputs.ndk-root }}', ANDROID_NDK_ROOT='${ANDROID_NDK_ROOT:-}')"; ls /opt/hostedtoolcache/ndk/ 2>/dev/null || true; exit 1; }
           echo "NDK_ROOT=$NDK_ROOT" >> "$GITHUB_ENV"
-          mkdir -p "${{ steps.source.outputs.dir }}/.cargo"
-          cat > "${{ steps.source.outputs.dir }}/.cargo/config.toml" <<EOF
+          echo "Используем NDK: $NDK_ROOT"
+          SRC="${{ steps.source.outputs.dir }}"
+          mkdir -p "$SRC/.cargo"
+          cat > "$SRC/.cargo/config.toml" <<EOF
           [target.aarch64-linux-android]
           ar = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
           linker = "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang"
@@ -90,19 +103,27 @@ jobs:
           ]
           EOF
 
-      - name: Накладываем мобильный патч (git apply, при неудаче patch -p1)
+      - name: Накладываем мобильный патч (с верификацией по Cargo.toml)
         run: |
           set -euo pipefail
           cd "${{ steps.source.outputs.dir }}"
           PATCH="$GITHUB_WORKSPACE/android/patches/horizon-mobile-overlay.patch"
-          if git apply --check "$PATCH" 2>/dev/null; then
-            git apply "$PATCH"
-            echo "Патч применён через git apply"
-          else
-            # patch -p1 терпимее к контексту (допускает fuzz).
+          if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            # ВАЖНО: horizon-src лежит ВНУТРИ чекаут-а лаунчера (подкаталог
+            # git-репо). В этом случае `git apply` резолвит пути патча от КОРНЯ
+            # репо, не находит crates/... и МОЛЧА завершается с "0 files
+            # changed" (exit 0!) — так «успешно применился» пустой патч в
+            # прогонах #4/#5, и android-activity собралась только из winit
+            # (без backend-фичи) с последующим compile_error!. `patch -p1`
+            # резолвит пути от текущего каталога — применяем им.
             patch -p1 < "$PATCH"
-            echo "Патч применён через patch -p1"
+          else
+            git apply "$PATCH" || patch -p1 < "$PATCH"
           fi
+          # Жёсткая проверка: патч обязан добавить android-activity в Cargo.toml.
+          grep -q "android-activity" crates/horizon-client/Cargo.toml \
+            || { echo "::error::патч не применился: нет android-activity в crates/horizon-client/Cargo.toml"; exit 1; }
+          echo "Патч применён (верифицировано по crates/horizon-client/Cargo.toml)"
 
       - name: Rust stable + target aarch64-linux-android
         uses: dtolnay/rust-toolchain@stable
@@ -113,26 +134,45 @@ jobs:
         with:
           workspaces: "${{ steps.source.outputs.dir }}"
 
-      - name: JDK 17 (javac для package-apk.sh) и Android SDK
+      - name: JDK 17 (javac для package-apk.sh)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Android SDK (build-tools 34 + platform 34; без android-actions/setup-android)
+        # android-actions/setup-android@v3 падает: он запускает `sdkmanager tools`,
+        # а устаревший пакет 'tools' удалён из репозитория SDK (Failed to find
+        # package 'tools'). SDK уже предустановлен на runner'е — просто ставим
+        # недостающие пакеты напрямую и проверяем, что нужны package-apk.sh.
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          SDKM="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM=$(ls "$ANDROID_SDK_ROOT"/cmdline-tools/*/bin/sdkmanager | head -1)
+          # Пакеты уже предустановлены на runner'е — sdkmanager выйдет мгновенно,
+          # и `yes` получит SIGPIPE (broken pipe), потому пайп под pipefail
+          # гасим через || true; корректность проверяет ls ниже.
+          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" ] || [ ! -f "$ANDROID_SDK_ROOT/platforms/android-34/android.jar" ]; then
+            yes | "$SDKM" "build-tools;34.0.0" "platforms;android-34" >/dev/null || true
+          fi
+          ls "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" "$ANDROID_SDK_ROOT/platforms/android-34/android.jar"
 
       - name: cargo build (aarch64-linux-android, release)
         env:
-          # NDK_ROOT задаётся шагом выше через GITHUB_ENV.
-          # clang/ar из NDK для C-зависимостей (wasmtime и др.).
           CC_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang
           AR_aarch64_linux_android: ${{ env.NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
         run: |
           set -euo pipefail
           cd "${{ steps.source.outputs.dir }}"
+          # Диагностика: убеждаемся, что патч дошёл до Cargo.toml и android-activity
+          # в графе с фичей native-activity.
+          grep -n "android-activity" crates/horizon-client/Cargo.toml
+          cargo tree -i android-activity --target aarch64-linux-android -e features,no-dev | grep -m1 -B1 "android-activity v" || true
+          # android-activity/native-activity — явная фиксация backend-фичи через CLI
+          # (features транзитивной зависимости), чтобы unification не потерял её.
           cargo build -p horizon-client --target aarch64-linux-android --release \
-            --no-default-features --features audio,mods
+            --no-default-features --features audio,mods,android-activity/native-activity
 
       - name: Кладём .so в android/libs/arm64-v8a/
         run: |
@@ -163,7 +203,6 @@ jobs:
 
       - name: Упаковка APK (android/package-apk.sh)
         env:
-          # SDK ставится android-actions/setup-android; путь по умолчанию на runner'ах.
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           # Пароли берутся из secrets, если заданы; иначе скрипт подпишет debug-ключом.
           ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}

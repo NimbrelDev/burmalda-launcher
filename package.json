@@ -72,11 +72,11 @@
   "homepage": "https://burmalda-hub.ru",
   "keywords": [
     "minecraft",
-    "r-launcher",
+    "burmalda",
     "rust",
     "launcher"
   ],
-  "author": "R-Launcher Team",
+  "author": "Roman (Burmalda)",
   "license": "MIT",
   "type": "module",
   "devDependencies": {

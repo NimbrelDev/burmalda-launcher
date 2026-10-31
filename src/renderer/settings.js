@@ -8,7 +8,7 @@ function scheduleSaveSettings() {
 async function saveCurrentSettings() {
   const settings = {
     ...currentSettings,
-    brandName: 'R-Launcher',
+    brandName: 'Burmalda Launcher',
     brandTag: '',
     nickname: inputProfileNickname ? inputProfileNickname.value.trim() || 'Player' : 'Player',
     ramMb: parseInt(settingRamSelect?.value, 10) || 4096,

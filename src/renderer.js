@@ -1,4 +1,4 @@
-// R-Launcher — Renderer Entry Point
+// Burmalda Launcher — Renderer Entry Point
 // Application bootstrap: remote update checks, broadcast announcements and initApp().
 // Feature modules are loaded as classic scripts before this file (see index.html).
 
@@ -20,7 +20,7 @@ async function checkLauncherUpdatesAndBroadcasts() {
 
         if (btnDl) {
           btnDl.onclick = () => {
-            window.api.openExternalUrl(updateInfo.downloadUrl || 'https://burmalda.ru');
+            window.api.openExternalUrl(updateInfo.downloadUrl || 'https://burmalda-hub.ru');
           };
         }
 
@@ -45,7 +45,7 @@ async function checkLauncherUpdatesAndBroadcasts() {
 
         if (btnDl) {
           btnDl.onclick = () => {
-            window.api.openExternalUrl(updateInfo.downloadUrl || 'https://burmalda.ru');
+            window.api.openExternalUrl(updateInfo.downloadUrl || 'https://burmalda-hub.ru');
             if (modalUpdate) modalUpdate.style.display = 'none';
           };
         }

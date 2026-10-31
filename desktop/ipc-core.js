@@ -109,7 +109,7 @@ export function registerCoreHandlers() {
 
     const latestVersion = remoteData.latestVersion || currentVersion;
     const minSupportedVersion = remoteData.minSupportedVersion || '0.0.0';
-    const downloadUrl = remoteData.downloadUrl || 'https://burmalda.ru';
+    const downloadUrl = remoteData.downloadUrl || 'https://burmalda-hub.ru';
 
     const isBlocked = compareSemver(currentVersion, minSupportedVersion) < 0;
     const hasUpdate = compareSemver(currentVersion, latestVersion) < 0;

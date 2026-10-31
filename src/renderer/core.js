@@ -1,4 +1,4 @@
-// R-Launcher — Core Frontend Controller
+// Burmalda Launcher — Core Frontend Controller
 // Pure Human-Crafted Architecture · No AI Slop · High Performance
 
 // --- DOM REFERENCES ---

@@ -5,7 +5,7 @@ import { appState } from './state.js';
 
 function loadSettings() {
   const defaults = {
-    brandName: 'R-Launcher',
+    brandName: 'Burmalda Launcher',
     brandTag: '',
     nickname: 'Player',
     selectedVersion: 'v0.2.97',

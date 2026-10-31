@@ -44,7 +44,7 @@
 {
   "latestVersion": "1.0.0",
   "minSupportedVersion": "1.0.0",
-  "downloadUrl": "https://burmalda.ru",
+  "downloadUrl": "https://burmalda-hub.ru",
   "title": "Доступно обновление",
   "message": "Вышла новая версия лаунчера!",
   "blockedTitle": "ВЕРСИЯ УСТАРЕЛА",
@@ -58,7 +58,7 @@
 {
   "latestVersion": "1.0.1",
   "minSupportedVersion": "1.0.0",
-  "downloadUrl": "https://burmalda.ru/download",
+  "downloadUrl": "https://burmalda-hub.ru/download",
   "title": "Доступно обновление 1.0.1",
   "message": "Мы добавили новые шейдеры и ускорили загрузку. Скачайте обновление на сайте!"
 }
@@ -71,7 +71,7 @@
 {
   "latestVersion": "1.0.2",
   "minSupportedVersion": "1.0.2",
-  "downloadUrl": "https://burmalda.ru/download",
+  "downloadUrl": "https://burmalda-hub.ru/download",
   "blockedTitle": "ВЕРСИЯ ЗАБЛОКИРОВАНА",
   "blockedMessage": "Версия 1.0.0 и 1.0.1 заблокирована из-за обновления защиты. Скачайте версию 1.0.2 на сайте."
 }
