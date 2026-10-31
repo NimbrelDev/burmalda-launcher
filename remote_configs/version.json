@@ -5,5 +5,20 @@
   "title": "Доступно обновление",
   "message": "Вышла новая версия лаунчера! Скачайте обновление, чтобы получить новые возможности и улучшения.",
   "blockedTitle": "ВЕРСИЯ УСТАРЕЛА",
-  "blockedMessage": "Данная версия лаунчера больше не поддерживается. Для продолжения игры необходимо скачать обновление с официального сайта."
+  "blockedMessage": "Данная версия лаунчера больше не поддерживается. Для продолжения игры необходимо скачать обновление с официального сайта.",
+  "downloads": {
+    "windows": {
+      "installer": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0-Setup.exe",
+      "portable": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.exe"
+    },
+    "linux": {
+      "appimage": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.AppImage",
+      "deb": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.deb",
+      "rpm": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.rpm",
+      "pacman": "https://burmalda.ru/downloads/Burmalda%20Launcher-1.0.0.pacman"
+    },
+    "android": {
+      "apk": "https://burmalda.ru/downloads/horizon-mobile-26.3.apk"
+    }
+  }
 }

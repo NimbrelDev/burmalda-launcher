@@ -18,6 +18,7 @@
     "directories": {
       "output": "dist"
     },
+    "afterPack": "scripts/afterpack.js",
     "files": [
       "desktop/**/*",
       "src/**/*",
@@ -32,7 +33,6 @@
       ],
       "category": "Game",
       "maintainer": "Burmalda <support@burmalda-hub.ru>",
-      "homepage": "https://burmalda-hub.ru",
       "artifactName": "${productName}-${version}.${ext}"
     },
     "deb": {
@@ -49,6 +49,7 @@
         "nsis",
         "portable"
       ],
+      "signAndEditExecutable": false,
       "artifactName": "${productName}-${version}.${ext}"
     },
     "nsis": {
@@ -58,6 +59,7 @@
       "artifactName": "${productName}-${version}-Setup.${ext}"
     }
   },
+  "homepage": "https://burmalda-hub.ru",
   "keywords": [
     "minecraft",
     "r-launcher",
@@ -69,7 +71,8 @@
   "type": "module",
   "devDependencies": {
     "electron": "^45.0.0",
-    "electron-builder": "^26.18.0"
+    "electron-builder": "^26.18.0",
+    "resedit": "^3.1.0"
   },
   "dependencies": {
     "skinview3d": "^3.4.2"
