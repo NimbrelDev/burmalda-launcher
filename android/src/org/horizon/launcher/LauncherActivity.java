@@ -495,25 +495,6 @@ public class LauncherActivity extends Activity {
     public static class GameActivity extends android.app.NativeActivity {
         public GameActivity() {
         }
-
-        // When the user leaves the game (HOME / recents), keep the activity
-        // RESUMED inside a Picture-in-Picture window instead of stopping it:
-        // the engine's Vulkan surface is then never destroyed, the game keeps
-        // running in the small window, and returning restores the exact same
-        // state (world, position). A plain pause/stop destroys the surface
-        // and the engine cannot re-acquire it (black screen on return).
-        @Override
-        public void onUserLeaveHint() {
-            try {
-                android.app.PictureInPictureParams params =
-                    new android.app.PictureInPictureParams.Builder()
-                        .setAspectRatio(new android.util.Rational(16, 9))
-                        .build();
-                enterPictureInPictureMode(params);
-            } catch (Exception e) {
-                Log.w(TAG, "Picture-in-Picture enter failed", e);
-            }
-        }
     }
 
     public static class LauncherBridge {
