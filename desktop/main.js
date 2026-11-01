@@ -38,6 +38,7 @@ function createWindow() {
     minHeight: 480,
     frame: false,
     backgroundColor: '#0a0d14',
+    icon: path.join(SRC_DIR, 'assets', 'icons', 'logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,

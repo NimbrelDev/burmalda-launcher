@@ -16,6 +16,7 @@
 
     <application
         android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:hasCode="true"
         android:theme="@style/AppTheme">
 
@@ -33,12 +34,13 @@
         </activity>
 
         <activity
-            android:name="android.app.NativeActivity"
+            android:name="org.horizon.launcher.LauncherActivity$GameActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/AppTheme"
             android:process=":game"
-            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|density"
+            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|density|smallestScreenSize"
+            android:windowSoftInputMode="adjustNothing"
             android:screenOrientation="sensorLandscape">
             <meta-data
                 android:name="android.app.lib_name"
