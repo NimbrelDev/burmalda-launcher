@@ -25,6 +25,8 @@
 name: build-apk
 
 on:
+  push:
+    branches: [ master ]
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * *" # ежедневно в 03:00 UTC
