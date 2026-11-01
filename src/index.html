@@ -458,57 +458,70 @@
     </div>
   </div>
 
-  <!-- MODAL: FIRST-RUN CONTROLS PRESETS SELECTOR -->
+  <!-- MODAL: CONTROLS PRESET SELECTOR (Compact with Live Preview) -->
   <div class="modal-backdrop" id="modal-controls-presets" style="display: none; z-index: 9500;">
-    <div class="modal-dialog">
-      <div style="text-align: center; margin-bottom: 8px;">
-        <div style="font-family: var(--font-minecraft); font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 6px; letter-spacing: 0.5px;">
-          СТИЛЬ УПРАВЛЕНИЯ
-        </div>
-        <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
-          Выберите удобную раскладку для игры на сенсорном экране
-        </div>
-      </div>
-
-      <div class="preset-cards-grid">
-        <div class="preset-card-option selected" id="preset-card-2fingers" data-preset="2fingers">
-          <div class="preset-card-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path>
-              <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
-              <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
-              <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
-            </svg>
-          </div>
-          <div class="preset-card-title">В 2 пальца</div>
-          <div class="preset-card-desc">Классическая раскладка. Удар, прыжок и блок под правым пальцем.</div>
-        </div>
-
-        <div class="preset-card-option" id="preset-card-3fingers" data-preset="3fingers">
-          <div class="preset-card-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-          </div>
-          <div class="preset-card-title">В 3 пальца</div>
-          <div class="preset-card-desc">Клешня (PvP). Кнопка удара вынесена в левый верхний угол.</div>
+    <div class="modal-dialog controls-modal-dialog">
+      <!-- Header with Tabs -->
+      <div class="controls-modal-header">
+        <span class="controls-modal-title">РАСКЛАДКА УПРАВЛЕНИЯ</span>
+        <div class="controls-preset-tabs">
+          <button class="controls-tab-btn active" id="preset-tab-2fingers" data-preset="2fingers">2 ПАЛЬЦА</button>
+          <button class="controls-tab-btn" id="preset-tab-3fingers" data-preset="3fingers">3 ПАЛЬЦА</button>
         </div>
       </div>
 
-      <div class="preset-checkboxes">
-        <label class="preset-checkbox-row">
-          <input type="checkbox" id="preset-chk-sprint-stick">
-          <span>Убрать кнопку спринта (бег через стик)</span>
+      <!-- Live Interactive Screen Preview -->
+      <div class="controls-preview-screen" id="controls-preview-screen">
+        <div class="preview-crosshair">+</div>
+        <!-- Left Zone: Joystick -->
+        <div class="preview-btn preview-stick" id="prev-stick">
+          <div class="prev-stick-inner"></div>
+        </div>
+        <!-- Left Top (for 3 fingers): Attack -->
+        <div class="preview-btn preview-action prev-attack" id="prev-attack">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" y1="19" x2="19" y2="13"></line><line x1="16" y1="16" x2="20" y2="20"></line><line x1="19" y1="21" x2="21" y2="19"></line></svg>
+        </div>
+        <!-- Top Center: Quick Keys -->
+        <div class="preview-top-bar" id="prev-top-bar">
+          <span class="prev-pill">F5</span>
+          <span class="prev-pill">ESC</span>
+          <span class="prev-pill">F3</span>
+          <span class="prev-pill">CHAT</span>
+        </div>
+        <!-- Top Right: Keyboard -->
+        <div class="preview-btn prev-kb" id="prev-kb">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="8" x2="6.01" y2="8"></line><line x1="10" y1="8" x2="10.01" y2="8"></line><line x1="14" y1="8" x2="14.01" y2="8"></line><line x1="18" y1="8" x2="18.01" y2="8"></line></svg>
+        </div>
+        <!-- Right Action Cluster -->
+        <div class="preview-btn preview-action prev-place" id="prev-place">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        </div>
+        <div class="preview-btn preview-action prev-jump" id="prev-jump">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="5 12 12 5 19 12"></polyline></svg>
+        </div>
+        <div class="preview-btn preview-action prev-sprint" id="prev-sprint">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+        </div>
+      </div>
+
+      <!-- Controls Checkboxes -->
+      <div class="controls-modal-options">
+        <label class="controls-checkbox-item">
+          <input type="checkbox" id="preset-chk-sprint-btn" checked>
+          <span class="custom-checkbox"></span>
+          <span>Кнопка спринта</span>
         </label>
-        <label class="preset-checkbox-row">
-          <input type="checkbox" id="preset-chk-hide-pc">
-          <span>Убрать ПК-кнопки (для модов)</span>
+        <label class="controls-checkbox-item">
+          <input type="checkbox" id="preset-chk-pc-keys" checked>
+          <span class="custom-checkbox"></span>
+          <span>ПК-клавиши (F3, F5, Меню)</span>
         </label>
       </div>
 
-      <div style="display: flex; gap: 10px;">
-        <button class="btn-action-primary" id="btn-preset-apply" style="width: 100%; height: 40px; font-size: 11px;">
-          ПРИМЕНИТЬ
+      <!-- Footer Buttons -->
+      <div class="controls-modal-footer">
+        <button class="btn-action-primary" id="btn-preset-apply" style="width: 100%; height: 38px; font-size: 11px;">
+          СОХРАНИТЬ
         </button>
       </div>
     </div>

@@ -46,7 +46,7 @@ async function triggerPlayAction(targetServer = null) {
     try {
       const hasControls = await window.api.exists('controls.json');
       if (!hasControls && window.mobileControlsEditor?.openPresetsModal) {
-        window.mobileControlsEditor.openPresetsModal();
+        window.mobileControlsEditor.openPresetsModal(() => launchGame(srv));
         return;
       }
     } catch (_) {}

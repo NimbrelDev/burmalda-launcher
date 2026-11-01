@@ -151,13 +151,18 @@
 
   // Modal elements
   const modalPresets = document.getElementById('modal-controls-presets');
-  const card2Fingers = document.getElementById('preset-card-2fingers');
-  const card3Fingers = document.getElementById('preset-card-3fingers');
-  const chkSprint = document.getElementById('preset-chk-sprint-stick');
-  const chkHidePc = document.getElementById('preset-chk-hide-pc');
+  const tab2Fingers = document.getElementById('preset-tab-2fingers');
+  const tab3Fingers = document.getElementById('preset-tab-3fingers');
+  const previewScreen = document.getElementById('controls-preview-screen');
+  const chkSprintBtn = document.getElementById('preset-chk-sprint-btn');
+  const chkPcKeys = document.getElementById('preset-chk-pc-keys');
+  const prevSprint = document.getElementById('prev-sprint');
+  const prevTopBar = document.getElementById('prev-top-bar');
+  const prevKb = document.getElementById('prev-kb');
   const btnPresetApply = document.getElementById('btn-preset-apply');
 
   let modalSelectedPreset = '2fingers';
+  let pendingLaunchTarget = null;
 
   function markChanges(changed) {
     hasUnsavedChanges = changed;
@@ -453,11 +458,37 @@
     openPresetsModal();
   });
 
-  // Presets modal logic
-  function openPresetsModal() {
+  // Presets modal logic & interactive preview
+  function updatePreviewScreen() {
+    if (!previewScreen) return;
+    previewScreen.classList.remove('mode-2fingers', 'mode-3fingers');
+    previewScreen.classList.add('mode-' + modalSelectedPreset);
+
+    if (prevSprint) {
+      if (chkSprintBtn?.checked) {
+        prevSprint.classList.remove('is-preview-hidden');
+      } else {
+        prevSprint.classList.add('is-preview-hidden');
+      }
+    }
+
+    const showPc = Boolean(chkPcKeys?.checked);
+    if (prevTopBar) {
+      if (showPc) prevTopBar.classList.remove('is-preview-hidden');
+      else prevTopBar.classList.add('is-preview-hidden');
+    }
+    if (prevKb) {
+      if (showPc) prevKb.classList.remove('is-preview-hidden');
+      else prevKb.classList.add('is-preview-hidden');
+    }
+  }
+
+  function openPresetsModal(onLaunchCallback = null) {
+    pendingLaunchTarget = onLaunchCallback;
     if (modalPresets) {
       modalPresets.style.display = 'flex';
       modalPresets.classList.add('open');
+      updatePreviewScreen();
     }
   }
 
@@ -468,24 +499,36 @@
     }
   }
 
-  card2Fingers?.addEventListener('click', () => {
+  tab2Fingers?.addEventListener('click', () => {
     modalSelectedPreset = '2fingers';
-    card2Fingers.classList.add('selected');
-    card3Fingers?.classList.remove('selected');
+    tab2Fingers.classList.add('active');
+    tab3Fingers?.classList.remove('active');
+    updatePreviewScreen();
     if (typeof playUiClickSound === 'function') playUiClickSound();
   });
 
-  card3Fingers?.addEventListener('click', () => {
+  tab3Fingers?.addEventListener('click', () => {
     modalSelectedPreset = '3fingers';
-    card3Fingers.classList.add('selected');
-    card2Fingers?.classList.remove('selected');
+    tab3Fingers.classList.add('active');
+    tab2Fingers?.classList.remove('active');
+    updatePreviewScreen();
+    if (typeof playUiClickSound === 'function') playUiClickSound();
+  });
+
+  chkSprintBtn?.addEventListener('change', () => {
+    updatePreviewScreen();
+    if (typeof playUiClickSound === 'function') playUiClickSound();
+  });
+
+  chkPcKeys?.addEventListener('change', () => {
+    updatePreviewScreen();
     if (typeof playUiClickSound === 'function') playUiClickSound();
   });
 
   btnPresetApply?.addEventListener('click', async () => {
     if (typeof playUiClickSound === 'function') playUiClickSound();
-    const removeSprint = Boolean(chkSprint?.checked);
-    const hidePc = Boolean(chkHidePc?.checked);
+    const removeSprint = !Boolean(chkSprintBtn?.checked);
+    const hidePc = !Boolean(chkPcKeys?.checked);
 
     const cfg = createPresetConfig(modalSelectedPreset, removeSprint, hidePc);
     activeLayout = cfg;
@@ -504,7 +547,14 @@
     closePresetsModal();
     renderEditorItems();
     if (typeof showToast === 'function') {
-      showToast(modalSelectedPreset === '3fingers' ? 'Применен пресет: В 3 пальца (Клешня)' : 'Применен пресет: В 2 пальца (Классика)');
+      showToast(modalSelectedPreset === '3fingers' ? 'Применен пресет: В 3 пальца' : 'Применен пресет: В 2 пальца');
+    }
+
+    // If modal was triggered by pressing "В БОЙ", proceed to launch game
+    if (typeof pendingLaunchTarget === 'function') {
+      const cb = pendingLaunchTarget;
+      pendingLaunchTarget = null;
+      cb();
     }
   });
 
@@ -536,13 +586,13 @@
     renderEditorItems();
   }
 
-  // First-run preset prompt check: called on init and launch
-  async function checkFirstRunControls() {
+  // First-run preset prompt check: called ONLY when user hits "В БОЙ" if no controls.json
+  async function checkFirstRunControls(onLaunchCallback = null) {
     try {
       if (window.api && typeof window.api.exists === 'function') {
         const hasFile = await window.api.exists(CONTROLS_FILENAME);
         if (!hasFile) {
-          openPresetsModal();
+          openPresetsModal(onLaunchCallback);
           return true;
         }
       }
@@ -554,12 +604,9 @@
     if (activeLayout) renderEditorItems();
   });
 
-  // Hook into launcher lifecycle:
+  // Load layout on init without showing popup
   window.addEventListener('DOMContentLoaded', async () => {
     await loadControlsLayout();
-    setTimeout(() => {
-      checkFirstRunControls();
-    }, 600);
   });
 
   // Global interface export
