@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="styles/modals.css">
   <link rel="stylesheet" href="styles/modpacks.css">
   <link rel="stylesheet" href="styles/workbench.css">
+  <link rel="stylesheet" href="styles/controls.css">
 </head>
 <body>
 
@@ -50,8 +51,18 @@
         <span class="nav-label">СБОРКИ</span>
       </button>
 
-
-
+      <button class="nav-btn android-only" data-tab="controls" title="Управление">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="12" x2="10" y2="12"></line>
+            <line x1="8" y1="10" x2="8" y2="14"></line>
+            <line x1="15" y1="13" x2="15.01" y2="13"></line>
+            <line x1="18" y1="11" x2="18.01" y2="11"></line>
+            <rect x="2" y="6" width="20" height="12" rx="3"></rect>
+          </svg>
+        </span>
+        <span class="nav-label">УПРАВЛЕНИЕ</span>
+      </button>
 
       <button class="nav-btn" data-tab="settings" title="Настройки">
         <span class="nav-icon">
@@ -208,6 +219,46 @@
             <button class="btn-action-secondary" data-open="game">Открыть в проводнике</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- 6. TAB: CONTROLS (Android-only Fullscreen Interactive Editor) -->
+    <section class="tab-content" id="pane-controls">
+      <div class="controls-editor-topbar">
+        <button class="controls-editor-btn btn-exit" id="btn-controls-exit" title="Выйти без сохранения">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <span>ВЫЙТИ</span>
+        </button>
+
+        <div class="controls-inspector" id="controls-inspector" style="visibility: hidden;">
+          <span class="controls-inspector-title" id="inspector-element-title">Элемент</span>
+          <div class="controls-scale-group">
+            <span>Масштаб:</span>
+            <input type="range" class="controls-scale-slider" id="inspector-scale-slider" min="50" max="200" value="100">
+            <span class="controls-scale-val" id="inspector-scale-val">1.0x</span>
+          </div>
+          <button class="controls-visibility-btn" id="inspector-visibility-btn" title="Переключить видимость кнопки">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <span id="inspector-visibility-text">Видима</span>
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="controls-editor-btn" id="btn-controls-reset-preset" title="Выбрать стиль управления">
+            <span>ПРЕСЕТЫ</span>
+          </button>
+          <button class="controls-editor-btn btn-save" id="btn-controls-save" title="Сохранить раскладку в controls.json">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>СОХРАНИТЬ</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="controls-editor-canvas" id="controls-editor-canvas">
+        <div class="controls-editor-grid"></div>
+        <div class="controls-editor-centerlines"></div>
+        <!-- Editable button items are injected and manipulated here -->
+        <div id="controls-editor-items"></div>
       </div>
     </section>
 
@@ -407,6 +458,62 @@
     </div>
   </div>
 
+  <!-- MODAL: FIRST-RUN CONTROLS PRESETS SELECTOR -->
+  <div class="modal-backdrop" id="modal-controls-presets" style="display: none; z-index: 9500;">
+    <div class="modal-dialog">
+      <div style="text-align: center; margin-bottom: 8px;">
+        <div style="font-family: var(--font-minecraft); font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 6px; letter-spacing: 0.5px;">
+          СТИЛЬ УПРАВЛЕНИЯ
+        </div>
+        <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+          Выберите удобную раскладку для игры на сенсорном экране
+        </div>
+      </div>
+
+      <div class="preset-cards-grid">
+        <div class="preset-card-option selected" id="preset-card-2fingers" data-preset="2fingers">
+          <div class="preset-card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path>
+              <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+              <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+              <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+            </svg>
+          </div>
+          <div class="preset-card-title">В 2 пальца</div>
+          <div class="preset-card-desc">Классическая раскладка. Удар, прыжок и блок под правым пальцем.</div>
+        </div>
+
+        <div class="preset-card-option" id="preset-card-3fingers" data-preset="3fingers">
+          <div class="preset-card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </div>
+          <div class="preset-card-title">В 3 пальца</div>
+          <div class="preset-card-desc">Клешня (PvP). Кнопка удара вынесена в левый верхний угол.</div>
+        </div>
+      </div>
+
+      <div class="preset-checkboxes">
+        <label class="preset-checkbox-row">
+          <input type="checkbox" id="preset-chk-sprint-stick">
+          <span>Убрать кнопку спринта (бег через стик)</span>
+        </label>
+        <label class="preset-checkbox-row">
+          <input type="checkbox" id="preset-chk-hide-pc">
+          <span>Убрать ПК-кнопки (для модов)</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-action-primary" id="btn-preset-apply" style="width: 100%; height: 40px; font-size: 11px;">
+          ПРИМЕНИТЬ
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="skinview3d.bundle.js"></script>
   <script src="renderer/core.js"></script>
   <script src="renderer/data.js"></script>
@@ -427,6 +534,7 @@
   <script src="renderer/touch-settings.js"></script>
   <script src="renderer/touch-export.js"></script>
   <script src="renderer/touch-hud.js"></script>
+  <script src="renderer/controls-editor.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

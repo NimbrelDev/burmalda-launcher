@@ -218,3 +218,16 @@
       display: none !important;
     }
 
+    /* Blocks and tabs visible strictly on Android */
+    .android-only {
+      display: none !important;
+    }
+
+    html.android .android-only {
+      display: initial;
+    }
+
+    html.android .nav-btn.android-only {
+      display: inline-flex !important;
+    }
+

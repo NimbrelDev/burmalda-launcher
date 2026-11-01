@@ -64,6 +64,10 @@ function switchTab(tabName) {
 
   if (tabName === 'settings') {
     loadTouchSettingsUI();
+  } else if (tabName === 'controls') {
+    if (window.mobileControlsEditor?.renderEditorItems) {
+      setTimeout(() => window.mobileControlsEditor.renderEditorItems(), 20);
+    }
   }
 }
 

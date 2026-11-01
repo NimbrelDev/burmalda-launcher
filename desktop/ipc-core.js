@@ -1,6 +1,8 @@
 // Core IPC handlers: settings, versions catalog, update/broadcast checks,
 // external links and native folder opening
 import { app, ipcMain, dialog, shell } from 'electron';
+import fs from 'fs';
+import path from 'path';
 import { spawn } from 'child_process';
 import { GAME_DIR, SAVES_DIR, MODS_DIR, VERSIONS_DIR, SKINS_DIR } from './paths.js';
 import { appState } from './state.js';
@@ -202,5 +204,42 @@ export function registerCoreHandlers() {
 
     await shell.openPath(target);
     return { success: true, path: target };
+  });
+
+  ipcMain.handle('exists', (_, relPath) => {
+    try {
+      const full = path.resolve(GAME_DIR, String(relPath || ''));
+      return fs.existsSync(full);
+    } catch (_) {
+      return false;
+    }
+  });
+
+  ipcMain.handle('read-file-text', (_, relPath) => {
+    try {
+      const full = path.resolve(GAME_DIR, String(relPath || ''));
+      if (fs.existsSync(full)) {
+        return fs.readFileSync(full, 'utf8');
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  });
+
+  ipcMain.handle('write-file-text', (_, relPath, text, base64 = false) => {
+    try {
+      const full = path.resolve(GAME_DIR, String(relPath || ''));
+      const dir = path.dirname(full);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      if (base64) {
+        fs.writeFileSync(full, Buffer.from(text, 'base64'));
+      } else {
+        fs.writeFileSync(full, text, 'utf8');
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
   });
 }

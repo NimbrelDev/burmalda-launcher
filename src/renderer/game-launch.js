@@ -41,6 +41,17 @@ async function triggerPlayAction(targetServer = null) {
     srv = inputPlayServer?.value || '127.0.0.1:25565';
   }
 
+  // Pre-flight check on mobile: prompt user for controls preset if not set
+  if (window.api && window.api.isAndroid) {
+    try {
+      const hasControls = await window.api.exists('controls.json');
+      if (!hasControls && window.mobileControlsEditor?.openPresetsModal) {
+        window.mobileControlsEditor.openPresetsModal();
+        return;
+      }
+    } catch (_) {}
+  }
+
   await launchGame(srv);
 }
 

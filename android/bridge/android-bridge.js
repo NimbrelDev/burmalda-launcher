@@ -310,6 +310,22 @@
   // ============================================================
 
   window.api = {
+    isAndroid: true,
+
+    // ---- file operations ----
+    exists: async (relPath) => {
+      const a = A();
+      return Boolean(a && a.exists(relPath));
+    },
+    readFileText: async (relPath) => {
+      const a = A();
+      return a ? a.readFileText(relPath) : null;
+    },
+    writeFileText: async (relPath, text, base64 = false) => {
+      const a = A();
+      return Boolean(a && a.writeFileText(relPath, text, Boolean(base64)));
+    },
+
     // ---- settings ----
     getSettings: async () => getStoredSettings(),
     saveSettings: async (settings) => {

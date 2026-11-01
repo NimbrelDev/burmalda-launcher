@@ -1465,10 +1465,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..a1c24a4
+index 0000000..eeea2fb
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2079 @@
+@@ -0,0 +1,2217 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1485,6 +1485,7 @@ index 0000000..a1c24a4
 +    title::Action,
 +    Result,
 +};
++use std::sync::atomic::{AtomicBool, Ordering};
 +use std::time::Instant;
 +use winit::{
 +    event::{MouseButton, Touch, TouchPhase, WindowEvent},
@@ -1616,9 +1617,21 @@ index 0000000..a1c24a4
 +        was_gameplay: false,
 +    });
 +
++/// Tracks Android suspend / resume state across winit lifecycle events.
++static IS_SUSPENDED: AtomicBool = AtomicBool::new(false);
++/// Flag set upon waking up from suspend to recreate the Vulkan/wgpu surface on the next tick.
++static NEED_RECREATE_SURFACE: AtomicBool = AtomicBool::new(false);
++/// Weak reference to the winit Window to safely request redraw upon resume.
++static ANDROID_WINDOW: std::sync::Mutex<Option<std::sync::Weak<winit::window::Window>>> =
++    std::sync::Mutex::new(None);
++
 +impl Game<'_> {
 +    /// Main entry point for mobile touch event routing.
 +    pub(crate) fn handle_mobile_touch(&mut self, touch: Touch) {
++        if IS_SUSPENDED.load(Ordering::SeqCst) {
++            return;
++        }
++
 +        let (sw, sh, scale) = if let Some(r) = &self.renderer {
 +            let b = HudBatch::new([r.config.width, r.config.height]);
 +            (b.width, b.height, b.scale)
@@ -2304,6 +2317,40 @@ index 0000000..a1c24a4
 +
 +    /// Ticked once per frame / engine tick to update hold gestures (continuous mining & inventory RMB hold).
 +    pub(crate) fn tick_mobile(&mut self) {
++        if let Some(w) = &self.window {
++            if let Ok(mut lock) = ANDROID_WINDOW.lock() {
++                *lock = Some(std::sync::Arc::downgrade(w));
++            }
++        }
++
++        if NEED_RECREATE_SURFACE.swap(false, Ordering::SeqCst) {
++            log::info!("Horizon: tick_mobile recreating surface after Android resume");
++            if let Some(renderer) = &mut self.renderer {
++                if let Err(e) = renderer.recreate_surface() {
++                    log::error!("Horizon: Failed to recreate renderer surface on Android resume: {e:?}");
++                } else if let Some(w) = &self.window {
++                    let size = w.inner_size();
++                    if size.width > 0
++                        && size.height > 0
++                        && (size.width != renderer.config.width
++                            || size.height != renderer.config.height)
++                    {
++                        renderer.resize(size.width, size.height);
++                    }
++                }
++            }
++            if let Some(window) = &self.window {
++                window.request_redraw();
++            }
++            if let Ok(mut state) = TOUCH_STATE.lock() {
++                self.reset_mobile_gestures(&mut state);
++            }
++        }
++
++        if IS_SUSPENDED.load(Ordering::SeqCst) {
++            return;
++        }
++
 +        let (sw, sh) = if let Some(r) = &self.renderer {
 +            let b = HudBatch::new([r.config.width, r.config.height]);
 +            (b.width, b.height)
@@ -3196,19 +3243,110 @@ index 0000000..a1c24a4
 +    let _ = ANDROID_APP.set(app);
 +}
 +
++/// Wrapper around ApplicationHandler to intercept Android lifecycle events (Suspended / Resumed).
++struct AndroidAppWrapper<'a, T> {
++    inner: &'a mut T,
++}
++
++impl<'a, T: winit::application::ApplicationHandler<UserEvent>, UserEvent: 'static>
++    winit::application::ApplicationHandler<UserEvent> for AndroidAppWrapper<'a, T>
++{
++    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: winit::event::StartCause) {
++        self.inner.new_events(event_loop, cause);
++    }
++
++    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
++        let was_suspended = IS_SUSPENDED.swap(false, Ordering::SeqCst);
++        self.inner.resumed(event_loop);
++        if was_suspended {
++            log::info!("Horizon: Android resumed from suspension, marking surface recreation");
++            NEED_RECREATE_SURFACE.store(true, Ordering::SeqCst);
++            if let Ok(lock) = ANDROID_WINDOW.lock() {
++                if let Some(window) = lock.as_ref().and_then(|w| w.upgrade()) {
++                    log::info!("Horizon: Requesting redraw on resume");
++                    window.request_redraw();
++                }
++            }
++        }
++    }
++
++    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: UserEvent) {
++        self.inner.user_event(event_loop, event);
++    }
++
++    fn window_event(
++        &mut self,
++        event_loop: &ActiveEventLoop,
++        window_id: winit::window::WindowId,
++        event: WindowEvent,
++    ) {
++        self.inner.window_event(event_loop, window_id, event);
++    }
++
++    fn device_event(
++        &mut self,
++        event_loop: &ActiveEventLoop,
++        device_id: winit::event::DeviceId,
++        event: winit::event::DeviceEvent,
++    ) {
++        self.inner.device_event(event_loop, device_id, event);
++    }
++
++    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
++        self.inner.about_to_wait(event_loop);
++        if NEED_RECREATE_SURFACE.load(Ordering::SeqCst) {
++            if let Ok(lock) = ANDROID_WINDOW.lock() {
++                if let Some(window) = lock.as_ref().and_then(|w| w.upgrade()) {
++                    window.request_redraw();
++                }
++            }
++        }
++    }
++
++    fn suspended(&mut self, event_loop: &ActiveEventLoop) {
++        log::info!("Horizon: Android suspended, setting pause state");
++        IS_SUSPENDED.store(true, Ordering::SeqCst);
++        if let Ok(mut state) = TOUCH_STATE.lock() {
++            state.stick_id = None;
++            state.stick_offset = (0.0, 0.0);
++            state.jump_id = None;
++            state.look_id = None;
++            state.look_start_time = None;
++            state.look_moved_dist = 0.0;
++            state.is_mining = false;
++            state.inv_touch_id = None;
++            state.inv_lmb_id = None;
++            state.inv_pressed = false;
++            state.inv_is_right = false;
++            state.inv_corner_id = None;
++            state.menu_scroll = None;
++        }
++        self.inner.suspended(event_loop);
++    }
++
++    fn exiting(&mut self, event_loop: &ActiveEventLoop) {
++        self.inner.exiting(event_loop);
++    }
++
++    fn memory_warning(&mut self, event_loop: &ActiveEventLoop) {
++        self.inner.memory_warning(event_loop);
++    }
++}
++
 +/// Builds and runs the winit event loop on Android: unlike desktop, the
 +/// builder must receive the `AndroidApp` handle `android_main` got.
 +pub(crate) fn run_android_event_loop<T: winit::application::ApplicationHandler>(
 +    app: &mut T,
 +) -> Result<()> {
 +    use winit::platform::android::EventLoopBuilderExtAndroid;
++    let mut wrapped = AndroidAppWrapper { inner: app };
 +    if let Some(android_app) = ANDROID_APP.get() {
 +        Ok(EventLoop::builder()
 +            .with_android_app(android_app.clone())
 +            .build()?
-+            .run_app(app)?)
++            .run_app(&mut wrapped)?)
 +    } else {
-+        Ok(EventLoop::new()?.run_app(app)?)
++        Ok(EventLoop::new()?.run_app(&mut wrapped)?)
 +    }
 +}
 +
