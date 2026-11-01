@@ -45,6 +45,7 @@ import java.util.zip.ZipFile;
 public class LauncherActivity extends Activity {
     private static final String TAG = "LauncherActivity";
     private WebView webView;
+    private LauncherBridge bridge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +81,8 @@ public class LauncherActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setBackgroundColor(0xFF0A0E14);
-        webView.addJavascriptInterface(new LauncherBridge(this), "AndroidLauncher");
+        bridge = new LauncherBridge(this);
+        webView.addJavascriptInterface(bridge, "AndroidLauncher");
 
         webView.setWebChromeClient(new CustomChromeClient(this));
         webView.setWebViewClient(new CustomWebClient());
@@ -99,6 +101,21 @@ public class LauncherActivity extends Activity {
             // the launcher can stay black. JS-side handles a context that is
             // still lost by re-creating the 3D viewer (skin-viewer.js).
             webView.invalidate();
+        }
+
+        // The game was paused and cannot restore its render surface: it asked
+        // (game-restart.flag) for a restart in a fresh :game process. Done on
+        // a worker thread: the dying :game process needs a moment to exit so
+        // the relaunch gets a fresh one (winit allows one EventLoop per process).
+        try {
+            File marker = gameRestartFlag(this);
+            if (marker.exists()) {
+                marker.delete();
+                Log.i(TAG, "Game restart requested: launching a fresh :game process");
+                new Thread(new GameRelaunchTask(this), "game-relaunch").start();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Game restart failed", e);
         }
     }
 
@@ -432,6 +449,70 @@ public class LauncherActivity extends Activity {
         @Override
         public void onPageFinished(WebView view, String url) {
             Log.i(TAG, "WebView finished loading: " + url);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Game activity (runs in the :game process, declared in the manifest).
+    // The engine renders through a Vulkan (wgpu) surface that it cannot
+    // re-acquire after the activity was paused (HOME / recents / power
+    // menu): the process lives on but the screen stays black forever.
+    // Fix on the launcher side: when resumed after a pause, restart the
+    // game in a fresh :game process (fresh surface). Also, the manifest
+    // sets windowSoftInputMode=adjustNothing so the IME never resizes the
+    // game surface (resize black-screened the renderer too).
+    // ------------------------------------------------------------
+
+    static class GameProcessExitTask implements Runnable {
+        public void run() {
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }
+    }
+
+    /** Restarts the game in a fresh :game process (see LauncherActivity.onResume). */
+    static class GameRelaunchTask implements Runnable {
+        private final LauncherActivity activity;
+        GameRelaunchTask(LauncherActivity activity) { this.activity = activity; }
+        @Override
+        public void run() {
+            try {
+                if (activity.bridge != null && activity.bridge.isGameRunning()) {
+                    activity.bridge.killGameProcess();
+                    Thread.sleep(700);
+                }
+                activity.startActivity(new Intent(activity, GameActivity.class));
+            } catch (Exception e) {
+                Log.e(TAG, "Game relaunch failed", e);
+            }
+        }
+    }
+
+    /** Marker file: the game was paused and must be restarted (see GameActivity). */
+    static File gameRestartFlag(Context ctx) {
+        return new File(externalBase(ctx), "game-restart.flag");
+    }
+
+    public static class GameActivity extends android.app.NativeActivity {
+        public GameActivity() {
+        }
+
+        // When the user leaves the game (HOME / recents), keep the activity
+        // RESUMED inside a Picture-in-Picture window instead of stopping it:
+        // the engine's Vulkan surface is then never destroyed, the game keeps
+        // running in the small window, and returning restores the exact same
+        // state (world, position). A plain pause/stop destroys the surface
+        // and the engine cannot re-acquire it (black screen on return).
+        @Override
+        public void onUserLeaveHint() {
+            try {
+                android.app.PictureInPictureParams params =
+                    new android.app.PictureInPictureParams.Builder()
+                        .setAspectRatio(new android.util.Rational(16, 9))
+                        .build();
+                enterPictureInPictureMode(params);
+            } catch (Exception e) {
+                Log.w(TAG, "Picture-in-Picture enter failed", e);
+            }
         }
     }
 
@@ -852,7 +933,21 @@ public class LauncherActivity extends Activity {
             // launcher progress bar instead of the black engine window.
             boolean installing = new File(baseDir(), "install-assets.flag").isFile();
 
-            Intent intent = new Intent(activity, android.app.NativeActivity.class);
+            // The engine reads the install flag only at process start and
+            // exits when done, so every launch must run in a fresh :game
+            // process: kill any cached/leftover one first.
+            try {
+                int stale = findGamePid();
+                if (stale != 0) {
+                    Log.i(TAG, "Killing stale :game process " + stale);
+                    android.os.Process.killProcess(stale);
+                    Thread.sleep(400);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "stale :game cleanup failed", e);
+            }
+
+            Intent intent = new Intent(activity, GameActivity.class);
             if (installing) intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             activity.startActivity(intent);
 
