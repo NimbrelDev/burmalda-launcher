@@ -1465,10 +1465,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..eeea2fb
+index 0000000..015bfd1
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2217 @@
+@@ -0,0 +1,2577 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1493,15 +1493,7 @@ index 0000000..eeea2fb
 +    keyboard::{KeyCode, PhysicalKey},
 +};
 +
-+/// Inventory cursor speed: GUI pixels of cursor travel per GUI pixel of
-+/// finger travel (the reference fork's default virtual-mouse sensitivity).
-+const INV_CURSOR_SENSITIVITY: f32 = 1.0;
-+/// Finger travel (squared, GUI px) that marks a gesture as "cursor move":
-+/// after it, the release can no longer fire a tap click (reference: 3 px).
-+const INV_DRAG_DIST_SQ: f32 = 3.0 * 3.0;
-+/// Stationary hold duration that fires a Right click (half stack / place
-+/// one; with movement it becomes the RMB distribute sweep). Reference: 500ms.
-+const INV_HOLD_RIGHT_MS: u128 = 500;
++
 +
 +/// A second menu press within this window of the previous one counts as a
 +/// bounce of the same tap, not a new click (one tap = one activation).
@@ -1513,18 +1505,160 @@ index 0000000..eeea2fb
 +const MENU_SAFE_TOP: f32 = 32.0;
 +const MENU_SAFE_BOTTOM: f32 = 32.0;
 +
++#[derive(Clone, Debug, serde::Deserialize)]
++pub struct ButtonConfig {
++    #[serde(default = "default_anchor")]
++    pub anchor: String,
++    #[serde(default)]
++    pub x: f32,
++    #[serde(default)]
++    pub y: f32,
++    #[serde(default = "default_scale")]
++    pub scale: f32,
++    #[serde(default = "default_true")]
++    pub visible: bool,
++}
++
++fn default_anchor() -> String {
++    "bottom_left".to_string()
++}
++fn default_scale() -> f32 {
++    1.0
++}
++fn default_true() -> bool {
++    true
++}
++
++impl ButtonConfig {
++    pub fn compute_pos(&self, sw: f32, sh: f32) -> (f32, f32) {
++        match self.anchor.as_str() {
++            "bottom_right" => (sw - self.x, sh - self.y),
++            "top_left" => (self.x, self.y),
++            "top_right" => (sw - self.x, self.y),
++            "top_center" => (sw * 0.5 + self.x, self.y),
++            _ => (self.x, sh - self.y), // "bottom_left"
++        }
++    }
++}
++
++#[derive(Clone, Debug, serde::Deserialize)]
++pub struct ControlsConfig {
++    #[serde(default = "default_joystick_cfg")]
++    pub joystick: ButtonConfig,
++    #[serde(default = "default_jump_cfg")]
++    pub jump: ButtonConfig,
++    #[serde(default = "default_sprint_cfg")]
++    pub sprint: ButtonConfig,
++    #[serde(default = "default_attack_cfg")]
++    pub attack: ButtonConfig,
++    #[serde(default = "default_place_cfg")]
++    pub place: ButtonConfig,
++    #[serde(default = "default_f5_cfg")]
++    pub f5: ButtonConfig,
++    #[serde(default = "default_pause_cfg")]
++    pub pause: ButtonConfig,
++    #[serde(default = "default_f3_cfg")]
++    pub f3: ButtonConfig,
++    #[serde(default = "default_chat_cfg")]
++    pub chat: ButtonConfig,
++    #[serde(default = "default_keyboard_cfg")]
++    pub keyboard: ButtonConfig,
++}
++
++fn default_joystick_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_left".into(), x: 70.0, y: 70.0, scale: 1.0, visible: true }
++}
++fn default_jump_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_right".into(), x: 50.0, y: 50.0, scale: 1.0, visible: true }
++}
++fn default_sprint_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 44.0, scale: 1.0, visible: true }
++}
++fn default_attack_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 100.0, scale: 1.0, visible: true }
++}
++fn default_place_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_right".into(), x: 50.0, y: 100.0, scale: 1.0, visible: true }
++}
++fn default_f5_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "top_center".into(), x: -54.0, y: 20.0, scale: 1.0, visible: true }
++}
++fn default_pause_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "top_center".into(), x: -18.0, y: 20.0, scale: 1.0, visible: true }
++}
++fn default_f3_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "top_center".into(), x: 18.0, y: 20.0, scale: 1.0, visible: true }
++}
++fn default_chat_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "top_center".into(), x: 54.0, y: 20.0, scale: 1.0, visible: true }
++}
++fn default_keyboard_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "top_right".into(), x: 28.0, y: 24.0, scale: 1.0, visible: true }
++}
++
++impl Default for ControlsConfig {
++    fn default() -> Self {
++        Self::fallback()
++    }
++}
++
++impl ControlsConfig {
++    pub fn fallback() -> Self {
++        Self {
++            joystick: default_joystick_cfg(),
++            jump: default_jump_cfg(),
++            sprint: default_sprint_cfg(),
++            attack: default_attack_cfg(),
++            place: default_place_cfg(),
++            f5: default_f5_cfg(),
++            pause: default_pause_cfg(),
++            f3: default_f3_cfg(),
++            chat: default_chat_cfg(),
++            keyboard: default_keyboard_cfg(),
++        }
++    }
++}
++
++pub fn load_controls_config() -> ControlsConfig {
++    let candidates = [
++        std::path::PathBuf::from("controls.json"),
++        std::path::PathBuf::from("files/controls.json"),
++        std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files/controls.json"),
++        std::path::PathBuf::from("/storage/emulated/0/Android/data/org.horizon.client/files/controls.json"),
++    ];
++    for path in &candidates {
++        if let Ok(data) = std::fs::read_to_string(path) {
++            if let Ok(cfg) = serde_json::from_str::<ControlsConfig>(&data) {
++                log::info!("Horizon: loaded controls.json from {:?}", path);
++                return cfg;
++            } else {
++                log::warn!("Horizon: failed to parse controls.json from {:?}", path);
++            }
++        }
++    }
++    log::warn!("Horizon: controls.json not found in any candidate paths, using fallback preset");
++    ControlsConfig::fallback()
++}
++
 +/// Internal state tracking mobile touch interactions.
-+#[derive(Default)]
 +pub struct MobileTouchState {
-+    // 1. Movement joystick
++    // 1. Movement fixed joystick
 +    pub stick_id: Option<u64>,
 +    pub stick_origin: (f32, f32),
 +    pub stick_offset: (f32, f32),
++    pub last_knob_tap: Option<Instant>,
++    pub is_sneaking: bool,
++    pub is_sprinting: bool,
 +
-+    // 2. Jump button
++    // 2. Camera look trackpad action buttons
 +    pub jump_id: Option<u64>,
++    pub jump_prev: (f32, f32),
++    pub attack_id: Option<u64>,
++    pub attack_prev: (f32, f32),
++    pub place_id: Option<u64>,
++    pub place_prev: (f32, f32),
 +
-+    // 3. Camera look & continuous mining
++    // 3. Camera look & continuous mining (free screen)
 +    pub look_id: Option<u64>,
 +    pub look_prev: (f32, f32),
 +    pub look_start: (f32, f32),
@@ -1532,66 +1666,43 @@ index 0000000..eeea2fb
 +    pub look_moved_dist: f32,
 +    pub is_mining: bool,
 +
-+    // 4. Inventory touch & drag state (virtual-mouse model, reference UX)
++    // 4. Inventory touch & drag state (direct touch model)
 +    pub inv_touch_id: Option<u64>,
 +    pub inv_start_pos: (f32, f32),
-+    /// Last GUI-space position of the cursor finger (for relative movement).
 +    pub inv_last: (f32, f32),
 +    pub inv_start_time: Option<Instant>,
 +    pub inv_moved: bool,
 +    pub inv_pressed: bool,
 +    pub inv_is_right: bool,
-+    /// A second finger acting as a held Left mouse button (the reference
-+    /// fork's on-screen LMB/RMB buttons, ported logic-only): press it, move
-+    /// the cursor with the first finger — that is the stack drag.
-+    pub inv_lmb_id: Option<u64>,
-+
-+    /// The camera-look gesture that started on the inventory button's
-+    /// enlarged corner hit zone. The gesture still works as a camera swipe,
-+    /// but it must never start continuous mining, and a quick tap on it
-+    /// opens the inventory instead of interacting with the world (taps near
-+    /// the top-right corner used to leak through as random interacts).
-+    pub inv_corner_id: Option<u64>,
++    pub inv_had_item: bool,
 +
 +    // 5. Mini side keyboard (touch) + system IME
-+    /// The mini side panel is drawn and its taps are keys.
 +    pub osk_open: bool,
-+    /// The panel's active tab (F / abc / 123).
 +    osk_tab: OskTab,
-+    /// One-shot shift: the next letter is upper case.
 +    pub osk_shift: bool,
-+    /// Whether the Android system keyboard (IME) is currently raised for a
-+    /// focused text field; toggled only on transitions.
 +    pub osk_ime: bool,
-+    /// The active menu scroll drag: the finger's touch id and its last GUI
-+    /// y. Only set when a press on an options screen hit empty space (no
-+    /// widget), so scrolling never fights widget interaction.
 +    pub menu_scroll: Option<(u64, f32)>,
-+    /// The last menu press (time and GUI position): a bounced second press
-+    /// of the same tap — same spot within a beat — is swallowed, so one
-+    /// tap activates exactly one menu item even when the first press
-+    /// switched the screen under the finger.
 +    pub last_menu_press: Option<(Instant, f32, f32)>,
-+    /// Key outputs waiting to be flushed into the focused text field
-+    /// (drained after every touch event).
 +    osk_queue: Vec<OskOut>,
 +
-+    /// Whether the last touch event (or tick) saw gameplay. A flip of this
-+    /// flag means the screen changed (inventory opened or closed, a
-+    /// container, death, ...): every gesture that started under the
-+    /// previous screen is invalid and must be dropped before the next
-+    /// event is routed, or a finger still on the glass feeds its stale
-+    /// last touch position into the camera and the view snaps towards
-+    /// that corner.
 +    pub was_gameplay: bool,
++    pub cfg: Option<ControlsConfig>,
 +}
 +
 +static TOUCH_STATE: std::sync::Mutex<MobileTouchState> =
 +    std::sync::Mutex::new(MobileTouchState {
 +        stick_id: None,
-+        stick_origin: (60.0, 0.0),
++        stick_origin: (70.0, 70.0),
 +        stick_offset: (0.0, 0.0),
++        last_knob_tap: None,
++        is_sneaking: false,
++        is_sprinting: false,
 +        jump_id: None,
++        jump_prev: (0.0, 0.0),
++        attack_id: None,
++        attack_prev: (0.0, 0.0),
++        place_id: None,
++        place_prev: (0.0, 0.0),
 +        look_id: None,
 +        look_prev: (0.0, 0.0),
 +        look_start: (0.0, 0.0),
@@ -1605,8 +1716,7 @@ index 0000000..eeea2fb
 +        inv_moved: false,
 +        inv_pressed: false,
 +        inv_is_right: false,
-+        inv_lmb_id: None,
-+        inv_corner_id: None,
++        inv_had_item: false,
 +        osk_open: false,
 +        osk_tab: OskTab::Func,
 +        osk_shift: false,
@@ -1615,6 +1725,7 @@ index 0000000..eeea2fb
 +        last_menu_press: None,
 +        osk_queue: Vec::new(),
 +        was_gameplay: false,
++        cfg: None,
 +    });
 +
 +/// Tracks Android suspend / resume state across winit lifecycle events.
@@ -1681,8 +1792,8 @@ index 0000000..eeea2fb
 +    }
 +
 +    /// Drops every transient gesture (joystick, camera swipe, mining, jump,
-+    /// inventory drag). Called when the screen changes so nothing started
-+    /// under one screen can leak into another one.
++    /// attack, place, sprint, inventory drag). Called when the screen changes
++    /// so nothing started under one screen can leak into another one.
 +    fn reset_mobile_gestures(&mut self, state: &mut MobileTouchState) {
 +        if state.stick_id.take().is_some() {
 +            for key in [KeyCode::KeyW, KeyCode::KeyS, KeyCode::KeyA, KeyCode::KeyD] {
@@ -1693,12 +1804,33 @@ index 0000000..eeea2fb
 +        if state.jump_id.take().is_some() {
 +            self.keys.remove(&KeyCode::Space);
 +        }
++        state.jump_prev = (0.0, 0.0);
++
++        if state.attack_id.take().is_some() {
++            let _ = self.play_mouse(MouseButton::Left, false);
++        }
++        state.attack_prev = (0.0, 0.0);
++
++        if state.place_id.take().is_some() {
++            let _ = self.play_mouse(MouseButton::Right, false);
++        }
++        state.place_prev = (0.0, 0.0);
++
 +        if state.is_mining {
 +            let _ = self.play_mouse(MouseButton::Left, false);
 +        }
-+        // Release any held inventory mouse buttons (RMB hold-drag, the
-+        // second-finger LMB) before clearing the state, so a screen change
-+        // never leaves a virtual button stuck down.
++        state.is_mining = false;
++
++        if state.is_sneaking {
++            state.is_sneaking = false;
++            self.keys.remove(&KeyCode::ShiftLeft);
++        }
++        if state.is_sprinting {
++            state.is_sprinting = false;
++            self.keys.remove(&KeyCode::ControlLeft);
++        }
++
++        // Release any held inventory mouse buttons
 +        if state.inv_pressed {
 +            let button = if state.inv_is_right {
 +                MouseButton::Right
@@ -1707,15 +1839,6 @@ index 0000000..eeea2fb
 +            };
 +            let _ = self.dispatch_menu_mouse(false, button, None);
 +        }
-+        if state.inv_lmb_id.take().is_some() {
-+            let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
-+        }
-+        state.look_id = None;
-+        state.look_prev = (0.0, 0.0);
-+        state.look_start = (0.0, 0.0);
-+        state.look_start_time = None;
-+        state.look_moved_dist = 0.0;
-+        state.is_mining = false;
 +        state.inv_touch_id = None;
 +        state.inv_start_pos = (0.0, 0.0);
 +        state.inv_last = (0.0, 0.0);
@@ -1723,11 +1846,17 @@ index 0000000..eeea2fb
 +        state.inv_moved = false;
 +        state.inv_pressed = false;
 +        state.inv_is_right = false;
-+        state.inv_corner_id = None;
++        state.inv_had_item = false;
++
++        state.look_id = None;
++        state.look_prev = (0.0, 0.0);
++        state.look_start = (0.0, 0.0);
++        state.look_start_time = None;
++        state.look_moved_dist = 0.0;
 +        state.menu_scroll = None;
 +    }
 +
-+    /// Handles gameplay touch events: joystick, jump, inventory, hotbar, camera look & gestures.
++    /// Handles gameplay touch events: layout-configured buttons, fixed joystick, camera look & gestures.
 +    fn handle_gameplay_touch(
 +        &mut self,
 +        touch: Touch,
@@ -1737,86 +1866,161 @@ index 0000000..eeea2fb
 +        sh: f32,
 +        scale: f32,
 +    ) {
-+        // The mini side panel (when open) owns its taps before any gesture
-+        // starts, but blocks nothing else: touches outside it fall through
-+        // to the game. (Before the state lock: mobile_panel_touch locks
-+        // TOUCH_STATE itself.)
 +        if self.mobile_panel_touch(&touch, gx, gy, sw, sh) {
 +            return;
 +        }
 +
 +        let mut state = TOUCH_STATE.lock().unwrap();
++        if state.cfg.is_none() {
++            state.cfg = Some(load_controls_config());
++        }
++        let cfg = state.cfg.clone().unwrap_or_else(ControlsConfig::fallback);
++
++        const LOOK_SENSITIVITY: f32 = 0.92 * 3.0;
 +
 +        match touch.phase {
 +            TouchPhase::Started => {
-+                // 1. Panel edge button (right edge, vertically centred:
-+                // center at sw - 14.0, sh * 0.4). Toggles the mini keyboard
-+                // panel; the game stays fully usable while it is open.
-+                let pb_dx = gx - (sw - 14.0);
-+                let pb_dy = gy - (sh * 0.4);
-+                if pb_dx * pb_dx + pb_dy * pb_dy <= 26.0 * 26.0 {
-+                    state.osk_open = !state.osk_open;
-+                    if !state.osk_open {
-+                        self.mobile_keyboard_clear_mods();
++                let phys_pos = (touch.location.x as f32, touch.location.y as f32);
++
++                // 1. Top bar system buttons
++                // F5 button
++                if cfg.f5.visible {
++                    let pos = cfg.f5.compute_pos(sw, sh);
++                    let r = 18.0 * cfg.f5.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                        self.keys.insert(KeyCode::F5);
++                        let _ = self.key_pressed(KeyCode::F5);
++                        self.keys.remove(&KeyCode::F5);
++                        return;
 +                    }
-+                    return;
 +                }
 +
-+                // 2. Inventory button (top-right: center at sw - 30.0, 26.0,
-+                // drawn with an 18 px radius). The hit zone is deliberately
-+                // much larger (45 px) than the drawing: the button sits in
-+                // the corner, where a missed tap used to fall through to the
-+                // camera gesture and a quick tap then interacted with
-+                // whatever the crosshair hit. The zone still starts a normal
-+                // camera-look gesture so swipes are unaffected — but it is
-+                // tagged, never mines, and a quick tap on it opens the
-+                // inventory (handled at release below).
-+                let inv_dx = gx - (sw - 30.0);
-+                let inv_dy = gy - 26.0;
-+                if (inv_dx * inv_dx + inv_dy * inv_dy).sqrt() <= 45.0
-+                    && state.look_id.is_none()
-+                {
-+                    state.look_id = Some(touch.id);
-+                    let screen_pos = (touch.location.x as f32, touch.location.y as f32);
-+                    state.look_prev = screen_pos;
-+                    state.look_start = screen_pos;
-+                    state.look_start_time = Some(Instant::now());
-+                    state.look_moved_dist = 0.0;
-+                    state.is_mining = false;
-+                    state.inv_corner_id = Some(touch.id);
-+                    return;
-+                }
-+
-+                // 3. Jump button (bottom-right: center at sw - 48.0, sh - 48.0)
-+                let jump_dx = gx - (sw - 48.0);
-+                let jump_dy = gy - (sh - 48.0);
-+                if (jump_dx * jump_dx + jump_dy * jump_dy).sqrt() <= 32.0 {
-+                    // Ignore a second finger: the held jump finger owns the
-+                    // button until it releases.
-+                    if state.jump_id.is_none() {
-+                        state.jump_id = Some(touch.id);
-+                        self.keys.insert(KeyCode::Space);
++                // Pause button
++                if cfg.pause.visible {
++                    let pos = cfg.pause.compute_pos(sw, sh);
++                    let r = 18.0 * cfg.pause.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                        self.keys.insert(KeyCode::Escape);
++                        let _ = self.key_pressed(KeyCode::Escape);
++                        self.keys.remove(&KeyCode::Escape);
++                        return;
 +                    }
-+                    return;
 +                }
 +
-+                // 4. Chat button (top-right under the INV button: center at
-+                // sw - 30.0, 82.0). A quick tap opens the chat (the vanilla
-+                // T key); the system keyboard (IME) is raised over it by
-+                // the keyboard sync, so chat and commands can be typed.
-+                let kb_dx = gx - (sw - 30.0);
-+                let kb_dy = gy - 82.0;
-+                if (kb_dx * kb_dx + kb_dy * kb_dy).sqrt() <= 30.0 {
-+                    self.keys.insert(KeyCode::KeyT);
-+                    let _ = self.key_pressed(KeyCode::KeyT);
-+                    self.keys.remove(&KeyCode::KeyT);
-+                    return;
++                // F3 button
++                if cfg.f3.visible {
++                    let pos = cfg.f3.compute_pos(sw, sh);
++                    let r = 18.0 * cfg.f3.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                        self.keys.insert(KeyCode::F3);
++                        let _ = self.key_pressed(KeyCode::F3);
++                        self.keys.remove(&KeyCode::F3);
++                        return;
++                    }
 +                }
 +
-+                // 5. Hotbar slot touch (bottom-center). The hotbar sprite is
-+                // 182 px wide for 9 slots (20.222.. px each, hud_layout.rs):
-+                // derive the slot width from that actual span instead of
-+                // rounding, or the last slot mis-hits by half a slot.
++                // Chat button
++                if cfg.chat.visible {
++                    let pos = cfg.chat.compute_pos(sw, sh);
++                    let r = 18.0 * cfg.chat.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                        self.keys.insert(KeyCode::KeyT);
++                        let _ = self.key_pressed(KeyCode::KeyT);
++                        self.keys.remove(&KeyCode::KeyT);
++                        return;
++                    }
++                }
++
++                // Keyboard button
++                if cfg.keyboard.visible {
++                    let pos = cfg.keyboard.compute_pos(sw, sh);
++                    let r = 18.0 * cfg.keyboard.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                        state.osk_open = !state.osk_open;
++                        if !state.osk_open {
++                            self.mobile_keyboard_clear_mods();
++                        }
++                        return;
++                    }
++                }
++
++                // 2. Sprint toggle button [RUN]
++                if cfg.sprint.visible {
++                    let pos = cfg.sprint.compute_pos(sw, sh);
++                    let r = 24.0 * cfg.sprint.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                        state.is_sprinting = !state.is_sprinting;
++                        if state.is_sprinting {
++                            self.keys.insert(KeyCode::ControlLeft);
++                        } else {
++                            self.keys.remove(&KeyCode::ControlLeft);
++                        }
++                        return;
++                    }
++                }
++
++                // 3. Action buttons (Jump, Attack, Place) - act as camera trackpads
++                // Jump button
++                if cfg.jump.visible {
++                    let pos = cfg.jump.compute_pos(sw, sh);
++                    let r = 26.0 * cfg.jump.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                        if state.jump_id.is_none() {
++                            state.jump_id = Some(touch.id);
++                            state.jump_prev = phys_pos;
++                            self.keys.insert(KeyCode::Space);
++                        }
++                        return;
++                    }
++                }
++
++                // Attack button (LMB + look trackpad)
++                if cfg.attack.visible {
++                    let pos = cfg.attack.compute_pos(sw, sh);
++                    let r = 24.0 * cfg.attack.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                        if state.attack_id.is_none() {
++                            state.attack_id = Some(touch.id);
++                            state.attack_prev = phys_pos;
++                            let _ = self.play_mouse(MouseButton::Left, true);
++                        }
++                        return;
++                    }
++                }
++
++                // Place button (RMB + look trackpad)
++                if cfg.place.visible {
++                    let pos = cfg.place.compute_pos(sw, sh);
++                    let r = 24.0 * cfg.place.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                        if state.place_id.is_none() {
++                            state.place_id = Some(touch.id);
++                            state.place_prev = phys_pos;
++                            let _ = self.play_mouse(MouseButton::Right, true);
++                        }
++                        return;
++                    }
++                }
++
++                // 4. Hotbar slot touch (bottom-center)
 +                let hotbar_center = sw / 2.0;
 +                let hx0 = hotbar_center - 91.0;
 +                let hx1 = hotbar_center + 91.0;
@@ -1827,37 +2031,53 @@ index 0000000..eeea2fb
 +                    return;
 +                }
 +
-+                // 6. Movement virtual joystick (left half of screen)
-+                if gx < sw * 0.48 {
-+                    // Ignore a second finger: the active joystick owns the
-+                    // left half until it releases (overwriting it orphaned
-+                    // the first thumb's drag and its key releases).
++                // 5. Fixed joystick (left 1/3, bottom 3/5: gx <= sw * 0.33 && gy >= sh * 0.40)
++                let j_center = cfg.joystick.compute_pos(sw, sh);
++                if gx <= sw * 0.33 && gy >= sh * 0.40 {
 +                    if state.stick_id.is_none() {
 +                        state.stick_id = Some(touch.id);
-+                        let default_center = (60.0, sh - 60.0);
-+                        let dist_to_default = ((gx - default_center.0).powi(2)
-+                            + (gy - default_center.1).powi(2))
-+                        .sqrt();
-+                        state.stick_origin = if dist_to_default <= 65.0 {
-+                            default_center
++                        state.stick_origin = j_center;
++
++                        // Double tap knob center (<20px from center, <300ms) toggles sneak
++                        let d_knob = ((gx - j_center.0).powi(2) + (gy - j_center.1).powi(2)).sqrt();
++                        if d_knob <= 22.0 {
++                            let now = Instant::now();
++                            if let Some(last_tap) = state.last_knob_tap {
++                                if now.duration_since(last_tap).as_millis() < 300 {
++                                    state.is_sneaking = !state.is_sneaking;
++                                    if state.is_sneaking {
++                                        self.keys.insert(KeyCode::ShiftLeft);
++                                    } else {
++                                        self.keys.remove(&KeyCode::ShiftLeft);
++                                    }
++                                    state.last_knob_tap = None;
++                                } else {
++                                    state.last_knob_tap = Some(now);
++                                }
++                            } else {
++                                state.last_knob_tap = Some(now);
++                            }
++                        }
++
++                        // Immediate offset clamp
++                        let dx = gx - j_center.0;
++                        let dy = gy - j_center.1;
++                        let dist = (dx * dx + dy * dy).sqrt();
++                        let max_r = 38.0 * cfg.joystick.scale;
++                        state.stick_offset = if dist > max_r && dist > 0.001 {
++                            (dx / dist * max_r, dy / dist * max_r)
 +                        } else {
-+                            (gx, gy)
++                            (dx, dy)
 +                        };
-+                        state.stick_offset = (0.0, 0.0);
 +                    }
 +                    return;
 +                }
 +
-+                // 7. Camera look & mining/attack gestures (right half of
-+                // screen). Ignore a second finger while one look gesture is
-+                // active: overwriting `look_id` orphaned the first finger's
-+                // swipe (its release then never matched) — the same bug
-+                // class as the inventory drag.
-+                if gx >= sw * 0.48 && state.look_id.is_none() {
++                // 6. Free screen camera look & continuous mining / interaction
++                if state.look_id.is_none() {
 +                    state.look_id = Some(touch.id);
-+                    let screen_pos = (touch.location.x as f32, touch.location.y as f32);
-+                    state.look_prev = screen_pos;
-+                    state.look_start = screen_pos;
++                    state.look_prev = phys_pos;
++                    state.look_start = phys_pos;
 +                    state.look_start_time = Some(Instant::now());
 +                    state.look_moved_dist = 0.0;
 +                    state.is_mining = false;
@@ -1866,20 +2086,76 @@ index 0000000..eeea2fb
 +            }
 +
 +            TouchPhase::Moved => {
-+                // Movement joystick update
++                let phys_pos = (touch.location.x as f32, touch.location.y as f32);
++
++                // Action button trackpad: Jump
++                if state.jump_id == Some(touch.id) {
++                    let dx = phys_pos.0 - state.jump_prev.0;
++                    let dy = phys_pos.1 - state.jump_prev.1;
++                    state.jump_prev = phys_pos;
++                    if dx * dx + dy * dy < 400.0 * 400.0 {
++                        self.mouse.on_move(
++                            0.0,
++                            0.0,
++                            ((dx / scale) * LOOK_SENSITIVITY) as f64,
++                            ((dy / scale) * LOOK_SENSITIVITY) as f64,
++                            true,
++                            true,
++                        );
++                    }
++                    return;
++                }
++
++                // Action button trackpad: Attack
++                if state.attack_id == Some(touch.id) {
++                    let dx = phys_pos.0 - state.attack_prev.0;
++                    let dy = phys_pos.1 - state.attack_prev.1;
++                    state.attack_prev = phys_pos;
++                    if dx * dx + dy * dy < 400.0 * 400.0 {
++                        self.mouse.on_move(
++                            0.0,
++                            0.0,
++                            ((dx / scale) * LOOK_SENSITIVITY) as f64,
++                            ((dy / scale) * LOOK_SENSITIVITY) as f64,
++                            true,
++                            true,
++                        );
++                    }
++                    return;
++                }
++
++                // Action button trackpad: Place
++                if state.place_id == Some(touch.id) {
++                    let dx = phys_pos.0 - state.place_prev.0;
++                    let dy = phys_pos.1 - state.place_prev.1;
++                    state.place_prev = phys_pos;
++                    if dx * dx + dy * dy < 400.0 * 400.0 {
++                        self.mouse.on_move(
++                            0.0,
++                            0.0,
++                            ((dx / scale) * LOOK_SENSITIVITY) as f64,
++                            ((dy / scale) * LOOK_SENSITIVITY) as f64,
++                            true,
++                            true,
++                        );
++                    }
++                    return;
++                }
++
++                // Joystick movement update (pure WASD keys, does NOT rotate camera!)
 +                if state.stick_id == Some(touch.id) {
 +                    let dx = gx - state.stick_origin.0;
 +                    let dy = gy - state.stick_origin.1;
 +                    let dist = (dx * dx + dy * dy).sqrt();
-+                    let max_r = 38.0;
-+                    let clamped = if dist > max_r {
++                    let max_r = 38.0 * cfg.joystick.scale;
++                    let clamped = if dist > max_r && dist > 0.001 {
 +                        (dx / dist * max_r, dy / dist * max_r)
 +                    } else {
 +                        (dx, dy)
 +                    };
 +                    state.stick_offset = clamped;
 +
-+                    let deadzone = 10.0;
++                    let deadzone = 8.0 * cfg.joystick.scale;
 +                    if clamped.1 < -deadzone {
 +                        self.keys.insert(KeyCode::KeyW);
 +                    } else {
@@ -1903,17 +2179,12 @@ index 0000000..eeea2fb
 +                    return;
 +                }
 +
-+                // Camera swipe update
++                // Free screen camera swipe update
 +                if state.look_id == Some(touch.id) {
-+                    let cur = (touch.location.x as f32, touch.location.y as f32);
++                    let cur = phys_pos;
 +                    let dx = cur.0 - state.look_prev.0;
 +                    let dy = cur.1 - state.look_prev.1;
 +
-+                    // Android reuses touch ids, and a gesture interrupted by
-+                    // a screen change leaves `look_prev` at its old spot: one
-+                    // event then spans most of the screen. A single jump that
-+                    // big is never a real swipe — re-anchor here and drop it
-+                    // instead of swinging the camera to a screen corner.
 +                    let (pw, ph) = (sw * scale, sh * scale);
 +                    if dx * dx + dy * dy > (0.6 * pw.min(ph)).powi(2) {
 +                        state.look_prev = cur;
@@ -1926,16 +2197,6 @@ index 0000000..eeea2fb
 +                    state.look_moved_dist += (dx * dx + dy * dy).sqrt();
 +                    state.look_prev = cur;
 +
-+                    // Smooth camera turning (responsive mobile look). Deltas
-+                    // arrive in physical pixels, whose count per finger
-+                    // distance grows with display density: dividing by the
-+                    // GUI scale (which tracks the surface size/density) makes
-+                    // a swipe turn the camera by the same angle on any phone,
-+                    // tablet or aspect ratio. LOOK_SENSITIVITY is expressed
-+                    // per GUI pixel; 0.92 * 3 preserves the previously tuned
-+                    // 0.92-per-physical-pixel feel on the reference GUI
-+                    // scale 3.
-+                    const LOOK_SENSITIVITY: f32 = 0.92 * 3.0;
 +                    self.mouse.on_move(
 +                        0.0,
 +                        0.0,
@@ -1945,11 +2206,6 @@ index 0000000..eeea2fb
 +                        true,
 +                    );
 +
-+                    // Only stop mining if finger performs a sudden fast
-+                    // flick/swipe. The speed threshold is in GUI pixels per
-+                    // event (= 600 physical px^2 at GUI scale 3), so the
-+                    // flick that stops mining needs the same finger speed at
-+                    // any density.
 +                    const MINING_FLICK_SPEED_SQ: f32 = 600.0 / (3.0 * 3.0);
 +                    let speed_sq = (dx * dx + dy * dy) / (scale * scale);
 +                    if state.is_mining && speed_sq > MINING_FLICK_SPEED_SQ {
@@ -1964,7 +2220,25 @@ index 0000000..eeea2fb
 +                // Jump button release
 +                if state.jump_id == Some(touch.id) {
 +                    state.jump_id = None;
++                    state.jump_prev = (0.0, 0.0);
 +                    self.keys.remove(&KeyCode::Space);
++                    return;
++                }
++
++                // Attack button release
++                if state.attack_id == Some(touch.id) {
++                    state.attack_id = None;
++                    state.attack_prev = (0.0, 0.0);
++                    let _ = self.play_mouse(MouseButton::Left, false);
++                    return;
++                }
++
++                // Place button release
++                if state.place_id == Some(touch.id) {
++                    state.place_id = None;
++                    state.place_prev = (0.0, 0.0);
++                    let _ = self.play_mouse(MouseButton::Right, false);
++                    return;
 +                }
 +
 +                // Joystick release
@@ -1978,43 +2252,17 @@ index 0000000..eeea2fb
 +                    return;
 +                }
 +
-+                // Look gesture release
++                // Free screen look gesture release
 +                if state.look_id == Some(touch.id) {
 +                    let elapsed = state
 +                        .look_start_time
 +                        .map_or(0, |t| t.elapsed().as_millis());
 +                    let moved = state.look_moved_dist;
 +                    let was_mining = state.is_mining;
-+                    // A gesture that started on the inventory button's
-+                    // enlarged corner zone: a quick tap opens the inventory,
-+                    // everything else (swipe, cancel) just releases.
-+                    let from_inv_corner = state.inv_corner_id == Some(touch.id);
-+                    // A system cancellation (edge navigation, notification
-+                    // shade) must only release, never act: no interact /
-+                    // place / attack from a touch the user did not finish.
 +                    let cancelled = touch.phase == TouchPhase::Cancelled;
 +
 +                    state.look_id = None;
 +                    state.is_mining = false;
-+                    state.inv_corner_id = None;
-+
-+                    if from_inv_corner {
-+                        if !cancelled && moved < 25.0 && elapsed < 250 {
-+                            self.keys.insert(KeyCode::KeyE);
-+                            let _ = self.key_pressed(KeyCode::KeyE);
-+                            self.keys.remove(&KeyCode::KeyE);
-+                            self.cursor = (sw / 2.0, sh / 2.0);
-+                            // Opening the inventory ends every in-game
-+                            // gesture right here: a camera finger held
-+                            // across this tap must not keep mining or turn
-+                            // the view with a stale delta later (the next
-+                            // event would purge it too, but purge now so
-+                            // even the first event after the switch is
-+                            // clean).
-+                            self.reset_mobile_gestures(&mut state);
-+                        }
-+                        return;
-+                    }
 +
 +                    if was_mining {
 +                        let _ = self.play_mouse(MouseButton::Left, false);
@@ -2059,7 +2307,7 @@ index 0000000..eeea2fb
 +            // gameplay flip): release its virtual buttons and drop the
 +            // state, so the next inventory entry starts clean.
 +            let mut state = TOUCH_STATE.lock().unwrap();
-+            if state.inv_touch_id.is_some() || state.inv_lmb_id.is_some() {
++            if state.inv_touch_id.is_some() {
 +                self.reset_mobile_gestures(&mut state);
 +            }
 +            drop(state);
@@ -2159,40 +2407,18 @@ index 0000000..eeea2fb
 +        // inventory screen (the panels are centred), so the whole corner is
 +        // reserved for closing.
 +        if gy < 60.0 && gx > sw - 60.0 && touch.phase == TouchPhase::Started {
-+            // Release a held second-finger LMB before closing, so the
-+            // virtual mouse button never sticks across the screen change.
-+            let mut state = TOUCH_STATE.lock().unwrap();
-+            let lmb_held = state.inv_lmb_id.take().is_some();
-+            drop(state);
-+            if lmb_held {
-+                let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
-+            }
 +            self.keys.insert(KeyCode::Escape);
 +            let _ = self.key_pressed(KeyCode::Escape);
 +            self.keys.remove(&KeyCode::Escape);
 +            self.cursor = (-1000.0, -1000.0);
 +            let mut state = TOUCH_STATE.lock().unwrap();
-+            state.inv_touch_id = None;
-+            state.inv_start_pos = (0.0, 0.0);
-+            state.inv_last = (0.0, 0.0);
-+            state.inv_start_time = None;
-+            state.inv_pressed = false;
-+            state.inv_is_right = false;
-+            state.inv_moved = false;
++            self.reset_mobile_gestures(&mut state);
 +            return;
 +        }
 +
 +        match touch.phase {
 +            TouchPhase::Started => {
 +                let mut state = TOUCH_STATE.lock().unwrap();
-+                // Virtual-mouse model (reference UX): the FIRST finger moves
-+                // the inventory cursor relatively and never teleports it, so
-+                // the finger never covers the slot being aimed at. A SECOND
-+                // finger acts as a held Left mouse button (logic-only port
-+                // of the reference's on-screen LMB button): press it, sweep
-+                // the cursor with the first finger — that is the stack drag
-+                // (quick-craft distribute, creative scrollbar). A third
-+                // finger is ignored.
 +                if state.inv_touch_id.is_none() {
 +                    state.inv_touch_id = Some(touch.id);
 +                    state.inv_start_pos = (gx, gy);
@@ -2201,75 +2427,67 @@ index 0000000..eeea2fb
 +                    state.inv_moved = false;
 +                    state.inv_pressed = false;
 +                    state.inv_is_right = false;
-+                    // Deliberately no `self.cursor = (gx, gy)` here: in the
-+                    // relative model touching down must not teleport the
-+                    // cursor (same as the reference's virtual mouse).
-+                } else if state.inv_lmb_id.is_none() && state.inv_touch_id != Some(touch.id) {
-+                    state.inv_lmb_id = Some(touch.id);
-+                    drop(state);
-+                    // Press at the current cursor position.
-+                    let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                    state.inv_had_item = self.carried.is_some();
++
++                    // Direct touch: cursor follows finger immediately
++                    self.cursor = (gx, gy);
++
++                    // If hand was carrying an item and user drags quickly:
++                    // we immediately dispatch Left button down for LMB drag distribution
++                    if state.inv_had_item {
++                        state.inv_pressed = true;
++                        state.inv_is_right = false;
++                        let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                    }
 +                }
 +            }
 +
 +            TouchPhase::Moved => {
 +                let mut state = TOUCH_STATE.lock().unwrap();
 +                if state.inv_touch_id == Some(touch.id) {
-+                    // Relative cursor movement: the cursor follows the
-+                    // finger's delta (INV_CURSOR_SENSITIVITY GUI px per
-+                    // finger GUI px), clamped to the screen.
-+                    let cursor = self.cursor;
-+                    self.cursor = (
-+                        (cursor.0 + (gx - state.inv_last.0) * INV_CURSOR_SENSITIVITY)
-+                            .clamp(0.0, (sw - 1.0).max(0.0)),
-+                        (cursor.1 + (gy - state.inv_last.1) * INV_CURSOR_SENSITIVITY)
-+                            .clamp(0.0, (sh - 1.0).max(0.0)),
-+                    );
++                    self.cursor = (gx.clamp(0.0, sw - 1.0), gy.clamp(0.0, sh - 1.0));
 +                    state.inv_last = (gx, gy);
 +
 +                    let dx = gx - state.inv_start_pos.0;
 +                    let dy = gy - state.inv_start_pos.1;
-+                    // Reference drag threshold: 3 GUI px of travel marks the
-+                    // gesture as a cursor move, suppressing the release tap.
-+                    if !state.inv_moved && dx * dx + dy * dy > INV_DRAG_DIST_SQ {
++                    if !state.inv_moved && dx * dx + dy * dy > 9.0 {
 +                        state.inv_moved = true;
++                        // If moved after holding >250ms with item, RMB drag was activated
++                        if state.inv_had_item && !state.inv_pressed {
++                            let elapsed = state.inv_start_time.map_or(0, |t| t.elapsed().as_millis());
++                            if elapsed >= 250 {
++                                state.inv_pressed = true;
++                                state.inv_is_right = true;
++                                let _ = self.dispatch_menu_mouse(true, MouseButton::Right, None);
++                            } else {
++                                state.inv_pressed = true;
++                                state.inv_is_right = false;
++                                let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                            }
++                        }
 +                    }
-+                } else if state.inv_lmb_id != Some(touch.id) {
-+                    // Neither the cursor finger nor the LMB finger.
-+                    return;
-+                }
 +
-+                let held = state.inv_pressed || state.inv_lmb_id.is_some();
-+                drop(state);
-+                if held {
-+                    // A mouse button is held (RMB hold-drag or the
-+                    // second-finger LMB): feed the moved-through slots
-+                    // (quick-craft distribute), the creative scrollbar and
-+                    // the loom.
-+                    self.inventory_drag_move();
-+                    if self.screen == Screen::Creative {
-+                        let b = HudBatch::new([
-+                            (sw * scale).round() as u32,
-+                            (sh * scale).round() as u32,
-+                        ]);
-+                        let (_, oy) = Self::creative_origin(&b);
-+                        self.creative_screen.drag_scrollbar(self.cursor.1 - oy);
-+                    }
-+                    if self.screen == Screen::Inventory {
-+                        self.loom_drag();
++                    let held = state.inv_pressed;
++                    drop(state);
++                    if held {
++                        self.inventory_drag_move();
++                        if self.screen == Screen::Creative {
++                            let b = HudBatch::new([
++                                (sw * scale).round() as u32,
++                                (sh * scale).round() as u32,
++                            ]);
++                            let (_, oy) = Self::creative_origin(&b);
++                            self.creative_screen.drag_scrollbar(self.cursor.1 - oy);
++                        }
++                        if self.screen == Screen::Inventory {
++                            self.loom_drag();
++                        }
 +                    }
 +                }
 +            }
 +
 +            TouchPhase::Ended | TouchPhase::Cancelled => {
 +                let mut state = TOUCH_STATE.lock().unwrap();
-+                if state.inv_lmb_id == Some(touch.id) {
-+                    // The LMB finger releases: release the held button.
-+                    state.inv_lmb_id = None;
-+                    drop(state);
-+                    let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
-+                    return;
-+                }
 +                if state.inv_touch_id == Some(touch.id) {
 +                    let pressed = state.inv_pressed;
 +                    let is_right = state.inv_is_right;
@@ -2283,21 +2501,24 @@ index 0000000..eeea2fb
 +                    state.inv_pressed = false;
 +                    state.inv_is_right = false;
 +                    state.inv_moved = false;
++                    state.inv_had_item = false;
 +                    drop(state);
 +
 +                    if !pressed {
-+                        // Quick Tap (<500ms, unmoved): Vanilla Left Click at
-+                        // the CURSOR position (not the finger position).
-+                        // - If empty hand: picks up entire stack
-+                        // - If holding stack: places entire stack / swaps
-+                        // A moved or cancelled touch only releases: it never
-+                        // counts as a tap (no accidental stack pickup).
-+                        if touch.phase == TouchPhase::Ended && !moved && elapsed < 500 {
-+                            let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
-+                            let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++                        // Not already holding a button down
++                        if touch.phase == TouchPhase::Ended && !moved {
++                            if elapsed < 250 {
++                                // Tap < 250ms: Full Left Click (LMB)
++                                let _ = self.dispatch_menu_mouse(true, MouseButton::Left, None);
++                                let _ = self.dispatch_menu_mouse(false, MouseButton::Left, None);
++                            } else {
++                                // Stationary hold >= 250ms: Right Click (RMB)
++                                let _ = self.dispatch_menu_mouse(true, MouseButton::Right, None);
++                                let _ = self.dispatch_menu_mouse(false, MouseButton::Right, None);
++                            }
 +                        }
 +                    } else {
-+                        // Release active RMB hold (click or sweep).
++                        // Release whichever button was being dragged
 +                        let button = if is_right {
 +                            MouseButton::Right
 +                        } else {
@@ -2305,11 +2526,6 @@ index 0000000..eeea2fb
 +                        };
 +                        let _ = self.dispatch_menu_mouse(false, button, None);
 +                    }
-+
-+                    // In inventory, NEVER reset cursor to (-1000, -1000)!
-+                    // The cursor keeps its position: in the relative model
-+                    // it is the virtual mouse pointer, and the carried item
-+                    // renders under it.
 +                }
 +            }
 +        }
@@ -2351,20 +2567,7 @@ index 0000000..eeea2fb
 +            return;
 +        }
 +
-+        let (sw, sh) = if let Some(r) = &self.renderer {
-+            let b = HudBatch::new([r.config.width, r.config.height]);
-+            (b.width, b.height)
-+        } else {
-+            (854.0, 480.0)
-+        };
-+
-+        // Ensure cursor is centered when in inventory if parked offscreen
-+        // (not merely on the boundary: a touch at pixel (0, y) is valid).
-+        if matches!(self.screen, Screen::Inventory | Screen::Creative) {
-+            if cursor_uninitialized(self.cursor, sw, sh) {
-+                self.cursor = (sw / 2.0, sh / 2.0);
-+            }
-+        } else if self.screen == Screen::Playing && self.cursor.0 >= 0.0 {
++        if self.screen == Screen::Playing && self.cursor.0 >= 0.0 {
 +            self.cursor = (-1000.0, -1000.0);
 +        }
 +
@@ -2372,9 +2575,6 @@ index 0000000..eeea2fb
 +            return;
 +        };
 +
-+        // Screen changed without any touch traffic in between (death
-+        // screen, keyboard-driven menus, ...): drop the gestures of the
-+        // previous screen, exactly like handle_mobile_touch does.
 +        let gameplay = self.screen == Screen::Playing
 +            && self.title.is_none()
 +            && !self.is_overlay_open();
@@ -2383,16 +2583,11 @@ index 0000000..eeea2fb
 +            self.reset_mobile_gestures(&mut state);
 +        }
 +
-+        // The keyboard follows the focused text field even without touch
-+        // traffic (chat opened from the HUD button, sign editor, ...).
 +        self.sync_mobile_keyboard(&mut state);
 +
-+        // 1. In-game continuous mining (>250ms hold). A look gesture that
-+        // started on the inventory button's corner zone never mines: holding
-+        // near the button must not attack whatever the crosshair points at.
++        // 1. In-game continuous mining (>250ms hold on free screen)
 +        if self.screen == Screen::Playing
 +            && state.look_id.is_some()
-+            && state.inv_corner_id.is_none()
 +            && !state.is_mining
 +            && state
 +                .look_start_time
@@ -2402,18 +2597,14 @@ index 0000000..eeea2fb
 +            let _ = self.play_mouse(MouseButton::Left, true);
 +        }
 +
-+        // 2. Inventory hold (>=500ms stationary hold) -> Right Click (RMB),
-+        // fires before release (reference UX):
-+        // - If hand empty: takes half stack
-+        // - If hand carrying stack: places 1 item into slot, and initiates
-+        //   the RMB distribute sweep (deposit 1 per traversed slot)
++        // 2. Direct touch inventory stationary hold (>=250ms hold)
 +        if matches!(self.screen, Screen::Inventory | Screen::Creative)
 +            && state.inv_touch_id.is_some()
 +            && !state.inv_moved
 +            && !state.inv_pressed
 +            && state
 +                .inv_start_time
-+                .is_some_and(|t| t.elapsed().as_millis() >= INV_HOLD_RIGHT_MS)
++                .is_some_and(|t| t.elapsed() >= std::time::Duration::from_millis(250))
 +        {
 +            state.inv_pressed = true;
 +            state.inv_is_right = true;
@@ -2423,11 +2614,12 @@ index 0000000..eeea2fb
 +    }
 +
 +    /// Renders minimal on-screen touch controls: the mini side keyboard
-+    /// panel (when toggled), round movement joystick, jump button, chat
-+    /// button, keyboard edge button, inventory button.
++    /// panel (when toggled), round movement joystick with sneak indicator,
++    /// top bar system buttons (F5, Pause, F3, Chat, Keyboard) and action buttons
++    /// (Jump, Attack, Place, Sprint) with noble gray monochrome squircle styling.
 +    pub(crate) fn draw_mobile_hud(&self, batch: &mut HudBatch) {
 +        let atlas = &self.gui.atlas;
-+        let Ok(state) = TOUCH_STATE.try_lock() else {
++        let Ok(mut state) = TOUCH_STATE.try_lock() else {
 +            return;
 +        };
 +
@@ -2446,142 +2638,133 @@ index 0000000..eeea2fb
 +        let sw = batch.width;
 +        let sh = batch.height;
 +
-+        // Panel edge button (right edge, vertically centred at sh * 0.4).
-+        // Only while the panel is closed: when it is open, its spot is a
-+        // panel key and the panel closes through its own "x" tab.
-+        if !state.osk_open {
-+            let pb_center = (sw - 14.0, sh * 0.4);
-+            draw_circle_fan(atlas, batch, pb_center.0, pb_center.1, 15.0, rgba(255, 255, 255, 45));
-+            draw_circle_ring(
-+                atlas,
-+                batch,
-+                pb_center.0,
-+                pb_center.1,
-+                13.5,
-+                15.0,
-+                rgba(255, 255, 255, 100),
-+            );
-+            let pb_text = "KBD";
-+            let pbtw = HudBatch::text_width(atlas, pb_text);
-+            batch.text(
-+                atlas,
-+                pb_text,
-+                pb_center.0 - pbtw / 2.0,
-+                pb_center.1 - 4.0,
-+                rgba(255, 255, 255, 230),
-+                false,
-+            );
++        if state.cfg.is_none() {
++            state.cfg = Some(load_controls_config());
++        }
++        let cfg = state.cfg.clone().unwrap_or_else(ControlsConfig::fallback);
++
++        // Noble Gray monochrome color palette
++        let col_fill = rgba(38, 44, 54, 166);
++        let col_fill_pressed = rgba(75, 86, 102, 185);
++        let col_border = rgba(160, 172, 190, 166);
++        let col_icon = rgba(215, 225, 238, 220);
++
++        // 1. Top bar system buttons
++        // F5
++        if cfg.f5.visible {
++            let pos = cfg.f5.compute_pos(sw, sh);
++            let sz = 16.0 * cfg.f5.scale;
++            let fill = col_fill;
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            let text = "F5";
++            let tw = HudBatch::text_width(atlas, text);
++            batch.text(atlas, text, pos.0 - tw * 0.5, pos.1 - 4.0, col_icon, false);
 +        }
 +
-+        // 1. Round movement joystick (bottom-left)
-+        let stick_center = if state.stick_id.is_some() {
-+            state.stick_origin
-+        } else {
-+            (60.0, sh - 60.0)
-+        };
-+        // Base outer ring & translucent fill
-+        draw_circle_fan(atlas, batch, stick_center.0, stick_center.1, 40.0, rgba(255, 255, 255, 30));
-+        draw_circle_ring(
-+            atlas,
-+            batch,
-+            stick_center.0,
-+            stick_center.1,
-+            38.5,
-+            40.0,
-+            rgba(255, 255, 255, 75),
-+        );
++        // Pause
++        if cfg.pause.visible {
++            let pos = cfg.pause.compute_pos(sw, sh);
++            let sz = 16.0 * cfg.pause.scale;
++            let fill = col_fill;
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_pause(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
 +
-+        // Knob
-+        let knob_pos = (
-+            stick_center.0 + state.stick_offset.0,
-+            stick_center.1 + state.stick_offset.1,
-+        );
-+        draw_circle_fan(atlas, batch, knob_pos.0, knob_pos.1, 18.0, rgba(255, 255, 255, 110));
-+        draw_circle_ring(
-+            atlas,
-+            batch,
-+            knob_pos.0,
-+            knob_pos.1,
-+            16.5,
-+            18.0,
-+            rgba(255, 255, 255, 200),
-+        );
++        // F3
++        if cfg.f3.visible {
++            let pos = cfg.f3.compute_pos(sw, sh);
++            let sz = 16.0 * cfg.f3.scale;
++            let fill = col_fill;
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            let text = "F3";
++            let tw = HudBatch::text_width(atlas, text);
++            batch.text(atlas, text, pos.0 - tw * 0.5, pos.1 - 4.0, col_icon, false);
++        }
 +
-+        // 2. Jump button (bottom-right: center at sw - 48.0, sh - 48.0)
-+        let jump_center = (sw - 48.0, sh - 48.0);
-+        let jump_pressed = state.jump_id.is_some();
-+        let jump_fill = if jump_pressed {
-+            rgba(255, 255, 255, 130)
-+        } else {
-+            rgba(255, 255, 255, 45)
-+        };
-+        draw_circle_fan(atlas, batch, jump_center.0, jump_center.1, 26.0, jump_fill);
-+        draw_circle_ring(
-+            atlas,
-+            batch,
-+            jump_center.0,
-+            jump_center.1,
-+            24.5,
-+            26.0,
-+            rgba(255, 255, 255, 100),
-+        );
-+        let jump_text = "JUMP";
-+        let tw = HudBatch::text_width(atlas, jump_text);
-+        batch.text(
-+            atlas,
-+            jump_text,
-+            jump_center.0 - tw / 2.0,
-+            jump_center.1 - 4.0,
-+            rgba(255, 255, 255, 230),
-+            false,
-+        );
++        // Chat
++        if cfg.chat.visible {
++            let pos = cfg.chat.compute_pos(sw, sh);
++            let sz = 16.0 * cfg.chat.scale;
++            let fill = col_fill;
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_chat(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
 +
-+        // 3. Inventory button (top-right: center at sw - 30.0, 26.0)
-+        let inv_center = (sw - 30.0, 26.0);
-+        draw_circle_fan(atlas, batch, inv_center.0, inv_center.1, 18.0, rgba(255, 255, 255, 45));
-+        draw_circle_ring(
-+            atlas,
-+            batch,
-+            inv_center.0,
-+            inv_center.1,
-+            16.5,
-+            18.0,
-+            rgba(255, 255, 255, 100),
-+        );
-+        let inv_text = "INV";
-+        let itw = HudBatch::text_width(atlas, inv_text);
-+        batch.text(
-+            atlas,
-+            inv_text,
-+            inv_center.0 - itw / 2.0,
-+            inv_center.1 - 4.0,
-+            rgba(255, 255, 255, 230),
-+            false,
-+        );
++        // Keyboard
++        if cfg.keyboard.visible {
++            let pos = cfg.keyboard.compute_pos(sw, sh);
++            let sz = 16.0 * cfg.keyboard.scale;
++            let fill = if state.osk_open { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_keyboard(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
 +
-+        // 4. Chat button (top-right under INV: center at sw - 30.0, 82.0).
-+        // Opens the chat; the system keyboard (IME) is raised over it.
-+        let kb_center = (sw - 30.0, 82.0);
-+        draw_circle_fan(atlas, batch, kb_center.0, kb_center.1, 18.0, rgba(255, 255, 255, 45));
-+        draw_circle_ring(
-+            atlas,
-+            batch,
-+            kb_center.0,
-+            kb_center.1,
-+            16.5,
-+            18.0,
-+            rgba(255, 255, 255, 100),
-+        );
-+        let kb_text = "ABC";
-+        let ktw = HudBatch::text_width(atlas, kb_text);
-+        batch.text(
-+            atlas,
-+            kb_text,
-+            kb_center.0 - ktw / 2.0,
-+            kb_center.1 - 4.0,
-+            rgba(255, 255, 255, 230),
-+            false,
-+        );
++        // 2. Action buttons (Jump, Attack, Place, Sprint)
++        // Jump
++        if cfg.jump.visible {
++            let pos = cfg.jump.compute_pos(sw, sh);
++            let sz = 24.0 * cfg.jump.scale;
++            let pressed = state.jump_id.is_some();
++            let fill = if pressed { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_arrow_up(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
++
++        // Attack (LMB)
++        if cfg.attack.visible {
++            let pos = cfg.attack.compute_pos(sw, sh);
++            let sz = 24.0 * cfg.attack.scale;
++            let pressed = state.attack_id.is_some();
++            let fill = if pressed { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_sword(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
++
++        // Place (RMB)
++        if cfg.place.visible {
++            let pos = cfg.place.compute_pos(sw, sh);
++            let sz = 24.0 * cfg.place.scale;
++            let pressed = state.place_id.is_some();
++            let fill = if pressed { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_cube(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
++
++        // Sprint [RUN]
++        if cfg.sprint.visible {
++            let pos = cfg.sprint.compute_pos(sw, sh);
++            let sz = 22.0 * cfg.sprint.scale;
++            let active = state.is_sprinting;
++            let fill = if active { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
++            draw_icon_double_chevron(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
++
++        // 3. Movement Joystick with outer squircle ring and knob
++        if cfg.joystick.visible {
++            let center = cfg.joystick.compute_pos(sw, sh);
++            let base_sz = 38.0 * cfg.joystick.scale;
++            let knob_sz = 18.0 * cfg.joystick.scale;
++
++            // Base squircle
++            draw_squircle(atlas, batch, center.0, center.1, base_sz, base_sz, base_sz * 0.45, rgba(38, 44, 54, 110), col_border);
++
++            // Knob position
++            let knob_pos = (
++                center.0 + state.stick_offset.0,
++                center.1 + state.stick_offset.1,
++            );
++            let knob_fill = if state.stick_id.is_some() { col_fill_pressed } else { col_fill };
++            draw_squircle(atlas, batch, knob_pos.0, knob_pos.1, knob_sz, knob_sz, knob_sz * 0.45, knob_fill, col_border);
++
++            // Sneak indicator dot inside knob center
++            let sneak_col = if state.is_sneaking {
++                rgba(90, 170, 255, 230) // Active sneak blue dot
++            } else {
++                rgba(160, 172, 190, 120) // Inactive sneak dot
++            };
++            draw_thick_line(atlas, batch, (knob_pos.0 - 2.5, knob_pos.1), (knob_pos.0 + 2.5, knob_pos.1), 3.0, sneak_col);
++        }
 +    }
 +
 +    /// Keeps the Android system keyboard (IME) in step with the focused
@@ -2670,11 +2853,11 @@ index 0000000..eeea2fb
 +            ]
 +        };
 +
-+        // Panel background.
++        // Panel background (dense background to avoid visual collision).
 +        batch.fill_quad(
 +            atlas,
 +            quad(layout.x0, layout.y0, layout.width, layout.height),
-+            rgba(16, 16, 16, 190),
++            rgba(18, 22, 30, 240),
 +        );
 +
 +        // Tab strip: F / abc / 123 / x.
@@ -3310,15 +3493,25 @@ index 0000000..eeea2fb
 +            state.stick_id = None;
 +            state.stick_offset = (0.0, 0.0);
 +            state.jump_id = None;
++            state.jump_prev = (0.0, 0.0);
++            state.attack_id = None;
++            state.attack_prev = (0.0, 0.0);
++            state.place_id = None;
++            state.place_prev = (0.0, 0.0);
 +            state.look_id = None;
++            state.look_prev = (0.0, 0.0);
++            state.look_start = (0.0, 0.0);
 +            state.look_start_time = None;
 +            state.look_moved_dist = 0.0;
 +            state.is_mining = false;
 +            state.inv_touch_id = None;
-+            state.inv_lmb_id = None;
++            state.inv_start_pos = (0.0, 0.0);
++            state.inv_last = (0.0, 0.0);
++            state.inv_start_time = None;
++            state.inv_moved = false;
 +            state.inv_pressed = false;
 +            state.inv_is_right = false;
-+            state.inv_corner_id = None;
++            state.inv_had_item = false;
 +            state.menu_scroll = None;
 +        }
 +        self.inner.suspended(event_loop);
@@ -3384,50 +3577,217 @@ index 0000000..eeea2fb
 +        || (cursor.0 == 0.0 && cursor.1 == 0.0)
 +}
 +
-+/// Draws a filled regular polygon (approximating a circle) into the HUD batch.
-+fn draw_circle_fan(
++/// Draws a thick antialiased-like line segment as a filled quad.
++fn draw_thick_line(
++    atlas: &HudAtlas,
++    batch: &mut HudBatch,
++    p0: (f32, f32),
++    p1: (f32, f32),
++    th: f32,
++    color: u32,
++) {
++    let dx = p1.0 - p0.0;
++    let dy = p1.1 - p0.1;
++    let len = (dx * dx + dy * dy).sqrt();
++    if len <= 0.0001 {
++        return;
++    }
++    let nx = -dy / len * (th * 0.5);
++    let ny = dx / len * (th * 0.5);
++    let c0 = [p0.0 + nx, p0.1 + ny];
++    let c1 = [p1.0 + nx, p1.1 + ny];
++    let c2 = [p1.0 - nx, p1.1 - ny];
++    let c3 = [p0.0 - nx, p0.1 - ny];
++    batch.fill_quad(atlas, [c0, c1, c2, c3], color);
++}
++
++/// Draws a filled squircle (rounded rectangle) with outline border.
++fn draw_squircle(
 +    atlas: &HudAtlas,
 +    batch: &mut HudBatch,
 +    cx: f32,
 +    cy: f32,
++    hw: f32,
++    hh: f32,
 +    r: f32,
-+    color: u32,
++    fill_color: u32,
++    border_color: u32,
 +) {
-+    const SEGMENTS: usize = 16;
-+    let mut pts = [[0.0f32; 2]; SEGMENTS];
-+    for i in 0..SEGMENTS {
-+        let angle = (i as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
-+        pts[i] = [cx + r * angle.cos(), cy + r * angle.sin()];
++    let r = r.min(hw).min(hh);
++    let x0 = cx - hw;
++    let x1 = cx + hw;
++    let y0 = cy - hh;
++    let y1 = cy + hh;
++
++    // Fill inner central cross
++    batch.fill_quad(
++        atlas,
++        [[x0 + r, y0], [x1 - r, y0], [x1 - r, y1], [x0 + r, y1]],
++        fill_color,
++    );
++    batch.fill_quad(
++        atlas,
++        [[x0, y0 + r], [x0 + r, y0 + r], [x0 + r, y1 - r], [x0, y1 - r]],
++        fill_color,
++    );
++    batch.fill_quad(
++        atlas,
++        [[x1 - r, y0 + r], [x1, y0 + r], [x1, y1 - r], [x1 - r, y1 - r]],
++        fill_color,
++    );
++
++    // Fill 4 rounded corner fans
++    const CORNER_SEGS: usize = 4;
++    let corners = [
++        (x1 - r, y0 + r, 0.0f32),                          // top-right: 0 to pi/2
++        (x0 + r, y0 + r, std::f32::consts::FRAC_PI_2),     // top-left: pi/2 to pi
++        (x0 + r, y1 - r, std::f32::consts::PI),            // bottom-left: pi to 3pi/2
++        (x1 - r, y1 - r, 3.0 * std::f32::consts::FRAC_PI_2), // bottom-right: 3pi/2 to 2pi
++    ];
++
++    for &(ccx, ccy, base_a) in &corners {
++        for s in 0..CORNER_SEGS {
++            let a0 = base_a + (s as f32) * (std::f32::consts::FRAC_PI_2 / CORNER_SEGS as f32);
++            let a1 = base_a + ((s + 1) as f32) * (std::f32::consts::FRAC_PI_2 / CORNER_SEGS as f32);
++            let p0 = [ccx, ccy];
++            let p1 = [ccx + r * a0.cos(), ccy - r * a0.sin()];
++            let p2 = [ccx + r * a1.cos(), ccy - r * a1.sin()];
++            batch.fill_quad(atlas, [p0, p1, p2, p0], fill_color);
++        }
 +    }
-+    // Draw 8 quads pairing adjacent triangles around center
-+    for i in (0..SEGMENTS).step_by(2) {
-+        let p0 = pts[i];
-+        let p1 = pts[(i + 1) % SEGMENTS];
-+        let p2 = pts[(i + 2) % SEGMENTS];
-+        batch.fill_quad(atlas, [[cx, cy], p0, p1, p2], color);
++
++    // Border strokes
++    let th = 1.5;
++    draw_thick_line(atlas, batch, (x0 + r, y0), (x1 - r, y0), th, border_color);
++    draw_thick_line(atlas, batch, (x0 + r, y1), (x1 - r, y1), th, border_color);
++    draw_thick_line(atlas, batch, (x0, y0 + r), (x0, y1 - r), th, border_color);
++    draw_thick_line(atlas, batch, (x1, y0 + r), (x1, y1 - r), th, border_color);
++
++    // Corner border arcs
++    for &(ccx, ccy, base_a) in &corners {
++        for s in 0..CORNER_SEGS {
++            let a0 = base_a + (s as f32) * (std::f32::consts::FRAC_PI_2 / CORNER_SEGS as f32);
++            let a1 = base_a + ((s + 1) as f32) * (std::f32::consts::FRAC_PI_2 / CORNER_SEGS as f32);
++            let p1 = (ccx + r * a0.cos(), ccy - r * a0.sin());
++            let p2 = (ccx + r * a1.cos(), ccy - r * a1.sin());
++            draw_thick_line(atlas, batch, p1, p2, th, border_color);
++        }
 +    }
 +}
 +
-+/// Draws an outline ring for a circle into the HUD batch.
-+fn draw_circle_ring(
-+    atlas: &HudAtlas,
-+    batch: &mut HudBatch,
-+    cx: f32,
-+    cy: f32,
-+    r_inner: f32,
-+    r_outer: f32,
-+    color: u32,
-+) {
-+    const SEGMENTS: usize = 16;
-+    for i in 0..SEGMENTS {
-+        let a0 = (i as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
-+        let a1 = ((i + 1) as f32) * (std::f32::consts::TAU / SEGMENTS as f32);
-+        let p0 = [cx + r_inner * a0.cos(), cy + r_inner * a0.sin()];
-+        let p1 = [cx + r_outer * a0.cos(), cy + r_outer * a0.sin()];
-+        let p2 = [cx + r_outer * a1.cos(), cy + r_outer * a1.sin()];
-+        let p3 = [cx + r_inner * a1.cos(), cy + r_inner * a1.sin()];
-+        batch.fill_quad(atlas, [p0, p1, p2, p3], color);
-+    }
++/// Vector icon: Sword for Attack LMB
++fn draw_icon_sword(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (2.2 * sz / 24.0).max(1.5);
++    // Blade from (-0.4, 0.4) to (0.4, -0.4)
++    let s = sz * 0.42;
++    draw_thick_line(atlas, batch, (cx - s * 0.7, cy + s * 0.7), (cx + s, cy - s), th, color);
++    // Crossguard
++    let gs = s * 0.45;
++    let gx = cx - s * 0.3;
++    let gy = cy + s * 0.3;
++    draw_thick_line(atlas, batch, (gx - gs, gy - gs), (gx + gs, gy + gs), th, color);
++    // Pommel
++    let px = cx - s * 0.9;
++    let py = cy + s * 0.9;
++    draw_thick_line(atlas, batch, (px - 1.5, py), (px + 1.5, py), th, color);
++}
++
++/// Vector icon: Isometric Cube for Place RMB
++fn draw_icon_cube(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (2.0 * sz / 24.0).max(1.5);
++    let s = sz * 0.42;
++    let top_y = cy - s;
++    let mid_y = cy;
++    let bot_y = cy + s;
++    let left_x = cx - s * 0.866;
++    let right_x = cx + s * 0.866;
++    let c = (cx, mid_y);
++
++    // Top face
++    draw_thick_line(atlas, batch, (cx, top_y), (left_x, top_y + s * 0.5), th, color);
++    draw_thick_line(atlas, batch, (left_x, top_y + s * 0.5), c, th, color);
++    draw_thick_line(atlas, batch, c, (right_x, top_y + s * 0.5), th, color);
++    draw_thick_line(atlas, batch, (right_x, top_y + s * 0.5), (cx, top_y), th, color);
++
++    // Center vertical edge
++    draw_thick_line(atlas, batch, c, (cx, bot_y), th, color);
++    // Left vertical and bottom
++    draw_thick_line(atlas, batch, (left_x, top_y + s * 0.5), (left_x, mid_y + s * 0.5), th, color);
++    draw_thick_line(atlas, batch, (left_x, mid_y + s * 0.5), (cx, bot_y), th, color);
++    // Right vertical and bottom
++    draw_thick_line(atlas, batch, (right_x, top_y + s * 0.5), (right_x, mid_y + s * 0.5), th, color);
++    draw_thick_line(atlas, batch, (right_x, mid_y + s * 0.5), (cx, bot_y), th, color);
++}
++
++/// Vector icon: Up Arrow for Jump
++fn draw_icon_arrow_up(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (2.2 * sz / 24.0).max(1.5);
++    let s = sz * 0.4;
++    // Shaft
++    draw_thick_line(atlas, batch, (cx, cy + s), (cx, cy - s * 0.7), th, color);
++    // Chevrons
++    draw_thick_line(atlas, batch, (cx - s * 0.75, cy - s * 0.1), (cx, cy - s * 0.85), th, color);
++    draw_thick_line(atlas, batch, (cx + s * 0.75, cy - s * 0.1), (cx, cy - s * 0.85), th, color);
++}
++
++/// Vector icon: Double Chevron for Sprint [RUN]
++fn draw_icon_double_chevron(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (2.2 * sz / 24.0).max(1.5);
++    let s = sz * 0.35;
++    // Lower chevron
++    let y0 = cy + s * 0.4;
++    draw_thick_line(atlas, batch, (cx - s * 0.8, y0 + s * 0.4), (cx, y0 - s * 0.3), th, color);
++    draw_thick_line(atlas, batch, (cx + s * 0.8, y0 + s * 0.4), (cx, y0 - s * 0.3), th, color);
++    // Upper chevron
++    let y1 = cy - s * 0.4;
++    draw_thick_line(atlas, batch, (cx - s * 0.8, y1 + s * 0.4), (cx, y1 - s * 0.3), th, color);
++    draw_thick_line(atlas, batch, (cx + s * 0.8, y1 + s * 0.4), (cx, y1 - s * 0.3), th, color);
++}
++
++/// Vector icon: Chat Bubble with 3 Dots
++fn draw_icon_chat(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (1.8 * sz / 20.0).max(1.4);
++    let w = sz * 0.48;
++    let h = sz * 0.34;
++    // Rounded rect outline
++    draw_thick_line(atlas, batch, (cx - w, cy - h), (cx + w, cy - h), th, color);
++    draw_thick_line(atlas, batch, (cx + w, cy - h), (cx + w, cy + h), th, color);
++    draw_thick_line(atlas, batch, (cx + w, cy + h), (cx - w * 0.2, cy + h), th, color);
++    draw_thick_line(atlas, batch, (cx - w, cy - h), (cx - w, cy + h), th, color);
++    // Tail
++    draw_thick_line(atlas, batch, (cx - w * 0.2, cy + h), (cx - w * 0.6, cy + h + 3.5), th, color);
++    draw_thick_line(atlas, batch, (cx - w * 0.6, cy + h + 3.5), (cx - w * 0.5, cy + h), th, color);
++    draw_thick_line(atlas, batch, (cx - w * 0.5, cy + h), (cx - w, cy + h), th, color);
++
++    // 3 small dots
++    let dth = 1.6;
++    draw_thick_line(atlas, batch, (cx - 4.5, cy), (cx - 3.5, cy), dth, color);
++    draw_thick_line(atlas, batch, (cx - 0.5, cy), (cx + 0.5, cy), dth, color);
++    draw_thick_line(atlas, batch, (cx + 3.5, cy), (cx + 4.5, cy), dth, color);
++}
++
++/// Vector icon: Pause (two vertical bars)
++fn draw_icon_pause(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let bar_w = (2.6 * sz / 20.0).max(2.0);
++    let bar_h = sz * 0.38;
++    draw_thick_line(atlas, batch, (cx - 3.5, cy - bar_h), (cx - 3.5, cy + bar_h), bar_w, color);
++    draw_thick_line(atlas, batch, (cx + 3.5, cy - bar_h), (cx + 3.5, cy + bar_h), bar_w, color);
++}
++
++/// Vector icon: Mini Keyboard (grid)
++fn draw_icon_keyboard(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (1.6 * sz / 20.0).max(1.2);
++    let w = sz * 0.5;
++    let h = sz * 0.32;
++    // Outline
++    draw_thick_line(atlas, batch, (cx - w, cy - h), (cx + w, cy - h), th, color);
++    draw_thick_line(atlas, batch, (cx + w, cy - h), (cx + w, cy + h), th, color);
++    draw_thick_line(atlas, batch, (cx + w, cy + h), (cx - w, cy + h), th, color);
++    draw_thick_line(atlas, batch, (cx - w, cy + h), (cx - w, cy - h), th, color);
++
++    // Key grid dots/lines
++    draw_thick_line(atlas, batch, (cx - w + 2.5, cy - 2.0), (cx + w - 2.5, cy - 2.0), 1.0, color);
++    draw_thick_line(atlas, batch, (cx - w * 0.5, cy + 2.5), (cx + w * 0.5, cy + 2.5), 1.2, color);
 +}
 +
 +// ---- Mini side keyboard + system IME ----
