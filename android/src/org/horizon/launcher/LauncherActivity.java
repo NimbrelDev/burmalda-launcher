@@ -898,12 +898,31 @@ public class LauncherActivity extends Activity {
                 File dir = baseDir();
                 if (dir != null) {
                     File playerFile = new File(dir, "horizon-player.txt");
+                    if (playerFile.exists() && !playerFile.canWrite()) {
+                        playerFile.delete();
+                    }
                     FileWriter writer = new FileWriter(playerFile);
                     writer.write("name:" + username.trim() + "\n");
                     writer.close();
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error writing player name", e);
+                Log.e(TAG, "Error writing player name, retrying with force delete", e);
+                try {
+                    File playerFile = new File(baseDir(), "horizon-player.txt");
+                    playerFile.delete();
+                    FileWriter writer = new FileWriter(playerFile);
+                    writer.write("name:" + username.trim() + "\n");
+                    writer.close();
+                } catch (Exception ignored) {}
+            }
+
+            // If resources are already present, ensure no leftover install-assets.flag causes a black screen
+            File resMeta = new File(new File(baseDir(), "resources"), "horizon-resources.json");
+            if (resMeta.isFile()) {
+                File flag = new File(baseDir(), "install-assets.flag");
+                if (flag.exists()) flag.delete();
+                File prog = new File(baseDir(), "install-progress.txt");
+                if (prog.exists()) prog.delete();
             }
 
             // Asset-install runs (install-assets.flag present) show a plain

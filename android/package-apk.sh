@@ -26,8 +26,12 @@ cp "$SCRIPT_DIR/bridge/android-bridge.js" "$WORK_DIR/assets/launcher/android-bri
 # locally prepared horizon-client data and cached in android/build/.
 ENGINE_DATA_ZIP="$WORK_DIR/engine-data.zip"
 if [ ! -f "$ENGINE_DATA_ZIP" ]; then
-    PREPARED_DIR="${HORIZON_PREPARED_DIR:-$HOME/.burmalda-launcher/versions/v0.2.97/.local/horizon-client/26.3}"
-    if [ -d "$PREPARED_DIR" ]; then
+    if [ -f "$PROJECT_ROOT/android/engine-data.zip" ]; then
+        echo "Using repository bundled $PROJECT_ROOT/android/engine-data.zip..."
+        cp "$PROJECT_ROOT/android/engine-data.zip" "$ENGINE_DATA_ZIP"
+    else
+        PREPARED_DIR="${HORIZON_PREPARED_DIR:-$HOME/.burmalda-launcher/versions/v0.2.97/.local/horizon-client/26.3}"
+        if [ -d "$PREPARED_DIR" ]; then
         echo "Building engine-data.zip from $PREPARED_DIR ..."
         python3 - "$PREPARED_DIR" "$ENGINE_DATA_ZIP" <<'PYEOF'
 import os, sys, zipfile
@@ -50,8 +54,9 @@ with zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
 assert 'horizon-resources.json' in zipfile.ZipFile(dst).namelist(), 'tables bundle is broken'
 print('engine-data.zip: %d files, %d bytes' % (count, os.path.getsize(dst)))
 PYEOF
-    else
-        echo "WARNING: no prepared engine tables at $PREPARED_DIR; APK will have no engine-data.zip (СКАЧАТЬ will fail on device)." >&2
+        else
+            echo "WARNING: no prepared engine tables at $PREPARED_DIR; APK will have no engine-data.zip (СКАЧАТЬ will fail on device)." >&2
+        fi
     fi
 fi
 if [ -f "$ENGINE_DATA_ZIP" ]; then
