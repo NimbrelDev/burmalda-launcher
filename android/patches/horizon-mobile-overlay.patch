@@ -1465,10 +1465,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..015bfd1
+index 0000000..1a2769e
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2577 @@
+@@ -0,0 +1,2724 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1563,6 +1563,8 @@ index 0000000..015bfd1
 +    pub chat: ButtonConfig,
 +    #[serde(default = "default_keyboard_cfg")]
 +    pub keyboard: ButtonConfig,
++    #[serde(default = "default_inventory_cfg")]
++    pub inventory: ButtonConfig,
 +}
 +
 +fn default_joystick_cfg() -> ButtonConfig {
@@ -1595,6 +1597,9 @@ index 0000000..015bfd1
 +fn default_keyboard_cfg() -> ButtonConfig {
 +    ButtonConfig { anchor: "top_right".into(), x: 28.0, y: 24.0, scale: 1.0, visible: true }
 +}
++fn default_inventory_cfg() -> ButtonConfig {
++    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 156.0, scale: 1.0, visible: true }
++}
 +
 +impl Default for ControlsConfig {
 +    fn default() -> Self {
@@ -1615,6 +1620,7 @@ index 0000000..015bfd1
 +            f3: default_f3_cfg(),
 +            chat: default_chat_cfg(),
 +            keyboard: default_keyboard_cfg(),
++            inventory: default_inventory_cfg(),
 +        }
 +    }
 +}
@@ -1647,6 +1653,7 @@ index 0000000..015bfd1
 +    pub stick_origin: (f32, f32),
 +    pub stick_offset: (f32, f32),
 +    pub last_knob_tap: Option<Instant>,
++    pub last_stick_flick: Option<Instant>,
 +    pub is_sneaking: bool,
 +    pub is_sprinting: bool,
 +
@@ -1695,6 +1702,7 @@ index 0000000..015bfd1
 +        stick_origin: (70.0, 70.0),
 +        stick_offset: (0.0, 0.0),
 +        last_knob_tap: None,
++        last_stick_flick: None,
 +        is_sneaking: false,
 +        is_sprinting: false,
 +        jump_id: None,
@@ -1789,6 +1797,7 @@ index 0000000..015bfd1
 +        } else {
 +            self.handle_menu_touch(touch, gx, gy, sw, sh, scale);
 +        }
++        self.flush_mobile_keyboard();
 +    }
 +
 +    /// Drops every transient gesture (joystick, camera swipe, mining, jump,
@@ -1918,9 +1927,9 @@ index 0000000..015bfd1
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
 +                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
-+                        self.keys.insert(KeyCode::F3);
-+                        let _ = self.key_pressed(KeyCode::F3);
-+                        self.keys.remove(&KeyCode::F3);
++                        use horizon_client::debug_keys::KeyAction;
++                        self.debug_key(KeyCode::F3, KeyAction::Press);
++                        self.debug_key(KeyCode::F3, KeyAction::Release);
 +                        return;
 +                    }
 +                }
@@ -1935,6 +1944,22 @@ index 0000000..015bfd1
 +                        self.keys.insert(KeyCode::KeyT);
 +                        let _ = self.key_pressed(KeyCode::KeyT);
 +                        self.keys.remove(&KeyCode::KeyT);
++                        state.osk_open = true;
++                        state.osk_tab = OskTab::Letters;
++                        return;
++                    }
++                }
++
++                // Inventory button (E)
++                if cfg.inventory.visible {
++                    let pos = cfg.inventory.compute_pos(sw, sh);
++                    let r = 24.0 * cfg.inventory.scale;
++                    let dx = gx - pos.0;
++                    let dy = gy - pos.1;
++                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                        self.keys.insert(KeyCode::KeyE);
++                        let _ = self.key_pressed(KeyCode::KeyE);
++                        self.keys.remove(&KeyCode::KeyE);
 +                        return;
 +                    }
 +                }
@@ -2038,12 +2063,12 @@ index 0000000..015bfd1
 +                        state.stick_id = Some(touch.id);
 +                        state.stick_origin = j_center;
 +
-+                        // Double tap knob center (<20px from center, <300ms) toggles sneak
++                        // Double tap knob / stick (<45px from center, <350ms) toggles sneak
 +                        let d_knob = ((gx - j_center.0).powi(2) + (gy - j_center.1).powi(2)).sqrt();
-+                        if d_knob <= 22.0 {
++                        if d_knob <= 45.0 * cfg.joystick.scale {
 +                            let now = Instant::now();
 +                            if let Some(last_tap) = state.last_knob_tap {
-+                                if now.duration_since(last_tap).as_millis() < 300 {
++                                if now.duration_since(last_tap).as_millis() < 350 {
 +                                    state.is_sneaking = !state.is_sneaking;
 +                                    if state.is_sneaking {
 +                                        self.keys.insert(KeyCode::ShiftLeft);
@@ -2064,11 +2089,34 @@ index 0000000..015bfd1
 +                        let dy = gy - j_center.1;
 +                        let dist = (dx * dx + dy * dy).sqrt();
 +                        let max_r = 38.0 * cfg.joystick.scale;
-+                        state.stick_offset = if dist > max_r && dist > 0.001 {
++                        let clamped = if dist > max_r && dist > 0.001 {
 +                            (dx / dist * max_r, dy / dist * max_r)
 +                        } else {
 +                            (dx, dy)
 +                        };
++                        state.stick_offset = clamped;
++
++                        let deadzone = 8.0 * cfg.joystick.scale;
++                        if clamped.1 < -deadzone {
++                            self.keys.insert(KeyCode::KeyW);
++                        } else {
++                            self.keys.remove(&KeyCode::KeyW);
++                        }
++                        if clamped.1 > deadzone {
++                            self.keys.insert(KeyCode::KeyS);
++                        } else {
++                            self.keys.remove(&KeyCode::KeyS);
++                        }
++                        if clamped.0 < -deadzone {
++                            self.keys.insert(KeyCode::KeyA);
++                        } else {
++                            self.keys.remove(&KeyCode::KeyA);
++                        }
++                        if clamped.0 > deadzone {
++                            self.keys.insert(KeyCode::KeyD);
++                        } else {
++                            self.keys.remove(&KeyCode::KeyD);
++                        }
 +                    }
 +                    return;
 +                }
@@ -2244,11 +2292,30 @@ index 0000000..015bfd1
 +                // Joystick release
 +                if state.stick_id == Some(touch.id) {
 +                    state.stick_id = None;
++                    let flick_dist = (state.stick_offset.0.powi(2) + state.stick_offset.1.powi(2)).sqrt();
 +                    state.stick_offset = (0.0, 0.0);
 +                    self.keys.remove(&KeyCode::KeyW);
 +                    self.keys.remove(&KeyCode::KeyS);
 +                    self.keys.remove(&KeyCode::KeyA);
 +                    self.keys.remove(&KeyCode::KeyD);
++                    if flick_dist > 18.0 * cfg.joystick.scale {
++                        let now = Instant::now();
++                        if let Some(last_flick) = state.last_stick_flick {
++                            if now.duration_since(last_flick).as_millis() < 400 {
++                                state.is_sneaking = !state.is_sneaking;
++                                if state.is_sneaking {
++                                    self.keys.insert(KeyCode::ShiftLeft);
++                                } else {
++                                    self.keys.remove(&KeyCode::ShiftLeft);
++                                }
++                                state.last_stick_flick = None;
++                            } else {
++                                state.last_stick_flick = Some(now);
++                            }
++                        } else {
++                            state.last_stick_flick = Some(now);
++                        }
++                    }
 +                    return;
 +                }
 +
@@ -2585,6 +2652,26 @@ index 0000000..015bfd1
 +
 +        self.sync_mobile_keyboard(&mut state);
 +
++        // Sprint state sync: if sprint toggle is ON, keep KeyCode::ControlLeft inserted
++        if state.is_sprinting {
++            if !self.keys.contains(&KeyCode::ControlLeft) {
++                self.keys.insert(KeyCode::ControlLeft);
++            }
++        }
++
++        // Sneak state sync: if sneak toggle is ON, keep KeyCode::ShiftLeft inserted
++        if state.is_sneaking {
++            if !self.keys.contains(&KeyCode::ShiftLeft) {
++                self.keys.insert(KeyCode::ShiftLeft);
++            }
++        }
++
++        drop(state);
++        self.flush_mobile_keyboard();
++        let Ok(mut state) = TOUCH_STATE.try_lock() else {
++            return;
++        };
++
 +        // 1. In-game continuous mining (>250ms hold on free screen)
 +        if self.screen == Screen::Playing
 +            && state.look_id.is_some()
@@ -2738,6 +2825,14 @@ index 0000000..015bfd1
 +            let fill = if active { col_fill_pressed } else { col_fill };
 +            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, fill, col_border);
 +            draw_icon_double_chevron(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
++        }
++
++        // Inventory [E]
++        if cfg.inventory.visible {
++            let pos = cfg.inventory.compute_pos(sw, sh);
++            let sz = 22.0 * cfg.inventory.scale;
++            draw_squircle(atlas, batch, pos.0, pos.1, sz, sz, sz * 0.35, col_fill, col_border);
++            draw_icon_chest(atlas, batch, pos.0, pos.1, sz * 1.2, col_icon);
 +        }
 +
 +        // 3. Movement Joystick with outer squircle ring and knob
@@ -3577,7 +3672,7 @@ index 0000000..015bfd1
 +        || (cursor.0 == 0.0 && cursor.1 == 0.0)
 +}
 +
-+/// Draws a thick antialiased-like line segment as a filled quad.
++/// Draws a thick antialiased-like line segment as a filled quad with square line caps.
 +fn draw_thick_line(
 +    atlas: &HudAtlas,
 +    batch: &mut HudBatch,
@@ -3594,10 +3689,15 @@ index 0000000..015bfd1
 +    }
 +    let nx = -dy / len * (th * 0.5);
 +    let ny = dx / len * (th * 0.5);
-+    let c0 = [p0.0 + nx, p0.1 + ny];
-+    let c1 = [p1.0 + nx, p1.1 + ny];
-+    let c2 = [p1.0 - nx, p1.1 - ny];
-+    let c3 = [p0.0 - nx, p0.1 - ny];
++    // Extend segment ends by half stroke to close corner gaps (square line caps)
++    let ex = dx / len * (th * 0.45);
++    let ey = dy / len * (th * 0.45);
++    let p0_ext = (p0.0 - ex, p0.1 - ey);
++    let p1_ext = (p1.0 + ex, p1.1 + ey);
++    let c0 = [p0_ext.0 + nx, p0_ext.1 + ny];
++    let c1 = [p1_ext.0 + nx, p1_ext.1 + ny];
++    let c2 = [p1_ext.0 - nx, p1_ext.1 - ny];
++    let c3 = [p0_ext.0 - nx, p0_ext.1 - ny];
 +    batch.fill_quad(atlas, [c0, c1, c2, c3], color);
 +}
 +
@@ -3675,21 +3775,68 @@ index 0000000..015bfd1
 +    }
 +}
 +
-+/// Vector icon: Sword for Attack LMB
++/// Vector icon: Katana for Attack LMB (curved blade, sharp kissaki tip, tsuba guard, tsuka handle)
 +fn draw_icon_sword(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
 +    let th = (2.2 * sz / 24.0).max(1.5);
-+    // Blade from (-0.4, 0.4) to (0.4, -0.4)
 +    let s = sz * 0.42;
-+    draw_thick_line(atlas, batch, (cx - s * 0.7, cy + s * 0.7), (cx + s, cy - s), th, color);
-+    // Crossguard
-+    let gs = s * 0.45;
-+    let gx = cx - s * 0.3;
-+    let gy = cy + s * 0.3;
-+    draw_thick_line(atlas, batch, (gx - gs, gy - gs), (gx + gs, gy + gs), th, color);
-+    // Pommel
-+    let px = cx - s * 0.9;
-+    let py = cy + s * 0.9;
-+    draw_thick_line(atlas, batch, (px - 1.5, py), (px + 1.5, py), th, color);
++
++    // Tsuba (oval guard) at (cx - s*0.22, cy + s*0.22)
++    let gx = cx - s * 0.22;
++    let gy = cy + s * 0.22;
++    let tw = s * 0.32;
++    // Perpendicular angle to diagonal
++    draw_thick_line(atlas, batch, (gx - tw, gy - tw), (gx + tw, gy + tw), th * 1.3, color);
++
++    // Tsuka (handle) wrapped from tsuba down-left
++    let hx = cx - s * 0.72;
++    let hy = cy + s * 0.72;
++    draw_thick_line(atlas, batch, (gx, gy), (hx, hy), th * 1.15, color);
++    // Kashira (pommel cap)
++    let pw = s * 0.16;
++    draw_thick_line(atlas, batch, (hx - pw, hy - pw), (hx + pw, hy + pw), th * 1.35, color);
++
++    // Katana curved blade with sori (curvature):
++    // From tsuba (gx, gy) -> gentle upward arc to mid-blade -> tip
++    let p_mid = (cx + s * 0.26, cy - s * 0.22);
++    let p_near_tip = (cx + s * 0.76, cy - s * 0.66);
++    let p_tip = (cx + s * 0.96, cy - s * 0.94);
++
++    // Curved blade spine & edge
++    draw_thick_line(atlas, batch, (gx, gy), p_mid, th, color);
++    draw_thick_line(atlas, batch, p_mid, p_near_tip, th, color);
++    // Kissaki (sharp angled chisel tip of the katana)
++    draw_thick_line(atlas, batch, p_near_tip, p_tip, th, color);
++    // Kissaki tip back angle
++    let p_tip_back = (cx + s * 0.86, cy - s * 0.95);
++    draw_thick_line(atlas, batch, p_tip, p_tip_back, th * 0.85, color);
++}
++
++/// Vector icon: Chest / Inventory for Inventory E
++fn draw_icon_chest(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
++    let th = (2.0 * sz / 24.0).max(1.5);
++    let s = sz * 0.42;
++    let x0 = cx - s * 0.82;
++    let x1 = cx + s * 0.82;
++    let y0 = cy - s * 0.70;
++    let y1 = cy + s * 0.75;
++    let ym = cy - s * 0.10; // Chest lid seam
++
++    // Outer chest box
++    draw_thick_line(atlas, batch, (x0, y0), (x1, y0), th, color);
++    draw_thick_line(atlas, batch, (x1, y0), (x1, y1), th, color);
++    draw_thick_line(atlas, batch, (x1, y1), (x0, y1), th, color);
++    draw_thick_line(atlas, batch, (x0, y1), (x0, y0), th, color);
++
++    // Lid divider line
++    draw_thick_line(atlas, batch, (x0, ym), (x1, ym), th, color);
++
++    // Central clasp / latch
++    let lw = s * 0.18;
++    let lh = s * 0.25;
++    draw_thick_line(atlas, batch, (cx - lw, ym - lh * 0.5), (cx + lw, ym - lh * 0.5), th, color);
++    draw_thick_line(atlas, batch, (cx - lw, ym + lh * 0.5), (cx + lw, ym + lh * 0.5), th, color);
++    draw_thick_line(atlas, batch, (cx - lw, ym - lh * 0.5), (cx - lw, ym + lh * 0.5), th, color);
++    draw_thick_line(atlas, batch, (cx + lw, ym - lh * 0.5), (cx + lw, ym + lh * 0.5), th, color);
 +}
 +
 +/// Vector icon: Isometric Cube for Place RMB
