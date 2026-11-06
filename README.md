@@ -40,6 +40,27 @@ export ANDROID_KEYSTORE_PASS=...
 export ANDROID_KEY_ALIAS=...
 ```
 
+## Правки и сборка с телефона
+
+Всё необходимое уже настроено в GitHub Actions — отдельный компьютер не нужен.
+
+1. **Правка файлов.** Откройте репозиторий в браузере телефона (или в приложении
+   GitHub) → нужный файл → карандаш → «Commit changes».
+   Если сборка пока не нужна, коммитьте в отдельную ветку: `build-apk` реагирует
+   только на push в `master` (и на ручной запуск).
+2. **Сборка APK вручную.** Actions → **build-apk** → **Run workflow** → ветка
+   `master` → **Run**. Через ~20–30 минут готовый APK появится в артефакте
+   `horizon-mobile-apk` на странице запуска.
+3. **Релиз всех платформ.** Actions → **release** → **Run workflow** → версия без
+   префикса `v` (например `1.0.1`) → `publish=false`, чтобы получить Draft.
+4. **Движок Horizon с телефона не редактируется.** CI собирает его из
+   `android/patches/horizon-mobile-overlay.patch`; после правок
+   `crates/horizon-client/src/mobile.rs` на ПК патч нужно перегенерировать и
+   закоммитить (см. `android/patches/README.md`).
+
+Пока проект не готов к сборкам, автозапуск можно временно отключить:
+Actions → **build-apk** → **⋯** → **Disable workflow**.
+
 ## Архитектура
 
 - **ПК** — Electron: главный процесс в `desktop/`, UI (тот же веб-код) в `src/` + `src/renderer/`.
