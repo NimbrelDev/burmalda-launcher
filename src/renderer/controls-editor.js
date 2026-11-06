@@ -9,7 +9,7 @@
       id: 'joystick',
       name: 'Джойстик ходьбы',
       isJoystick: true,
-      baseSize: 90,
+      baseSize: 76,
       defaultAnchor: 'bottom_left',
       defaultX: 70,
       defaultY: 70
@@ -17,10 +17,10 @@
     jump: {
       id: 'jump',
       name: 'Прыжок',
-      baseSize: 52,
+      baseSize: 48,
       defaultAnchor: 'bottom_right',
-      defaultX: 50,
-      defaultY: 50,
+      defaultX: 48,
+      defaultY: 48,
       svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>'
     },
     sprint: {
@@ -29,31 +29,40 @@
       baseSize: 44,
       defaultAnchor: 'bottom_right',
       defaultX: 104,
-      defaultY: 44,
+      defaultY: 48,
       svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>'
     },
     attack: {
       id: 'attack',
-      name: 'Удар (ЛКМ)',
+      name: 'Атака (Катана / ЛКМ)',
       baseSize: 48,
       defaultAnchor: 'bottom_right',
       defaultX: 104,
       defaultY: 100,
-      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" y1="19" x2="19" y2="13"></line><line x1="16" y1="16" x2="20" y2="20"></line><line x1="19" y1="21" x2="21" y2="19"></line></svg>'
+      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 3.5c-3 3-7 8-9.5 12.5l-4 4 1-4c4.5-2.5 9.5-6.5 12.5-9.5z"></path><path d="M5.5 19.5l-2.5 2.5"></path><path d="M12 9l3 3"></path></svg>'
     },
     place: {
       id: 'place',
       name: 'Блок (ПКМ)',
       baseSize: 48,
       defaultAnchor: 'bottom_right',
-      defaultX: 50,
+      defaultX: 48,
       defaultY: 100,
       svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
+    },
+    inventory: {
+      id: 'inventory',
+      name: 'Инвентарь (E)',
+      baseSize: 44,
+      defaultAnchor: 'bottom_right',
+      defaultX: 104,
+      defaultY: 156,
+      svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><rect x="10" y="8" width="4" height="4" rx="0.5"></rect></svg>'
     },
     f5: {
       id: 'f5',
       name: 'F5 (Вид камеры)',
-      baseSize: 34,
+      baseSize: 32,
       defaultAnchor: 'top_center',
       defaultX: -54,
       defaultY: 20,
@@ -62,7 +71,7 @@
     pause: {
       id: 'pause',
       name: 'Пауза (Esc)',
-      baseSize: 34,
+      baseSize: 32,
       defaultAnchor: 'top_center',
       defaultX: -18,
       defaultY: 20,
@@ -71,7 +80,7 @@
     f3: {
       id: 'f3',
       name: 'F3 (Отладка)',
-      baseSize: 34,
+      baseSize: 32,
       defaultAnchor: 'top_center',
       defaultX: 18,
       defaultY: 20,
@@ -80,7 +89,7 @@
     chat: {
       id: 'chat',
       name: 'Чат (T)',
-      baseSize: 34,
+      baseSize: 32,
       defaultAnchor: 'top_center',
       defaultX: 54,
       defaultY: 20,
@@ -89,7 +98,7 @@
     keyboard: {
       id: 'keyboard',
       name: 'ПК-Клавиатура',
-      baseSize: 38,
+      baseSize: 32,
       defaultAnchor: 'top_right',
       defaultX: 28,
       defaultY: 24,
@@ -112,11 +121,50 @@
     }
 
     if (is3Fingers) {
-      // In 3-finger claw preset, attack button is moved to top-left sector under index finger
+      // In 3-finger claw preset:
+      // Katana attack button under left index finger
       cfg.attack.anchor = 'top_left';
-      cfg.attack.x = 52;
-      cfg.attack.y = 52;
+      cfg.attack.x = 48;
+      cfg.attack.y = 48;
       cfg.attack.scale = 1.15;
+
+      // Ergonomic right thumb action cluster
+      cfg.jump.anchor = 'bottom_right';
+      cfg.jump.x = 48;
+      cfg.jump.y = 48;
+
+      cfg.place.anchor = 'bottom_right';
+      cfg.place.x = 48;
+      cfg.place.y = 100;
+
+      cfg.sprint.anchor = 'bottom_right';
+      cfg.sprint.x = 104;
+      cfg.sprint.y = 48;
+
+      cfg.inventory.anchor = 'bottom_right';
+      cfg.inventory.x = 104;
+      cfg.inventory.y = 100;
+    } else {
+      // 2-finger classic layout
+      cfg.jump.anchor = 'bottom_right';
+      cfg.jump.x = 48;
+      cfg.jump.y = 48;
+
+      cfg.place.anchor = 'bottom_right';
+      cfg.place.x = 48;
+      cfg.place.y = 100;
+
+      cfg.sprint.anchor = 'bottom_right';
+      cfg.sprint.x = 104;
+      cfg.sprint.y = 48;
+
+      cfg.attack.anchor = 'bottom_right';
+      cfg.attack.x = 104;
+      cfg.attack.y = 100;
+
+      cfg.inventory.anchor = 'bottom_right';
+      cfg.inventory.x = 104;
+      cfg.inventory.y = 156;
     }
 
     if (removeSprint) {
@@ -175,41 +223,62 @@
     }
   }
 
-  // Convert layout anchor & x/y offsets to current screen pixels
+  // Get canonical Minecraft GUI coordinates for the screen
+  function getGuiVirtualDimensions(containerW, containerH) {
+    const dpr = window.devicePixelRatio || 1;
+    const physW = (containerW || window.innerWidth) * dpr;
+    const physH = (containerH || window.innerHeight) * dpr;
+    // Minecraft GUI Scale calculation: min(physW/320, physH/240)
+    const guiScale = Math.max(1, Math.min(Math.floor(physW / 320), Math.floor(physH / 240)));
+    const sw = physW / guiScale;
+    const sh = physH / guiScale;
+    return { sw, sh, guiScale, dpr };
+  }
+
+  // Convert layout anchor & x/y offsets (in Minecraft GUI space) to current screen pixels
   function computePixelPos(anchor, x, y, width, height) {
+    const { sw, sh } = getGuiVirtualDimensions(width, height);
+    const scaleX = width / sw;
+    const scaleY = height / sh;
     let px = 0;
     let py = 0;
     switch (anchor) {
       case 'bottom_left':
-        px = x;
-        py = height - y;
+        px = x * scaleX;
+        py = height - (y * scaleY);
         break;
       case 'bottom_right':
-        px = width - x;
-        py = height - y;
+        px = width - (x * scaleX);
+        py = height - (y * scaleY);
         break;
       case 'top_left':
-        px = x;
-        py = y;
+        px = x * scaleX;
+        py = y * scaleY;
         break;
       case 'top_right':
-        px = width - x;
-        py = y;
+        px = width - (x * scaleX);
+        py = y * scaleY;
         break;
       case 'top_center':
       default:
-        px = width / 2 + x;
-        py = y;
+        px = width / 2 + (x * scaleX);
+        py = y * scaleY;
         break;
     }
     return { px, py };
   }
 
-  // Convert pixel position back to best-fit anchor and offset
+  // Convert pixel position back to best-fit anchor and GUI offset
   function computeAnchorAndOffset(px, py, width, height) {
-    const isTop = py < height * 0.45;
-    const isLeft = px < width * 0.35;
-    const isRight = px > width * 0.65;
+    const { sw, sh } = getGuiVirtualDimensions(width, height);
+    const scaleX = width / sw;
+    const scaleY = height / sh;
+    const gx = px / scaleX;
+    const gy = py / scaleY;
+
+    const isTop = gy < sh * 0.45;
+    const isLeft = gx < sw * 0.35;
+    const isRight = gx > sw * 0.65;
 
     let anchor = 'bottom_left';
     let x = 0;
@@ -218,26 +287,26 @@
     if (isTop) {
       if (isLeft) {
         anchor = 'top_left';
-        x = Math.round(px);
-        y = Math.round(py);
+        x = Math.round(gx);
+        y = Math.round(gy);
       } else if (isRight) {
         anchor = 'top_right';
-        x = Math.round(width - px);
-        y = Math.round(py);
+        x = Math.round(sw - gx);
+        y = Math.round(gy);
       } else {
         anchor = 'top_center';
-        x = Math.round(px - width / 2);
-        y = Math.round(py);
+        x = Math.round(gx - sw / 2);
+        y = Math.round(gy);
       }
     } else {
       if (isRight) {
         anchor = 'bottom_right';
-        x = Math.round(width - px);
-        y = Math.round(height - py);
+        x = Math.round(sw - gx);
+        y = Math.round(sh - gy);
       } else {
         anchor = 'bottom_left';
-        x = Math.round(px);
-        y = Math.round(height - py);
+        x = Math.round(gx);
+        y = Math.round(sh - gy);
       }
     }
 
@@ -250,12 +319,14 @@
     const rect = canvasEl.getBoundingClientRect();
     const w = rect.width || window.innerWidth;
     const h = rect.height || window.innerHeight;
+    const { sh } = getGuiVirtualDimensions(w, h);
+    const scaleY = h / sh;
 
     for (const [key, itemData] of Object.entries(activeLayout)) {
       const def = BUTTON_DEFS[key];
       if (!def) continue;
 
-      const size = def.baseSize * (itemData.scale || 1.0);
+      const size = def.baseSize * (itemData.scale || 1.0) * scaleY;
       const { px, py } = computePixelPos(itemData.anchor, itemData.x, itemData.y, w, h);
 
       const el = document.createElement('div');
@@ -386,7 +457,10 @@
     const el = document.getElementById(`drag-item-${selectedElementId}`);
     const def = BUTTON_DEFS[selectedElementId];
     if (el && def) {
-      const size = def.baseSize * sc;
+      const rect = canvasEl.getBoundingClientRect();
+      const { sh } = getGuiVirtualDimensions(rect.width, rect.height);
+      const scaleY = rect.height / sh;
+      const size = def.baseSize * sc * scaleY;
       el.style.width = `${size}px`;
       el.style.height = `${size}px`;
       const icon = el.querySelector('.controls-item-icon');
