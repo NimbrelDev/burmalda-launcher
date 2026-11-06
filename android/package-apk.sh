@@ -106,8 +106,18 @@ with zipfile.ZipFile(apk_path, 'a', compression=zipfile.ZIP_DEFLATED) as z:
 fi
 
 # 6. Add native libraries (compiled Rust engine)
-if [ -d "$SCRIPT_DIR/libs" ]; then
-    python3 -c "
+# The engine .so is a build artifact and is NOT stored in git (android/libs/
+# is ignored). Building an APK without it would silently produce a package
+# that cannot start the game, so fail loudly with instructions instead.
+LIB_SO="$SCRIPT_DIR/libs/arm64-v8a/libhorizon_client.so"
+if [ ! -f "$LIB_SO" ]; then
+    echo "ERROR: не найден $LIB_SO" >&2
+    echo "Сначала соберите мобильный движок Horizon и положите .so в android/libs/arm64-v8a/." >&2
+    echo "CI (.github/workflows/build-apk.yml) делает это автоматически; для локальной" >&2
+    echo "сборки см. android/patches/README.md." >&2
+    exit 1
+fi
+python3 -c "
 import sys, os, zipfile
 apk_path = sys.argv[1]
 libs_dir = sys.argv[2]
@@ -118,7 +128,6 @@ with zipfile.ZipFile(apk_path, 'a', compression=zipfile.ZIP_DEFLATED) as z:
             arcname = os.path.join('lib', os.path.relpath(fp, libs_dir))
             z.write(fp, arcname)
 " "$WORK_DIR/unaligned.apk" "$SCRIPT_DIR/libs"
-fi
 
 # 7. Zipalign
 "$BUILD_TOOLS/zipalign" -f -v 4 "$WORK_DIR/unaligned.apk" "$OUT_DIR/horizon-mobile-26.3.apk"
