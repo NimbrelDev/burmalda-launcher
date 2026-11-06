@@ -104,7 +104,7 @@ index 7687209..8d0d145 100644
  
  /// A clipboard in memory.
 diff --git a/crates/horizon-client/src/game.rs b/crates/horizon-client/src/game.rs
-index 05c8765..a56187e 100644
+index 05c8765..07a7dd7 100644
 --- a/crates/horizon-client/src/game.rs
 +++ b/crates/horizon-client/src/game.rs
 @@ -15,7 +15,7 @@ mod block_items;
@@ -538,7 +538,7 @@ index 05c8765..a56187e 100644
          ) {
              self.last_input = Instant::now();
          }
-@@ -12604,6 +12619,13 @@ impl ApplicationHandler for Game<'_> {
+@@ -12604,6 +12619,17 @@ impl ApplicationHandler for Game<'_> {
                          }
                      }
                  }
@@ -549,10 +549,14 @@ index 05c8765..a56187e 100644
 +                    // focused text field right here.
 +                    self.flush_mobile_keyboard();
 +                }
++                // Android system keyboard (IME) commits go through the same
++                // text-field routing as the mini panel.
++                #[cfg(target_os = "android")]
++                WindowEvent::Ime(ime) => self.handle_mobile_ime(ime),
                  WindowEvent::CursorMoved { position, .. } => {
                      if let Some(r) = &self.renderer {
                          let b = HudBatch::new([r.config.width, r.config.height]);
-@@ -12724,11 +12746,13 @@ impl ApplicationHandler for Game<'_> {
+@@ -12724,11 +12750,13 @@ impl ApplicationHandler for Game<'_> {
                          self.advancements_scroll(scaled(raw_x) as f32, d);
                      }
                  }
@@ -566,7 +570,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput { state, button, .. }
                      if self.server_packs.prompt.is_some() =>
                  {
-@@ -12736,12 +12760,15 @@ impl ApplicationHandler for Game<'_> {
+@@ -12736,12 +12764,15 @@ impl ApplicationHandler for Game<'_> {
                          self.pack_prompt_click()?;
                      }
                  }
@@ -582,7 +586,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput { state, button, .. } if self.screen == Screen::Options => {
                      if self.options_waiting_for_key() && state == ElementState::Pressed {
                          self.options_bind_mouse(button)?;
-@@ -12752,6 +12779,7 @@ impl ApplicationHandler for Game<'_> {
+@@ -12752,6 +12783,7 @@ impl ApplicationHandler for Game<'_> {
                          )?;
                      }
                  }
@@ -590,7 +594,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput {
                      state: ElementState::Released,
                      button: MouseButton::Left,
-@@ -12762,6 +12790,7 @@ impl ApplicationHandler for Game<'_> {
+@@ -12762,6 +12794,7 @@ impl ApplicationHandler for Game<'_> {
                          title.release_field();
                      }
                  }
@@ -598,7 +602,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput {
                      state,
                      button: MouseButton::Left,
-@@ -12811,7 +12840,9 @@ impl ApplicationHandler for Game<'_> {
+@@ -12811,7 +12844,9 @@ impl ApplicationHandler for Game<'_> {
                          Action::None => {}
                      }
                  }
@@ -608,7 +612,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput { state, button, .. } if self.book.is_some() => {
                      if state == ElementState::Pressed && button == MouseButton::Left {
                          let size = self
-@@ -12822,6 +12853,7 @@ impl ApplicationHandler for Game<'_> {
+@@ -12822,6 +12857,7 @@ impl ApplicationHandler for Game<'_> {
                          self.book_click(size);
                      }
                  }
@@ -616,7 +620,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput { state, button, .. } if self.sign_edit.is_some() => {
                      if state == ElementState::Pressed && button == MouseButton::Left {
                          let size = self
-@@ -12832,6 +12864,7 @@ impl ApplicationHandler for Game<'_> {
+@@ -12832,6 +12868,7 @@ impl ApplicationHandler for Game<'_> {
                          self.sign_edit_click(size);
                      }
                  }
@@ -624,7 +628,7 @@ index 05c8765..a56187e 100644
                  WindowEvent::MouseInput { state, button, .. } => {
                      let pressed = state == ElementState::Pressed;
                      if matches!(self.screen, Screen::Inventory | Screen::Creative)
-@@ -12957,6 +12990,35 @@ impl ApplicationHandler for Game<'_> {
+@@ -12957,6 +12994,35 @@ impl ApplicationHandler for Game<'_> {
                          _ => {}
                      }
                  }
@@ -660,7 +664,7 @@ index 05c8765..a56187e 100644
                  // ConfirmScreen.keyPressed: Escape answers no, once its delay is over.
                  WindowEvent::KeyboardInput { event, .. }
                      if self.screen == Screen::Dead && self.ui.death_confirm.is_some() =>
-@@ -13182,6 +13244,8 @@ impl ApplicationHandler for Game<'_> {
+@@ -13182,6 +13248,8 @@ impl ApplicationHandler for Game<'_> {
                      let elapsed = now.duration_since(self.previous);
                      self.frame_ticks = elapsed.as_secs_f32() * 20.0;
                      self.previous = now;
@@ -669,7 +673,7 @@ index 05c8765..a56187e 100644
                      // Arrow-key camera controls belong to gameplay; chat and
                      // other screens use the same keys for their own navigation.
                      if self.screen == Screen::Playing
-@@ -13367,7 +13431,7 @@ impl ApplicationHandler for Game<'_> {
+@@ -13367,7 +13435,7 @@ impl ApplicationHandler for Game<'_> {
      }
      fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
          if self.pending_save.is_none()
@@ -678,7 +682,7 @@ index 05c8765..a56187e 100644
              && self.focused
              && self.screen == Screen::Playing
              && let DeviceEvent::MouseMotion { delta: (x, y) } = event
-@@ -13884,7 +13948,7 @@ struct GameCpuResources {
+@@ -13884,7 +13952,7 @@ struct GameCpuResources {
      dragon_model: Option<horizon_client::mobs::Part>,
      arrow_model: Option<horizon_client::mobs::Part>,
      trident_model: Option<horizon_client::mobs::Part>,
@@ -687,7 +691,7 @@ index 05c8765..a56187e 100644
  }
  impl GameCpuResources {
      fn load(root: &std::path::Path) -> Result<Self> {
-@@ -14797,7 +14861,17 @@ fn write_report(game: &Game<'_>) -> Result<()> {
+@@ -14797,7 +14865,17 @@ fn write_report(game: &Game<'_>) -> Result<()> {
      Ok(())
  }
  
@@ -705,7 +709,7 @@ index 05c8765..a56187e 100644
      EventLoop::new()?.run_app(&mut game)?;
      horizon_client::discord_presence::stop();
      write_report(&game)?;
-@@ -14809,8 +14883,8 @@ fn run_event_loop(mut game: Game<'_>) -> Result<()> {
+@@ -14809,8 +14887,8 @@ fn run_event_loop(mut game: Game<'_>) -> Result<()> {
  
  /// The loading screen's state while the worker loads the resources.
  struct Loading {
@@ -716,7 +720,7 @@ index 05c8765..a56187e 100644
      gui: Option<UiResources>,
      settings: Settings,
      fullscreen: horizon_client::window::FullscreenState,
-@@ -15155,6 +15229,9 @@ fn run_loading(
+@@ -15155,6 +15233,9 @@ fn run_loading(
          error: None,
      };
      let mut app = App::Loading(Box::new(loading));
@@ -1465,10 +1469,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..1a2769e
+index 0000000..ac1ccf3
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2724 @@
+@@ -0,0 +1,2747 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1541,8 +1545,16 @@ index 0000000..1a2769e
 +    }
 +}
 +
++/// controls.json layout format. v1 (no `version` field) stored raw screen
++/// pixels, which the engine interpreted as GUI pixels: after a GUI-scale
++/// change the buttons ended up in the wrong place. v2 stores GUI units
++/// (same space as `draw_mobile_hud`) and is the only accepted format.
++pub const CONTROLS_LAYOUT_VERSION: u32 = 2;
++
 +#[derive(Clone, Debug, serde::Deserialize)]
 +pub struct ControlsConfig {
++    #[serde(default)]
++    pub version: u32,
 +    #[serde(default = "default_joystick_cfg")]
 +    pub joystick: ButtonConfig,
 +    #[serde(default = "default_jump_cfg")]
@@ -1571,16 +1583,16 @@ index 0000000..1a2769e
 +    ButtonConfig { anchor: "bottom_left".into(), x: 70.0, y: 70.0, scale: 1.0, visible: true }
 +}
 +fn default_jump_cfg() -> ButtonConfig {
-+    ButtonConfig { anchor: "bottom_right".into(), x: 50.0, y: 50.0, scale: 1.0, visible: true }
++    ButtonConfig { anchor: "bottom_right".into(), x: 52.0, y: 52.0, scale: 1.0, visible: true }
 +}
 +fn default_sprint_cfg() -> ButtonConfig {
-+    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 44.0, scale: 1.0, visible: true }
++    ButtonConfig { anchor: "bottom_right".into(), x: 112.0, y: 112.0, scale: 1.0, visible: true }
 +}
 +fn default_attack_cfg() -> ButtonConfig {
-+    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 100.0, scale: 1.0, visible: true }
++    ButtonConfig { anchor: "bottom_right".into(), x: 112.0, y: 52.0, scale: 1.0, visible: true }
 +}
 +fn default_place_cfg() -> ButtonConfig {
-+    ButtonConfig { anchor: "bottom_right".into(), x: 50.0, y: 100.0, scale: 1.0, visible: true }
++    ButtonConfig { anchor: "bottom_right".into(), x: 52.0, y: 112.0, scale: 1.0, visible: true }
 +}
 +fn default_f5_cfg() -> ButtonConfig {
 +    ButtonConfig { anchor: "top_center".into(), x: -54.0, y: 20.0, scale: 1.0, visible: true }
@@ -1598,7 +1610,7 @@ index 0000000..1a2769e
 +    ButtonConfig { anchor: "top_right".into(), x: 28.0, y: 24.0, scale: 1.0, visible: true }
 +}
 +fn default_inventory_cfg() -> ButtonConfig {
-+    ButtonConfig { anchor: "bottom_right".into(), x: 104.0, y: 156.0, scale: 1.0, visible: true }
++    ButtonConfig { anchor: "bottom_right".into(), x: 112.0, y: 172.0, scale: 1.0, visible: true }
 +}
 +
 +impl Default for ControlsConfig {
@@ -1610,6 +1622,7 @@ index 0000000..1a2769e
 +impl ControlsConfig {
 +    pub fn fallback() -> Self {
 +        Self {
++            version: CONTROLS_LAYOUT_VERSION,
 +            joystick: default_joystick_cfg(),
 +            jump: default_jump_cfg(),
 +            sprint: default_sprint_cfg(),
@@ -1634,11 +1647,25 @@ index 0000000..1a2769e
 +    ];
 +    for path in &candidates {
 +        if let Ok(data) = std::fs::read_to_string(path) {
-+            if let Ok(cfg) = serde_json::from_str::<ControlsConfig>(&data) {
-+                log::info!("Horizon: loaded controls.json from {:?}", path);
-+                return cfg;
-+            } else {
-+                log::warn!("Horizon: failed to parse controls.json from {:?}", path);
++            match serde_json::from_str::<ControlsConfig>(&data) {
++                Ok(cfg) if cfg.version >= CONTROLS_LAYOUT_VERSION => {
++                    log::info!(
++                        "Horizon: loaded controls.json (v{}) from {:?}",
++                        cfg.version,
++                        path
++                    );
++                    return cfg;
++                }
++                Ok(cfg) => {
++                    log::warn!(
++                        "Horizon: ignoring old controls.json (v{}) from {:?} — it used raw pixels",
++                        cfg.version,
++                        path
++                    );
++                }
++                Err(e) => {
++                    log::warn!("Horizon: failed to parse controls.json from {:?}: {e}", path);
++                }
 +            }
 +        }
 +    }
@@ -1653,7 +1680,6 @@ index 0000000..1a2769e
 +    pub stick_origin: (f32, f32),
 +    pub stick_offset: (f32, f32),
 +    pub last_knob_tap: Option<Instant>,
-+    pub last_stick_flick: Option<Instant>,
 +    pub is_sneaking: bool,
 +    pub is_sprinting: bool,
 +
@@ -1702,7 +1728,6 @@ index 0000000..1a2769e
 +        stick_origin: (70.0, 70.0),
 +        stick_offset: (0.0, 0.0),
 +        last_knob_tap: None,
-+        last_stick_flick: None,
 +        is_sneaking: false,
 +        is_sprinting: false,
 +        jump_id: None,
@@ -1898,7 +1923,7 @@ index 0000000..1a2769e
 +                    let r = 18.0 * cfg.f5.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                    if dx * dx + dy * dy <= r * r {
 +                        self.keys.insert(KeyCode::F5);
 +                        let _ = self.key_pressed(KeyCode::F5);
 +                        self.keys.remove(&KeyCode::F5);
@@ -1912,7 +1937,7 @@ index 0000000..1a2769e
 +                    let r = 18.0 * cfg.pause.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                    if dx * dx + dy * dy <= r * r {
 +                        self.keys.insert(KeyCode::Escape);
 +                        let _ = self.key_pressed(KeyCode::Escape);
 +                        self.keys.remove(&KeyCode::Escape);
@@ -1926,7 +1951,7 @@ index 0000000..1a2769e
 +                    let r = 18.0 * cfg.f3.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                    if dx * dx + dy * dy <= r * r {
 +                        use horizon_client::debug_keys::KeyAction;
 +                        self.debug_key(KeyCode::F3, KeyAction::Press);
 +                        self.debug_key(KeyCode::F3, KeyAction::Release);
@@ -1940,7 +1965,7 @@ index 0000000..1a2769e
 +                    let r = 18.0 * cfg.chat.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                    if dx * dx + dy * dy <= r * r {
 +                        self.keys.insert(KeyCode::KeyT);
 +                        let _ = self.key_pressed(KeyCode::KeyT);
 +                        self.keys.remove(&KeyCode::KeyT);
@@ -1956,7 +1981,7 @@ index 0000000..1a2769e
 +                    let r = 24.0 * cfg.inventory.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                    if dx * dx + dy * dy <= r * r {
 +                        self.keys.insert(KeyCode::KeyE);
 +                        let _ = self.key_pressed(KeyCode::KeyE);
 +                        self.keys.remove(&KeyCode::KeyE);
@@ -1970,7 +1995,7 @@ index 0000000..1a2769e
 +                    let r = 18.0 * cfg.keyboard.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.3) * (r * 1.3) {
++                    if dx * dx + dy * dy <= r * r {
 +                        state.osk_open = !state.osk_open;
 +                        if !state.osk_open {
 +                            self.mobile_keyboard_clear_mods();
@@ -1985,7 +2010,7 @@ index 0000000..1a2769e
 +                    let r = 24.0 * cfg.sprint.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                    if dx * dx + dy * dy <= r * r {
 +                        state.is_sprinting = !state.is_sprinting;
 +                        if state.is_sprinting {
 +                            self.keys.insert(KeyCode::ControlLeft);
@@ -2003,7 +2028,7 @@ index 0000000..1a2769e
 +                    let r = 26.0 * cfg.jump.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                    if dx * dx + dy * dy <= r * r {
 +                        if state.jump_id.is_none() {
 +                            state.jump_id = Some(touch.id);
 +                            state.jump_prev = phys_pos;
@@ -2016,10 +2041,10 @@ index 0000000..1a2769e
 +                // Attack button (LMB + look trackpad)
 +                if cfg.attack.visible {
 +                    let pos = cfg.attack.compute_pos(sw, sh);
-+                    let r = 24.0 * cfg.attack.scale;
++                    let r = 26.0 * cfg.attack.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                    if dx * dx + dy * dy <= r * r {
 +                        if state.attack_id.is_none() {
 +                            state.attack_id = Some(touch.id);
 +                            state.attack_prev = phys_pos;
@@ -2032,10 +2057,10 @@ index 0000000..1a2769e
 +                // Place button (RMB + look trackpad)
 +                if cfg.place.visible {
 +                    let pos = cfg.place.compute_pos(sw, sh);
-+                    let r = 24.0 * cfg.place.scale;
++                    let r = 26.0 * cfg.place.scale;
 +                    let dx = gx - pos.0;
 +                    let dy = gy - pos.1;
-+                    if dx * dx + dy * dy <= (r * 1.25) * (r * 1.25) {
++                    if dx * dx + dy * dy <= r * r {
 +                        if state.place_id.is_none() {
 +                            state.place_id = Some(touch.id);
 +                            state.place_prev = phys_pos;
@@ -2063,12 +2088,14 @@ index 0000000..1a2769e
 +                        state.stick_id = Some(touch.id);
 +                        state.stick_origin = j_center;
 +
-+                        // Double tap knob / stick (<45px from center, <350ms) toggles sneak
++                        // Double tap the knob centre (<24px, <300ms) toggles
++                        // sneak. Deliberately tied to the centre: a double
++                        // flick of the stick while moving must not sneak.
 +                        let d_knob = ((gx - j_center.0).powi(2) + (gy - j_center.1).powi(2)).sqrt();
-+                        if d_knob <= 45.0 * cfg.joystick.scale {
++                        if d_knob <= 24.0 * cfg.joystick.scale {
 +                            let now = Instant::now();
 +                            if let Some(last_tap) = state.last_knob_tap {
-+                                if now.duration_since(last_tap).as_millis() < 350 {
++                                if now.duration_since(last_tap).as_millis() < 300 {
 +                                    state.is_sneaking = !state.is_sneaking;
 +                                    if state.is_sneaking {
 +                                        self.keys.insert(KeyCode::ShiftLeft);
@@ -2292,30 +2319,11 @@ index 0000000..1a2769e
 +                // Joystick release
 +                if state.stick_id == Some(touch.id) {
 +                    state.stick_id = None;
-+                    let flick_dist = (state.stick_offset.0.powi(2) + state.stick_offset.1.powi(2)).sqrt();
 +                    state.stick_offset = (0.0, 0.0);
 +                    self.keys.remove(&KeyCode::KeyW);
 +                    self.keys.remove(&KeyCode::KeyS);
 +                    self.keys.remove(&KeyCode::KeyA);
 +                    self.keys.remove(&KeyCode::KeyD);
-+                    if flick_dist > 18.0 * cfg.joystick.scale {
-+                        let now = Instant::now();
-+                        if let Some(last_flick) = state.last_stick_flick {
-+                            if now.duration_since(last_flick).as_millis() < 400 {
-+                                state.is_sneaking = !state.is_sneaking;
-+                                if state.is_sneaking {
-+                                    self.keys.insert(KeyCode::ShiftLeft);
-+                                } else {
-+                                    self.keys.remove(&KeyCode::ShiftLeft);
-+                                }
-+                                state.last_stick_flick = None;
-+                            } else {
-+                                state.last_stick_flick = Some(now);
-+                            }
-+                        } else {
-+                            state.last_stick_flick = Some(now);
-+                        }
-+                    }
 +                    return;
 +                }
 +
@@ -3036,6 +3044,22 @@ index 0000000..1a2769e
 +        }
 +    }
 +
++    /// Android system keyboard (IME) text. Virtual keyboards deliver the
++    /// committed characters as `WindowEvent::Ime(Ime::Commit(..))`, not as
++    /// `KeyboardInput`; without this hook the phone keyboard opened on chat
++    /// and signs but every typed character was dropped. Routed exactly like
++    /// the mini panel's text, only while a field is actually focused.
++    pub(crate) fn handle_mobile_ime(&mut self, ime: winit::event::Ime) {
++        if !self.mobile_text_input_active() {
++            return;
++        }
++        if let winit::event::Ime::Commit(text) = ime
++            && !text.is_empty()
++        {
++            self.mobile_keyboard_text(Some(&text), None);
++        }
++    }
++
 +    pub(crate) fn is_overlay_open(&self) -> bool {
 +        self.book.is_some() || self.sign_edit.is_some()
 +    }
@@ -3689,9 +3713,11 @@ index 0000000..1a2769e
 +    }
 +    let nx = -dy / len * (th * 0.5);
 +    let ny = dx / len * (th * 0.5);
-+    // Extend segment ends by half stroke to close corner gaps (square line caps)
-+    let ex = dx / len * (th * 0.45);
-+    let ey = dy / len * (th * 0.45);
++    // Extend segment ends past the joint (a bit more than half a stroke) so
++    // thick polylines — arrows, chevrons, the cube — have no notches at the
++    // corners where two segments meet at an angle.
++    let ex = dx / len * (th * 0.6);
++    let ey = dy / len * (th * 0.6);
 +    let p0_ext = (p0.0 - ex, p0.1 - ey);
 +    let p1_ext = (p1.0 + ex, p1.1 + ey);
 +    let c0 = [p0_ext.0 + nx, p0_ext.1 + ny];
@@ -3804,11 +3830,12 @@ index 0000000..1a2769e
 +    // Curved blade spine & edge
 +    draw_thick_line(atlas, batch, (gx, gy), p_mid, th, color);
 +    draw_thick_line(atlas, batch, p_mid, p_near_tip, th, color);
-+    // Kissaki (sharp angled chisel tip of the katana)
-+    draw_thick_line(atlas, batch, p_near_tip, p_tip, th, color);
++    // Kissaki (sharp angled chisel tip of the katana): the last two strokes
++    // taper towards the point instead of ending in a blunt thick block.
++    draw_thick_line(atlas, batch, p_near_tip, p_tip, th * 0.7, color);
 +    // Kissaki tip back angle
 +    let p_tip_back = (cx + s * 0.86, cy - s * 0.95);
-+    draw_thick_line(atlas, batch, p_tip, p_tip_back, th * 0.85, color);
++    draw_thick_line(atlas, batch, p_tip, p_tip_back, th * 0.55, color);
 +}
 +
 +/// Vector icon: Chest / Inventory for Inventory E
@@ -3870,8 +3897,8 @@ index 0000000..1a2769e
 +fn draw_icon_arrow_up(atlas: &HudAtlas, batch: &mut HudBatch, cx: f32, cy: f32, sz: f32, color: u32) {
 +    let th = (2.2 * sz / 24.0).max(1.5);
 +    let s = sz * 0.4;
-+    // Shaft
-+    draw_thick_line(atlas, batch, (cx, cy + s), (cx, cy - s * 0.7), th, color);
++    // Shaft reaches the chevron apex so the three segments close cleanly.
++    draw_thick_line(atlas, batch, (cx, cy + s), (cx, cy - s * 0.85), th, color);
 +    // Chevrons
 +    draw_thick_line(atlas, batch, (cx - s * 0.75, cy - s * 0.1), (cx, cy - s * 0.85), th, color);
 +    draw_thick_line(atlas, batch, (cx + s * 0.75, cy - s * 0.1), (cx, cy - s * 0.85), th, color);

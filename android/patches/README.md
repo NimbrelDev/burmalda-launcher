@@ -10,14 +10,15 @@
 Патч сделан от базового коммита **`7c83966`** (полный sha
 `7c839665283157c1ada904d2a10867e52e3443b3`) — это исходники
 **Horizon 26.3** («Initial commit of Horizon 26.3 Rust client engine source»).
-Наш HEAD движка — `7f305f1` (`7f305f16bf29d87b818f130ecf031ede44bef5f3`,
+Наш HEAD движка — `5b32a68` (`5b32a68bf20f8c084e063b46ce5cdffd70d4c551`,
 локальная ветка `master` рабочего клона).
 
 Патч = `git diff 7c83966 HEAD -- crates/` (изменения только внутри `crates/`,
 файлы `lib.rs`/`main.rs`/`Cargo.toml` крейта horizon-client входят в него).
 В нём: мобильный HUD (джойстик, прыжок, атака, блок, спринт, инвентарь,
 F5/пауза/F3/чат/клавиатура), инвентарь 1:1 с Java Edition, системная
-клавиатура (IME), Noble Gray стиль, жизненный цикл Android (Suspend/Resume).
+клавиатура (IME), раскладка v2 в GUI-единицах, Noble Gray стиль, жизненный
+цикл Android (Suspend/Resume).
 
 **Важно:** локальный клон `horizon-main` не является источником правды для CI.
 Единственное, что видит GitHub, — этот файл. После любых правок `mobile.rs`

@@ -360,19 +360,19 @@
   pointer-events: none;
 }
 
-/* Joystick */
+/* Joystick (engine: centre 70 GUI px from the left/bottom, 76 px wide) */
 .preview-stick {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  left: 12px;
-  bottom: 12px;
+  left: 16px;
+  bottom: 16px;
   background: radial-gradient(circle at 50% 50%, rgba(25, 32, 45, 0.6) 0%, rgba(40, 50, 70, 0.75) 100%);
 }
 
 .prev-stick-inner {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: rgba(70, 85, 110, 0.85);
   border: 1px solid rgba(180, 205, 235, 0.6);
@@ -414,57 +414,62 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-.prev-jump {
-  right: 12px;
-  bottom: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-}
-
+/* Right-thumb cluster. Positions mirror the engine's 2x2 grid (60 GUI px
+   between centres) at preview scale 0.5: centre distances 52/112/172 GUI px
+   become 14/44/75 px from the screen edge. Sizes follow the engine radii too
+   (48 px jump/attack/place, 44 px sprint/inventory). */
+.prev-jump,
 .prev-place {
-  right: 45px;
-  bottom: 30px;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 7px;
 }
 
-.prev-sprint {
-  right: 12px;
-  bottom: 45px;
+.prev-sprint,
+.prev-inventory {
   width: 22px;
   height: 22px;
   border-radius: 6px;
   transition: opacity 0.2s ease;
 }
 
+.prev-inventory {
+  border-color: rgba(120, 200, 150, 0.55);
+  color: #86efac;
+}
+
 /* Attack Button: can be right (2 fingers) or top-left (3 fingers) */
 .prev-attack {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   border-color: rgba(220, 100, 100, 0.6);
   color: #fca5a5;
   background: rgba(60, 30, 35, 0.7);
 }
 
-/* In 2 fingers mode */
-.mode-2fingers .prev-attack {
-  right: 45px;
-  bottom: 60px;
-  top: auto;
-  left: auto;
-}
+/* 2 fingers: jump in the corner, attack left of it, place above it. */
+.mode-2fingers .prev-jump  { right: 14px; bottom: 14px; }
+.mode-2fingers .prev-attack { right: 44px; bottom: 14px; }
+.mode-2fingers .prev-place { right: 14px; bottom: 44px; }
+.mode-2fingers .prev-sprint { right: 45px; bottom: 45px; }
+.mode-2fingers .prev-inventory { right: 45px; bottom: 75px; }
 
-/* In 3 fingers mode: top-left index finger */
+/* 3 fingers: attack under the left index finger; the right-thumb 2x2 grid
+   holds jump/place/sprint/inventory. */
 .mode-3fingers .prev-attack {
-  top: 8px;
+  top: 12px;
   left: 12px;
+  width: 29px;
+  height: 29px;
   right: auto;
   bottom: auto;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
+.mode-3fingers .prev-jump    { right: 14px; bottom: 14px; }
+.mode-3fingers .prev-place   { right: 44px; bottom: 14px; }
+.mode-3fingers .prev-sprint  { right: 14px; bottom: 44px; }
+.mode-3fingers .prev-inventory { right: 44px; bottom: 44px; }
 
 /* Hidden elements */
 .is-preview-hidden {

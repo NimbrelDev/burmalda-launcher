@@ -2,6 +2,11 @@
 
 (function() {
   const CONTROLS_FILENAME = 'controls.json';
+  // controls.json format. v1 (saved by old builds) stored raw screen pixels,
+  // which the engine read as GUI units — every layout landed in the wrong
+  // place. v2 stores GUI units (the same space the engine HUD uses), so the
+  // editor preview and the in-game HUD match.
+  const LAYOUT_VERSION = 2;
 
   // Button metadata & vector icon SVGs
   const BUTTON_DEFS = {
@@ -19,8 +24,8 @@
       name: 'Прыжок',
       baseSize: 48,
       defaultAnchor: 'bottom_right',
-      defaultX: 48,
-      defaultY: 48,
+      defaultX: 52,
+      defaultY: 52,
       svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>'
     },
     sprint: {
@@ -28,8 +33,8 @@
       name: 'Спринт (Бег)',
       baseSize: 44,
       defaultAnchor: 'bottom_right',
-      defaultX: 104,
-      defaultY: 48,
+      defaultX: 112,
+      defaultY: 112,
       svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>'
     },
     attack: {
@@ -37,8 +42,8 @@
       name: 'Атака (Катана / ЛКМ)',
       baseSize: 48,
       defaultAnchor: 'bottom_right',
-      defaultX: 104,
-      defaultY: 100,
+      defaultX: 112,
+      defaultY: 52,
       svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 3.5c-3 3-7 8-9.5 12.5l-4 4 1-4c4.5-2.5 9.5-6.5 12.5-9.5z"></path><path d="M5.5 19.5l-2.5 2.5"></path><path d="M12 9l3 3"></path></svg>'
     },
     place: {
@@ -46,8 +51,8 @@
       name: 'Блок (ПКМ)',
       baseSize: 48,
       defaultAnchor: 'bottom_right',
-      defaultX: 48,
-      defaultY: 100,
+      defaultX: 52,
+      defaultY: 112,
       svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
     },
     inventory: {
@@ -55,8 +60,8 @@
       name: 'Инвентарь (E)',
       baseSize: 44,
       defaultAnchor: 'bottom_right',
-      defaultX: 104,
-      defaultY: 156,
+      defaultX: 112,
+      defaultY: 172,
       svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><rect x="10" y="8" width="4" height="4" rx="0.5"></rect></svg>'
     },
     f5: {
@@ -108,7 +113,7 @@
 
   function createPresetConfig(presetType, removeSprint, hidePcButtons) {
     const is3Fingers = presetType === '3fingers';
-    const cfg = {};
+    const cfg = { version: LAYOUT_VERSION };
 
     for (const [key, def] of Object.entries(BUTTON_DEFS)) {
       cfg[key] = {
@@ -120,51 +125,54 @@
       };
     }
 
+    // Right-thumb cluster: a 2x2 grid with 60 GUI px between centres, so the
+    // 48 px buttons keep a visible gap and their hit areas never overlap.
+    // These values are shared with the engine fallback in mobile.rs — keep
+    // both in sync.
     if (is3Fingers) {
-      // In 3-finger claw preset:
-      // Katana attack button under left index finger
+      // 3-finger claw: attack under the left index finger, the rest under
+      // the right thumb.
       cfg.attack.anchor = 'top_left';
-      cfg.attack.x = 48;
-      cfg.attack.y = 48;
-      cfg.attack.scale = 1.15;
+      cfg.attack.x = 52;
+      cfg.attack.y = 52;
+      cfg.attack.scale = 1.2;
 
-      // Ergonomic right thumb action cluster
       cfg.jump.anchor = 'bottom_right';
-      cfg.jump.x = 48;
-      cfg.jump.y = 48;
+      cfg.jump.x = 52;
+      cfg.jump.y = 52;
 
       cfg.place.anchor = 'bottom_right';
-      cfg.place.x = 48;
-      cfg.place.y = 100;
+      cfg.place.x = 112;
+      cfg.place.y = 52;
 
       cfg.sprint.anchor = 'bottom_right';
-      cfg.sprint.x = 104;
-      cfg.sprint.y = 48;
+      cfg.sprint.x = 52;
+      cfg.sprint.y = 112;
 
       cfg.inventory.anchor = 'bottom_right';
-      cfg.inventory.x = 104;
-      cfg.inventory.y = 100;
+      cfg.inventory.x = 112;
+      cfg.inventory.y = 112;
     } else {
-      // 2-finger classic layout
+      // 2-finger classic: jump in the corner, the rest climb away from it.
       cfg.jump.anchor = 'bottom_right';
-      cfg.jump.x = 48;
-      cfg.jump.y = 48;
-
-      cfg.place.anchor = 'bottom_right';
-      cfg.place.x = 48;
-      cfg.place.y = 100;
-
-      cfg.sprint.anchor = 'bottom_right';
-      cfg.sprint.x = 104;
-      cfg.sprint.y = 48;
+      cfg.jump.x = 52;
+      cfg.jump.y = 52;
 
       cfg.attack.anchor = 'bottom_right';
-      cfg.attack.x = 104;
-      cfg.attack.y = 100;
+      cfg.attack.x = 112;
+      cfg.attack.y = 52;
+
+      cfg.place.anchor = 'bottom_right';
+      cfg.place.x = 52;
+      cfg.place.y = 112;
+
+      cfg.sprint.anchor = 'bottom_right';
+      cfg.sprint.x = 112;
+      cfg.sprint.y = 112;
 
       cfg.inventory.anchor = 'bottom_right';
-      cfg.inventory.x = 104;
-      cfg.inventory.y = 156;
+      cfg.inventory.x = 112;
+      cfg.inventory.y = 172;
     }
 
     if (removeSprint) {
@@ -639,12 +647,17 @@
         const text = await window.api.readFileText(CONTROLS_FILENAME);
         if (text && text.trim().length > 0) {
           const parsed = JSON.parse(text);
-          if (parsed && typeof parsed === 'object') {
+          if (parsed && typeof parsed === 'object' && parsed.version === LAYOUT_VERSION) {
             activeLayout = parsed;
             originalLayoutJson = text;
             markChanges(false);
             renderEditorItems();
             return;
+          }
+          if (parsed && typeof parsed === 'object') {
+            // v1 (or older) layouts used raw screen pixels; the engine now
+            // reads GUI units, so keeping them would scatter the HUD.
+            console.warn('controls.json has an old layout format, resetting to the default preset');
           }
         }
       }
