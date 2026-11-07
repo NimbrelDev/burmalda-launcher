@@ -104,7 +104,7 @@ index 7687209..8d0d145 100644
  
  /// A clipboard in memory.
 diff --git a/crates/horizon-client/src/game.rs b/crates/horizon-client/src/game.rs
-index 05c8765..07a7dd7 100644
+index 05c8765..0280d94 100644
 --- a/crates/horizon-client/src/game.rs
 +++ b/crates/horizon-client/src/game.rs
 @@ -15,7 +15,7 @@ mod block_items;
@@ -178,6 +178,15 @@ index 05c8765..07a7dd7 100644
      Playing,
      GameModeSwitcher,
      Paused,
+@@ -1294,7 +1302,7 @@ pub struct PackResources {
+     layer_names: Arc<HashMap<u32, String>>,
+     /// Item definitions, baked item models and special renderers.
+     item_renderer: Arc<horizon_client::item_render::ItemRenderer>,
+-    names: Arc<Names>,
++    pub(crate) names: Arc<Names>,
+     /// clouds.png: (width, height, filled cells).
+     clouds: Arc<(u32, u32, Vec<bool>)>,
+     /// misc/forcefield.png: (width, height, RGBA) for the world border wall.
 @@ -1369,7 +1377,7 @@ fn select_creative_tab(
      clicks.skip_release();
  }
@@ -187,7 +196,7 @@ index 05c8765..07a7dd7 100644
      /// Shared with an integrated server; `collision` and `motion` borrow from it.
      res: Arc<Resources>,
      rest_loader: Option<WorldRestLoader>,
-@@ -1377,9 +1385,9 @@ struct Game<'a> {
+@@ -1377,17 +1385,17 @@ struct Game<'a> {
      world_loader: Option<world_loading::WorldLoader>,
      pending_pack_reload: bool,
      /// A server's resource packs (game/server_packs.rs).
@@ -199,9 +208,10 @@ index 05c8765..07a7dd7 100644
      dialogs: dialogs::DialogState,
      world_renderer_ready: bool,
      collision: &'a BlockCollisionRegistry<'a>,
-@@ -1387,7 +1395,7 @@ struct Game<'a> {
+     motion: &'a MotionResources,
      /// This game's resource packs (`reload_packs` replaces them).
-     pack: PackResources,
+-    pack: PackResources,
++    pub(crate) pack: PackResources,
      /// The title and menu bundle (GUI atlas, font and panorama).
 -    gui: UiResources,
 +    pub(crate) gui: UiResources,
@@ -1469,10 +1479,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..ac1ccf3
+index 0000000..a1bc6f6
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2747 @@
+@@ -0,0 +1,2768 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1910,7 +1920,7 @@ index 0000000..ac1ccf3
 +        }
 +        let cfg = state.cfg.clone().unwrap_or_else(ControlsConfig::fallback);
 +
-+        const LOOK_SENSITIVITY: f32 = 0.92 * 3.0;
++        const LOOK_SENSITIVITY: f32 = 0.92 * 6.0;
 +
 +        match touch.phase {
 +            TouchPhase::Started => {
@@ -2507,6 +2517,13 @@ index 0000000..ac1ccf3
 +                    // Direct touch: cursor follows finger immediately
 +                    self.cursor = (gx, gy);
 +
++                    // Creative inventory: a press on the scrollbar grabs it so
++                    // a drag scrolls the item grid (previously only worked
++                    // while holding an item, so scrolling felt impossible).
++                    if self.screen == Screen::Creative {
++                        let _ = self.creative_screen.press_scrollbar(gx, gy, self.pack.names.as_ref());
++                    }
++
 +                    // If hand was carrying an item and user drags quickly:
 +                    // we immediately dispatch Left button down for LMB drag distribution
 +                    if state.inv_had_item {
@@ -2543,6 +2560,7 @@ index 0000000..ac1ccf3
 +                    }
 +
 +                    let held = state.inv_pressed;
++                    let moved = state.inv_moved;
 +                    drop(state);
 +                    if held {
 +                        self.inventory_drag_move();
@@ -2557,6 +2575,15 @@ index 0000000..ac1ccf3
 +                        if self.screen == Screen::Inventory {
 +                            self.loom_drag();
 +                        }
++                    } else if self.screen == Screen::Creative && moved {
++                        // Scroll the creative grid even without a held item:
++                        // the scrollbar was grabbed on touch start.
++                        let b = HudBatch::new([
++                            (sw * scale).round() as u32,
++                            (sh * scale).round() as u32,
++                        ]);
++                        let (_, oy) = Self::creative_origin(&b);
++                        self.creative_screen.drag_scrollbar(self.cursor.1 - oy);
 +                    }
 +                }
 +            }
@@ -2578,6 +2605,10 @@ index 0000000..ac1ccf3
 +                    state.inv_moved = false;
 +                    state.inv_had_item = false;
 +                    drop(state);
++
++                    if self.screen == Screen::Creative {
++                        self.creative_screen.release();
++                    }
 +
 +                    if !pressed {
 +                        // Not already holding a button down
