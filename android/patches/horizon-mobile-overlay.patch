@@ -1479,10 +1479,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..a1bc6f6
+index 0000000..79f860f
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2768 @@
+@@ -0,0 +1,2812 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1631,6 +1631,10 @@ index 0000000..a1bc6f6
 +
 +impl ControlsConfig {
 +    pub fn fallback() -> Self {
++        Self::preset_2fingers()
++    }
++
++    pub fn preset_2fingers() -> Self {
 +        Self {
 +            version: CONTROLS_LAYOUT_VERSION,
 +            joystick: default_joystick_cfg(),
@@ -1645,6 +1649,46 @@ index 0000000..a1bc6f6
 +            keyboard: default_keyboard_cfg(),
 +            inventory: default_inventory_cfg(),
 +        }
++    }
++
++    pub fn preset_3fingers() -> Self {
++        let mut cfg = Self::preset_2fingers();
++        cfg.attack = ButtonConfig {
++            anchor: "top_left".into(),
++            x: 52.0,
++            y: 52.0,
++            scale: 1.2,
++            visible: true,
++        };
++        cfg.jump = ButtonConfig {
++            anchor: "bottom_right".into(),
++            x: 52.0,
++            y: 52.0,
++            scale: 1.0,
++            visible: true,
++        };
++        cfg.place = ButtonConfig {
++            anchor: "bottom_right".into(),
++            x: 112.0,
++            y: 52.0,
++            scale: 1.0,
++            visible: true,
++        };
++        cfg.sprint = ButtonConfig {
++            anchor: "bottom_right".into(),
++            x: 52.0,
++            y: 112.0,
++            scale: 1.0,
++            visible: true,
++        };
++        cfg.inventory = ButtonConfig {
++            anchor: "bottom_right".into(),
++            x: 112.0,
++            y: 112.0,
++            scale: 1.0,
++            visible: true,
++        };
++        cfg
 +    }
 +}
 +

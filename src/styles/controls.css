@@ -197,7 +197,156 @@
   background: rgba(148, 163, 184, 0.08);
 }
 
-/* Drag & Drop On-Screen Editable Button Element */
+/* --- IN-GAME HUD PREVIEW LAYER (1:1 Minecraft GUI Space) --- */
+.controls-hud-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hud-preview-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, #182230 0%, #0c121b 65%, #06090e 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: opacity 0.3s ease;
+}
+
+.hud-preview-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Crosshair in the dead center (15x15 GUI px) */
+.hud-preview-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: difference;
+}
+
+.hud-preview-crosshair svg {
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+  display: block;
+}
+
+/* Hotbar wrap anchored to the bottom center */
+.hud-preview-hotbar-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hearts on the left, Hunger on the right */
+.hud-preview-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none;
+  margin-bottom: 2px;
+}
+
+.hud-hearts,
+.hud-hunger {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  pointer-events: none;
+}
+
+.hud-stat-icon {
+  display: block;
+  shape-rendering: crispEdges;
+  pointer-events: none;
+}
+
+/* XP Bar */
+.hud-xp-bar {
+  width: 100%;
+  pointer-events: none;
+  position: relative;
+  background: rgba(10, 15, 20, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.95);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-bottom: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.hud-xp-fill {
+  height: 100%;
+  width: 65%;
+  background: linear-gradient(to bottom, #9afb33 0%, #76dd18 50%, #58b60b 100%);
+  border-right: 1px solid #4a9e08;
+  pointer-events: none;
+}
+
+/* Procedural Hotbar Container (182 GUI px wide x 22 GUI px high) */
+.hud-hotbar {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  pointer-events: none;
+  background: rgba(22, 26, 34, 0.82);
+  border: 1px solid rgba(64, 72, 86, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 16px rgba(0, 0, 0, 0.6);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.hud-hotbar-slot {
+  position: relative;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(42, 50, 62, 0.7);
+  background: rgba(14, 18, 24, 0.45);
+  pointer-events: none;
+}
+
+.hud-hotbar-slot:last-child {
+  border-right: none;
+}
+
+/* Active Slot highlight box (24x24 GUI px) */
+.hud-active-slot-frame {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.75);
+  box-sizing: border-box;
+  z-index: 2;
+  transition: left 0.15s ease;
+}
+
+/* Drag & Drop On-Screen Editable Button Element - Bedrock / Noble Gray */
 .controls-drag-item {
   position: absolute;
   touch-action: none;
@@ -207,12 +356,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(32, 38, 48, 0.65);
+  background: rgba(38, 44, 54, 0.65);
   border: 1.5px solid rgba(160, 172, 190, 0.45);
-  border-radius: 12px; /* squircle */
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  color: #cbd5e1;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 28%; /* squircle ~14px */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #d7e1ee;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
@@ -221,33 +372,64 @@
 .controls-drag-item.dragging {
   cursor: grabbing;
   z-index: 50;
-  border-color: rgba(200, 215, 235, 0.85);
-  box-shadow: 0 0 16px rgba(160, 185, 215, 0.35);
+  background: rgba(48, 56, 68, 0.8);
+  border-color: rgba(215, 225, 238, 0.85);
+  box-shadow: 0 0 20px rgba(160, 185, 215, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.12);
 }
 
 .controls-drag-item.selected {
   border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.45), 0 0 16px rgba(96, 165, 250, 0.35);
 }
 
 .controls-drag-item.is-hidden {
-  opacity: 0.35;
+  opacity: 0.32;
   border-style: dashed;
 }
 
 /* Joystick visual representation in editor */
 .controls-drag-item.item-joystick {
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, rgba(25, 30, 40, 0.5) 0%, rgba(35, 42, 54, 0.65) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(30, 36, 46, 0.55) 0%, rgba(38, 44, 54, 0.72) 100%);
+  border: 1.5px solid rgba(160, 172, 190, 0.45);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.controls-drag-item.item-joystick .joystick-knob {
-  width: 42%;
-  height: 42%;
+/* Inner guide ring */
+.controls-drag-item.item-joystick::before {
+  content: '';
+  position: absolute;
+  width: 68%;
+  height: 68%;
   border-radius: 50%;
-  background: rgba(50, 60, 75, 0.75);
-  border: 1.5px solid rgba(180, 195, 215, 0.6);
+  border: 1px dashed rgba(160, 172, 190, 0.28);
   pointer-events: none;
+}
+
+/* Tactile stick knob */
+.controls-drag-item.item-joystick .joystick-knob {
+  width: 44%;
+  height: 44%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(68, 78, 96, 0.9) 0%, rgba(42, 50, 62, 0.95) 100%);
+  border: 1.5px solid rgba(180, 195, 218, 0.7);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  position: relative;
+}
+
+/* Tactile center dot inside joystick knob */
+.controls-drag-item.item-joystick .joystick-knob::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: rgba(160, 175, 200, 0.35);
+  border: 1px solid rgba(215, 225, 238, 0.4);
 }
 
 /* Item label or vector icon wrapper */
@@ -256,14 +438,17 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: #e2e8f0;
+  color: #d7e1ee;
 }
 
 .controls-item-label {
   font-family: var(--font-pixel);
-  font-size: 9px;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.5px;
+  color: #d7e1ee;
   pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 /* Compact Controls Preset Modal with Screen Preview */
@@ -340,11 +525,12 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 16px;
-  line-height: 1;
+  color: #ffffff;
   pointer-events: none;
-  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: difference;
 }
 
 .preview-btn {
@@ -352,30 +538,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(35, 45, 60, 0.7);
-  border: 1px solid rgba(160, 180, 210, 0.5);
-  border-radius: 6px;
-  color: #cbd5e1;
+  background: rgba(38, 44, 54, 0.65);
+  border: 1.5px solid rgba(160, 172, 190, 0.45);
+  border-radius: 28%;
+  color: #d7e1ee;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
-/* Joystick (engine: centre 70 GUI px from the left/bottom, 76 px wide) */
+/* Joystick in preview */
 .preview-stick {
   width: 38px;
   height: 38px;
   border-radius: 50%;
   left: 16px;
   bottom: 16px;
-  background: radial-gradient(circle at 50% 50%, rgba(25, 32, 45, 0.6) 0%, rgba(40, 50, 70, 0.75) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(30, 36, 46, 0.55) 0%, rgba(38, 44, 54, 0.72) 100%);
+  border: 1.5px solid rgba(160, 172, 190, 0.45);
+  position: absolute;
+}
+
+.preview-stick::before {
+  content: '';
+  position: absolute;
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  border: 1px dashed rgba(160, 172, 190, 0.28);
 }
 
 .prev-stick-inner {
-  width: 18px;
-  height: 18px;
+  width: 44%;
+  height: 44%;
   border-radius: 50%;
-  background: rgba(70, 85, 110, 0.85);
-  border: 1px solid rgba(180, 205, 235, 0.6);
+  background: radial-gradient(circle at 35% 35%, rgba(68, 78, 96, 0.9) 0%, rgba(42, 50, 62, 0.95) 100%);
+  border: 1.5px solid rgba(180, 195, 218, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
 /* Quick Bar in Center */
@@ -391,61 +589,58 @@
 
 .prev-pill {
   font-family: var(--font-pixel);
-  font-size: 6px;
-  background: rgba(35, 45, 60, 0.75);
-  border: 1px solid rgba(160, 180, 210, 0.4);
-  border-radius: 4px;
-  padding: 2px 5px;
-  color: #94a3b8;
+  font-size: 7px;
+  font-weight: 700;
+  background: rgba(38, 44, 54, 0.75);
+  border: 1px solid rgba(160, 172, 190, 0.45);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: #d7e1ee;
 }
 
 /* PC Keyboard button */
 .prev-kb {
   top: 6px;
   right: 8px;
-  width: 20px;
-  height: 18px;
-  border-radius: 4px;
+  width: 22px;
+  height: 20px;
+  border-radius: 6px;
   transition: opacity 0.2s ease;
 }
 
 /* Action Buttons */
 .preview-action {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* Right-thumb cluster. Positions mirror the engine's 2x2 grid (60 GUI px
-   between centres) at preview scale 0.5: centre distances 52/112/172 GUI px
-   become 14/44/75 px from the screen edge. Sizes follow the engine radii too
-   (48 px jump/attack/place, 44 px sprint/inventory). */
 .prev-jump,
 .prev-place {
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  border-radius: 28%;
 }
 
 .prev-sprint,
 .prev-inventory {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: 28%;
   transition: opacity 0.2s ease;
 }
 
 .prev-inventory {
-  border-color: rgba(120, 200, 150, 0.55);
-  color: #86efac;
+  border-color: rgba(160, 172, 190, 0.45);
+  color: #d7e1ee;
 }
 
 /* Attack Button: can be right (2 fingers) or top-left (3 fingers) */
 .prev-attack {
   width: 24px;
   height: 24px;
-  border-radius: 7px;
-  border-color: rgba(220, 100, 100, 0.6);
-  color: #fca5a5;
-  background: rgba(60, 30, 35, 0.7);
+  border-radius: 28%;
+  border-color: rgba(160, 172, 190, 0.45);
+  color: #d7e1ee;
+  background: rgba(38, 44, 54, 0.65);
 }
 
 /* 2 fingers: jump in the corner, attack left of it, place above it. */
@@ -460,16 +655,46 @@
 .mode-3fingers .prev-attack {
   top: 12px;
   left: 12px;
-  width: 29px;
-  height: 29px;
+  width: 28px;
+  height: 28px;
   right: auto;
   bottom: auto;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  border-color: rgba(160, 172, 190, 0.6);
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
 }
 .mode-3fingers .prev-jump    { right: 14px; bottom: 14px; }
 .mode-3fingers .prev-place   { right: 44px; bottom: 14px; }
 .mode-3fingers .prev-sprint  { right: 14px; bottom: 44px; }
 .mode-3fingers .prev-inventory { right: 44px; bottom: 44px; }
+
+/* Mini Hotbar inside modal preview screen */
+.preview-mini-hotbar {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  height: 10px;
+  background: rgba(22, 26, 34, 0.85);
+  border: 1px solid rgba(64, 72, 86, 0.7);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.prev-mini-slot {
+  width: 9px;
+  height: 100%;
+  border-right: 1px solid rgba(42, 50, 62, 0.6);
+  box-sizing: border-box;
+}
+
+.prev-mini-slot:last-child {
+  border-right: none;
+}
+
+.prev-mini-slot.active {
+  border: 1.5px solid #ffffff;
+}
 
 /* Hidden elements */
 .is-preview-hidden {

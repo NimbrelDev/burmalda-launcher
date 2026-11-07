@@ -26,7 +26,7 @@
       defaultAnchor: 'bottom_right',
       defaultX: 52,
       defaultY: 52,
-      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>'
+      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 15 12 8 19 15"></polyline></svg>'
     },
     sprint: {
       id: 'sprint',
@@ -35,7 +35,7 @@
       defaultAnchor: 'bottom_right',
       defaultX: 112,
       defaultY: 112,
-      svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>'
+      svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 6 12 12 6 18"></polyline><polyline points="12 6 18 12 12 18"></polyline></svg>'
     },
     attack: {
       id: 'attack',
@@ -44,7 +44,7 @@
       defaultAnchor: 'bottom_right',
       defaultX: 112,
       defaultY: 52,
-      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 3.5c-3 3-7 8-9.5 12.5l-4 4 1-4c4.5-2.5 9.5-6.5 12.5-9.5z"></path><path d="M5.5 19.5l-2.5 2.5"></path><path d="M12 9l3 3"></path></svg>'
+      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.8 4.2a1.2 1.2 0 0 0-1.7 0L10.3 12l-1.4-1.4a1 1 0 0 0-1.4 1.4l1.4 1.4-4.8 4.8a1 1 0 0 0 0 1.4l1.4 1.4a1 1 0 0 0 1.4 0l4.8-4.8 1.4 1.4a1 1 0 0 0 1.4-1.4l-1.4-1.4 7.8-7.8a1.2 1.2 0 0 0 0-1.7l-.7-.7z"/></svg>'
     },
     place: {
       id: 'place',
@@ -53,7 +53,7 @@
       defaultAnchor: 'bottom_right',
       defaultX: 52,
       defaultY: 112,
-      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
+      svg: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><polygon points="12,3.5 20.5,8 12,12.5 3.5,8" fill="currentColor" fill-opacity="0.95"/><polygon points="3.5,8 12,12.5 12,21 3.5,16.5" fill="currentColor" fill-opacity="0.6"/><polygon points="12,12.5 20.5,8 20.5,16.5 12,21" fill="currentColor" fill-opacity="0.35"/><path d="M12 3.5L20.5 8v8.5L12 21l-8.5-4.5V8L12 3.5z M12 12.5L20.5 8 M12 12.5V21 M12 12.5L3.5 8" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round"/></svg>'
     },
     inventory: {
       id: 'inventory',
@@ -62,7 +62,7 @@
       defaultAnchor: 'bottom_right',
       defaultX: 112,
       defaultY: 172,
-      svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><rect x="10" y="8" width="4" height="4" rx="0.5"></rect></svg>'
+      svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"></rect><line x1="3" y1="10.5" x2="21" y2="10.5"></line><rect x="10.5" y="9" width="3" height="3.5" rx="0.5" fill="currentColor"></rect></svg>'
     },
     f5: {
       id: 'f5',
@@ -80,7 +80,7 @@
       defaultAnchor: 'top_center',
       defaultX: -18,
       defaultY: 20,
-      svg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
+      svg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="3.5" height="15" rx="1.5"></rect><rect x="14.5" y="4.5" width="3.5" height="15" rx="1.5"></rect></svg>'
     },
     f3: {
       id: 'f3',
@@ -98,7 +98,7 @@
       defaultAnchor: 'top_center',
       defaultX: 54,
       defaultY: 20,
-      svg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><circle cx="8" cy="11" r="1"></circle><circle cx="12" cy="11" r="1"></circle><circle cx="16" cy="11" r="1"></circle></svg>'
+      svg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 14a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="7.5" y1="8.5" x2="16.5" y2="8.5"></line><line x1="7.5" y1="12" x2="13.5" y2="12"></line></svg>'
     },
     keyboard: {
       id: 'keyboard',
@@ -107,7 +107,7 @@
       defaultAnchor: 'top_right',
       defaultX: 28,
       defaultY: 24,
-      svg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"></rect><line x1="6" y1="8" x2="6.01" y2="8"></line><line x1="10" y1="8" x2="10.01" y2="8"></line><line x1="14" y1="8" x2="14.01" y2="8"></line><line x1="18" y1="8" x2="18.01" y2="8"></line><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>'
+      svg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"></rect><line x1="6.5" y1="9" x2="6.51" y2="9" stroke-width="2.5"></line><line x1="10.5" y1="9" x2="10.51" y2="9" stroke-width="2.5"></line><line x1="14.5" y1="9" x2="14.51" y2="9" stroke-width="2.5"></line><line x1="17.5" y1="9" x2="17.51" y2="9" stroke-width="2.5"></line><line x1="8" y1="14" x2="16" y2="14" stroke-width="2"></line></svg>'
     }
   };
 
@@ -231,46 +231,71 @@
     }
   }
 
-  // Get canonical Minecraft GUI coordinates for the screen
-  function getGuiVirtualDimensions(containerW, containerH) {
+  let guiScaleLimit = 0;
+
+  // Load Minecraft options.txt (guiScale setting)
+  async function loadGameOptions() {
+    try {
+      if (window.api && typeof window.api.readFileText === 'function') {
+        const text = await window.api.readFileText('options.txt');
+        if (text) {
+          const match = text.match(/guiScale:(\d+)/);
+          if (match) {
+            guiScaleLimit = parseInt(match[1], 10) || 0;
+            return guiScaleLimit;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load options.txt, defaulting to guiScale: 0 (Auto):', err);
+    }
+    guiScaleLimit = 0;
+    return 0;
+  }
+
+  // Get canonical Minecraft GUI coordinates for the screen matching HudBatch::new
+  function getGuiVirtualDimensions(containerW, containerH, limit = guiScaleLimit) {
     const dpr = window.devicePixelRatio || 1;
     const physW = (containerW || window.innerWidth) * dpr;
     const physH = (containerH || window.innerHeight) * dpr;
-    // Minecraft GUI Scale calculation: min(physW/320, physH/240)
-    const guiScale = Math.max(1, Math.min(Math.floor(physW / 320), Math.floor(physH / 240)));
-    const sw = physW / guiScale;
-    const sh = physH / guiScale;
-    return { sw, sh, guiScale, dpr };
+    let scale = 1;
+    while ((limit === 0 || scale < limit)
+           && Math.floor(physW / (scale + 1)) >= 320
+           && Math.floor(physH / (scale + 1)) >= 240) {
+      scale += 1;
+    }
+    const sw = Math.ceil(physW / scale);
+    const sh = Math.ceil(physH / scale);
+    const cssScale = scale / dpr; // количество CSS-пикселей в 1 GUI-единице
+    return { sw, sh, guiScale: scale, dpr, cssScale, physW, physH };
   }
 
   // Convert layout anchor & x/y offsets (in Minecraft GUI space) to current screen pixels
   function computePixelPos(anchor, x, y, width, height) {
-    const { sw, sh } = getGuiVirtualDimensions(width, height);
-    const scaleX = width / sw;
-    const scaleY = height / sh;
+    const { cssScale } = getGuiVirtualDimensions(width, height);
     let px = 0;
     let py = 0;
     switch (anchor) {
       case 'bottom_left':
-        px = x * scaleX;
-        py = height - (y * scaleY);
+        px = x * cssScale;
+        py = height - y * cssScale;
         break;
       case 'bottom_right':
-        px = width - (x * scaleX);
-        py = height - (y * scaleY);
+        px = width - x * cssScale;
+        py = height - y * cssScale;
         break;
       case 'top_left':
-        px = x * scaleX;
-        py = y * scaleY;
+        px = x * cssScale;
+        py = y * cssScale;
         break;
       case 'top_right':
-        px = width - (x * scaleX);
-        py = y * scaleY;
+        px = width - x * cssScale;
+        py = y * cssScale;
         break;
       case 'top_center':
       default:
-        px = width / 2 + (x * scaleX);
-        py = y * scaleY;
+        px = width / 2 + x * cssScale;
+        py = y * cssScale;
         break;
     }
     return { px, py };
@@ -278,15 +303,11 @@
 
   // Convert pixel position back to best-fit anchor and GUI offset
   function computeAnchorAndOffset(px, py, width, height) {
-    const { sw, sh } = getGuiVirtualDimensions(width, height);
-    const scaleX = width / sw;
-    const scaleY = height / sh;
-    const gx = px / scaleX;
-    const gy = py / scaleY;
+    const { cssScale } = getGuiVirtualDimensions(width, height);
 
-    const isTop = gy < sh * 0.45;
-    const isLeft = gx < sw * 0.35;
-    const isRight = gx > sw * 0.65;
+    const isTop = py < height * 0.35;
+    const isLeft = px < width * 0.35;
+    const isRight = px > width * 0.65;
 
     let anchor = 'bottom_left';
     let x = 0;
@@ -295,30 +316,186 @@
     if (isTop) {
       if (isLeft) {
         anchor = 'top_left';
-        x = Math.round(gx);
-        y = Math.round(gy);
+        x = Math.round(px / cssScale);
+        y = Math.round(py / cssScale);
       } else if (isRight) {
         anchor = 'top_right';
-        x = Math.round(sw - gx);
-        y = Math.round(gy);
+        x = Math.round((width - px) / cssScale);
+        y = Math.round(py / cssScale);
       } else {
         anchor = 'top_center';
-        x = Math.round(gx - sw / 2);
-        y = Math.round(gy);
+        x = Math.round((px - width / 2) / cssScale);
+        y = Math.round(py / cssScale);
       }
     } else {
       if (isRight) {
         anchor = 'bottom_right';
-        x = Math.round(sw - gx);
-        y = Math.round(sh - gy);
+        x = Math.round((width - px) / cssScale);
+        y = Math.round((height - py) / cssScale);
       } else {
         anchor = 'bottom_left';
-        x = Math.round(gx);
-        y = Math.round(sh - gy);
+        x = Math.round(px / cssScale);
+        y = Math.round((height - py) / cssScale);
       }
     }
 
     return { anchor, x, y };
+  }
+
+  let cachedLatestScreenshotUrl = null;
+  let isFetchingScreenshot = false;
+
+  async function checkLatestScreenshot() {
+    if (cachedLatestScreenshotUrl || isFetchingScreenshot) return cachedLatestScreenshotUrl;
+    isFetchingScreenshot = true;
+    try {
+      if (window.api && typeof window.api.getScreenshots === 'function') {
+        const list = await window.api.getScreenshots();
+        if (Array.isArray(list) && list.length > 0) {
+          const latest = list[0];
+          cachedLatestScreenshotUrl = latest.dataUrl || latest.url || latest.path || null;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch screenshots for hud preview:', err);
+    } finally {
+      isFetchingScreenshot = false;
+    }
+    return cachedLatestScreenshotUrl;
+  }
+
+  async function renderHudPreview(containerW, containerH, passedScale) {
+    const hudPreview = document.getElementById('controls-hud-preview');
+    if (!hudPreview) return;
+
+    const rect = canvasEl ? canvasEl.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+    const w = containerW || rect.width || window.innerWidth;
+    const h = containerH || rect.height || window.innerHeight;
+    const { cssScale: computedScale } = getGuiVirtualDimensions(w, h);
+    const cssScale = passedScale || computedScale || 1;
+
+    // 1. Background: latest screenshot if available, otherwise dark atmospheric gradient
+    const hudBg = document.getElementById('hud-preview-bg');
+    if (hudBg) {
+      const screenshot = cachedLatestScreenshotUrl || await checkLatestScreenshot();
+      if (screenshot) {
+        hudBg.style.backgroundImage = `url("${screenshot}")`;
+      }
+    }
+
+    // 2. Crosshair: 15x15 GUI px in dead center
+    const crosshair = document.getElementById('hud-preview-crosshair');
+    if (crosshair) {
+      const crossSize = Math.max(12, Math.round(15 * cssScale));
+      crosshair.style.width = `${crossSize}px`;
+      crosshair.style.height = `${crossSize}px`;
+      if (!crosshair.querySelector('svg')) {
+        crosshair.innerHTML = `
+          <svg viewBox="0 0 15 15" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 0h1v7h7v1H8v7H7V8H0V7h7V0z" fill="white" fill-opacity="0.85"/>
+          </svg>
+        `;
+      }
+    }
+
+    // 3. Hotbar wrap: 182 GUI px wide, anchored to bottom center
+    const hotbarWrap = document.getElementById('hud-preview-hotbar-wrap');
+    const wrapW = Math.round(182 * cssScale);
+    if (hotbarWrap) {
+      hotbarWrap.style.width = `${wrapW}px`;
+      hotbarWrap.style.bottom = '0px';
+    }
+
+    // 4. Stats: Hearts on left, Hunger on right
+    const heartsContainer = document.getElementById('hud-hearts');
+    const hungerContainer = document.getElementById('hud-hunger');
+    const statIconSize = Math.max(7, Math.round(9 * cssScale));
+
+    if (heartsContainer) {
+      if (heartsContainer.children.length !== 10) {
+        let heartsHtml = '';
+        for (let i = 0; i < 10; i++) {
+          heartsHtml += `
+            <svg viewBox="0 0 9 9" class="hud-stat-icon" width="${statIconSize}" height="${statIconSize}">
+              <path d="M1 2h2v-1h3v1h2v3h-1v1h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-3h1z" fill="#111111"/>
+              <path d="M2 2h1v1h-1zM5 2h1v1h-1zM1 3h7v2h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z" fill="#e01212"/>
+              <rect x="2" y="3" width="1" height="1" fill="#ffffff"/>
+            </svg>
+          `;
+        }
+        heartsContainer.innerHTML = heartsHtml;
+      } else {
+        heartsContainer.querySelectorAll('.hud-stat-icon').forEach(icon => {
+          icon.setAttribute('width', statIconSize);
+          icon.setAttribute('height', statIconSize);
+        });
+      }
+    }
+
+    if (hungerContainer) {
+      if (hungerContainer.children.length !== 10) {
+        let hungerHtml = '';
+        for (let i = 0; i < 10; i++) {
+          hungerHtml += `
+            <svg viewBox="0 0 9 9" class="hud-stat-icon" width="${statIconSize}" height="${statIconSize}">
+              <path d="M3 1h4v1h1v3h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1v-3h1z" fill="#111111"/>
+              <path d="M3 2h3v1h1v2h-1v1h-1v1h-1v-1h-1v-1h-1v-2h1z" fill="#ba6422"/>
+              <rect x="4" y="2" width="2" height="1" fill="#e5893a"/>
+              <path d="M6 7h1v1h-1zM7 6h1v1h-1zM7 8h1v1h-1zM8 7h1v1h-1z" fill="#dcd7c5"/>
+            </svg>
+          `;
+        }
+        hungerContainer.innerHTML = hungerHtml;
+      } else {
+        hungerContainer.querySelectorAll('.hud-stat-icon').forEach(icon => {
+          icon.setAttribute('width', statIconSize);
+          icon.setAttribute('height', statIconSize);
+        });
+      }
+    }
+
+    // 5. XP Bar: 182 GUI px wide x 5 GUI px high
+    const xpBar = document.getElementById('hud-xp-bar');
+    if (xpBar) {
+      const xpH = Math.max(4, Math.round(5 * cssScale));
+      xpBar.style.height = `${xpH}px`;
+    }
+
+    // 6. Hotbar: 182 GUI px wide x 22 GUI px high, 9 slots of 20 GUI px, 1 active slot frame of 24 GUI px
+    const hudHotbar = document.getElementById('hud-hotbar');
+    if (hudHotbar) {
+      hudHotbar.style.width = `${wrapW}px`;
+      const hotbarH = Math.round(22 * cssScale);
+      hudHotbar.style.height = `${hotbarH}px`;
+
+      if (hudHotbar.querySelectorAll('.hud-hotbar-slot').length !== 9) {
+        hudHotbar.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+          const slot = document.createElement('div');
+          slot.className = `hud-hotbar-slot ${i === 0 ? 'active' : ''}`;
+          slot.setAttribute('data-slot-idx', i);
+          hudHotbar.appendChild(slot);
+        }
+        const activeFrame = document.createElement('div');
+        activeFrame.className = 'hud-active-slot-frame';
+        hudHotbar.appendChild(activeFrame);
+      }
+
+      const slotW = Math.round(20 * cssScale);
+      hudHotbar.querySelectorAll('.hud-hotbar-slot').forEach(slot => {
+        slot.style.width = `${slotW}px`;
+        slot.style.height = `${hotbarH}px`;
+      });
+
+      const activeFrame = hudHotbar.querySelector('.hud-active-slot-frame');
+      if (activeFrame) {
+        const activeSize = Math.round(24 * cssScale);
+        activeFrame.style.width = `${activeSize}px`;
+        activeFrame.style.height = `${activeSize}px`;
+        activeFrame.style.left = `${Math.round(-2 * cssScale)}px`;
+        activeFrame.style.top = `${Math.round(-1 * cssScale)}px`;
+      }
+    }
   }
 
   function renderEditorItems() {
@@ -327,14 +504,15 @@
     const rect = canvasEl.getBoundingClientRect();
     const w = rect.width || window.innerWidth;
     const h = rect.height || window.innerHeight;
-    const { sh } = getGuiVirtualDimensions(w, h);
-    const scaleY = h / sh;
+    const { cssScale } = getGuiVirtualDimensions(w, h);
+
+    renderHudPreview(w, h, cssScale);
 
     for (const [key, itemData] of Object.entries(activeLayout)) {
       const def = BUTTON_DEFS[key];
       if (!def) continue;
 
-      const size = def.baseSize * (itemData.scale || 1.0) * scaleY;
+      const size = def.baseSize * (itemData.scale || 1.0) * cssScale;
       const { px, py } = computePixelPos(itemData.anchor, itemData.x, itemData.y, w, h);
 
       const el = document.createElement('div');
@@ -466,9 +644,8 @@
     const def = BUTTON_DEFS[selectedElementId];
     if (el && def) {
       const rect = canvasEl.getBoundingClientRect();
-      const { sh } = getGuiVirtualDimensions(rect.width, rect.height);
-      const scaleY = rect.height / sh;
-      const size = def.baseSize * sc * scaleY;
+      const { cssScale } = getGuiVirtualDimensions(rect.width, rect.height);
+      const size = def.baseSize * sc * cssScale;
       el.style.width = `${size}px`;
       el.style.height = `${size}px`;
       const icon = el.querySelector('.controls-item-icon');
@@ -642,6 +819,7 @@
 
   // Load controls.json from disk or fallback
   async function loadControlsLayout() {
+    await loadGameOptions();
     try {
       if (window.api && typeof window.api.readFileText === 'function') {
         const text = await window.api.readFileText(CONTROLS_FILENAME);
@@ -688,7 +866,11 @@
   }
 
   window.addEventListener('resize', () => {
-    if (activeLayout) renderEditorItems();
+    if (activeLayout) {
+      renderEditorItems();
+    } else {
+      renderHudPreview();
+    }
   });
 
   // Load layout on init without showing popup
@@ -698,10 +880,13 @@
 
   // Global interface export
   window.mobileControlsEditor = {
+    loadGameOptions,
     loadControlsLayout,
     checkFirstRunControls,
     openPresetsModal,
-    renderEditorItems
+    renderEditorItems,
+    renderHudPreview,
+    getGuiVirtualDimensions
   };
 
 })();
