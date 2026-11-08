@@ -1384,7 +1384,7 @@ index 6480738..1286a93 100644
      }
      fn sort_input(&mut self, name: &str) -> bool {
 diff --git a/crates/horizon-client/src/lib.rs b/crates/horizon-client/src/lib.rs
-index 312cec3..428a9b9 100644
+index 312cec3..213811b 100644
 --- a/crates/horizon-client/src/lib.rs
 +++ b/crates/horizon-client/src/lib.rs
 @@ -1,6 +1,7 @@
@@ -1432,10 +1432,10 @@ index 312cec3..428a9b9 100644
 +#[allow(unsafe_code)]
 +#[unsafe(no_mangle)]
 +fn android_main(app: android_activity::AndroidApp) {
-+    // Persistent per-app media folder: survives app updates and reinstalls
-+    // (unlike Android/data/<pkg>, which the system wipes on uninstall) and
-+    // requires no storage permission.
-+    let home = std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files");
++    // Data root: /sdcard/Horizon when the app holds "All files access" (the
++    // folder survives updates and uninstall), otherwise the app-private media
++    // folder. See `mobile::android_home`.
++    let home = crate::mobile::android_home();
 +    let _ = std::fs::create_dir_all(&home);
 +    let _ = std::env::set_current_dir(&home);
 +    crate::logging::init(&home, "Render thread");
@@ -1482,10 +1482,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..9958caa
+index 0000000..f828de0
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2816 @@
+@@ -0,0 +1,2837 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1699,6 +1699,8 @@ index 0000000..9958caa
 +    let candidates = [
 +        std::path::PathBuf::from("controls.json"),
 +        std::path::PathBuf::from("files/controls.json"),
++        std::path::PathBuf::from("/sdcard/Horizon/controls.json"),
++        std::path::PathBuf::from("/storage/emulated/0/Horizon/controls.json"),
 +        std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files/controls.json"),
 +        std::path::PathBuf::from("/storage/emulated/0/Android/media/org.horizon.client/files/controls.json"),
 +        std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files/controls.json"),
@@ -3608,12 +3610,31 @@ index 0000000..9958caa
 +    }
 +}
 +
++/// Where the launcher and the game keep their data on Android.
++///
++/// The visible folder `/sdcard/Horizon` is used when the app holds the
++/// "All files access" permission (the launcher asks for it on first start).
++/// It is a plain folder on shared storage, so it survives app updates and
++/// even a full uninstall. Without the permission the app falls back to its
++/// own media folder, which Android deletes together with the app.
++pub(crate) fn android_home() -> std::path::PathBuf {
++    let public = std::path::PathBuf::from("/sdcard/Horizon");
++    if std::fs::create_dir_all(&public).is_ok() {
++        let probe = public.join(".horizon-write-test");
++        if std::fs::write(&probe, b"ok").is_ok() {
++            let _ = std::fs::remove_file(&probe);
++            return public;
++        }
++    }
++    let fallback = std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files");
++    let _ = std::fs::create_dir_all(&fallback);
++    fallback
++}
++
 +/// Where `Options::read` finds the installed resources on Android: the
-+/// launcher's copy on the shared storage (`files/resources`), in the app's
-+/// persistent media folder (`Android/media`), which survives updates and
-+/// reinstalls and needs no storage permission.
++/// launcher's copy on the shared storage (`resources` inside the data root).
 +pub(crate) fn resources_dir() -> std::path::PathBuf {
-+    std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files/resources")
++    android_home().join("resources")
 +}
 +
 +/// The Android app handle `android_main` received, for the event loop

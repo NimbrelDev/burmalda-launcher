@@ -46,6 +46,8 @@ public class LauncherActivity extends Activity {
     private static final String TAG = "LauncherActivity";
     private WebView webView;
     private LauncherBridge bridge;
+    /** Путь рабочей папки, с которым загружен WebView (см. onResume). */
+    private String lastBase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,9 +72,10 @@ public class LauncherActivity extends Activity {
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         );
 
-        // Keep the game and its downloads across updates/reinstalls: move any
-        // data left in the old Android/data/<pkg>/files into the persistent
-        // Android/media/<pkg>/files once, before the WebView reads paths.
+        // Keep the game and its downloads across updates: the working folder is
+        // /sdcard/Horizon once "All files access" is granted, otherwise the
+        // app-private media dir. Move whatever earlier builds left behind.
+        lastBase = externalBase(this).getAbsolutePath();
         migrateLegacyData(this);
 
         webView = new WebView(this);
@@ -93,6 +96,10 @@ public class LauncherActivity extends Activity {
 
         webView.loadUrl("file:///android_asset/launcher/index.html");
         setContentView(webView);
+
+        // Игровые данные должны лежать в /sdcard/Horizon: без «Доступа ко всем
+        // файлам» пишем в app-specific папку, которая стирается при удалении.
+        if (!hasAllFilesAccess(this)) askForFilesAccess();
     }
 
     @Override
@@ -120,6 +127,21 @@ public class LauncherActivity extends Activity {
             }
         } catch (Exception e) {
             Log.e(TAG, "Game restart failed", e);
+        }
+
+        // Возврат с экрана «Доступ ко всем файлам»: разрешение могли выдать.
+        // Тогда переносим данные в /sdcard/Horizon и перезагружаем WebView,
+        // чтобы все пути в интерфейсе указывали в новую папку.
+        try {
+            String base = externalBase(this).getAbsolutePath();
+            if (lastBase != null && !base.equals(lastBase)) {
+                lastBase = base;
+                migrateLegacyData(this);
+                if (webView != null) webView.reload();
+                Log.i(TAG, "data dir switched to " + base);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "data dir switch failed", e);
         }
     }
 
@@ -237,20 +259,65 @@ public class LauncherActivity extends Activity {
     }
 
     /**
-     * Рабочая папка лаунчера и игры: /sdcard/Android/media/&lt;pkg&gt;/files.
-     *
-     * Почему не getExternalFilesDir (Android/data/&lt;pkg&gt;): Android удаляет
-     * Android/data/&lt;pkg&gt; при удалении приложения, а Android/media/&lt;pkg&gt;
-     * переживает и обновление, и переустановку — это «медиа»-папка приложения
-     * (как WhatsApp/Media). Разрешение на файлы при этом не нужно вообще:
-     * приложение всегда имеет полный доступ к своей media-папке, а при ручном
-     * копировании/бэкапе она видна через файловый менеджер.
+     * Видимая пользователю папка игры на общей памяти:
+     * /sdcard/Horizon. Она не принадлежит приложению, поэтому переживает и
+     * обновление APK, и полное удаление приложения. Для записи по обычному
+     * пути на Android 11+ нужно разрешение «Доступ ко всем файлам»
+     * (MANAGE_EXTERNAL_STORAGE), которое выдаётся на системном экране.
+     */
+    static File publicBase() {
+        return new File("/sdcard/Horizon");
+    }
+
+    /**
+     * Запасная папка без разрешений: /sdcard/Android/media/&lt;pkg&gt;/files.
+     * Работает всегда, но Android удаляет её вместе с приложением, поэтому
+     * используется только пока «Доступ ко всем файлам» не выдан.
      */
     static File mediaBase(Context ctx) {
         return new File("/sdcard/Android/media/" + ctx.getPackageName() + "/files");
     }
 
+    /** Выдано ли разрешение на запись в /sdcard/Horizon. */
+    static boolean hasAllFilesAccess(Context ctx) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            return android.os.Environment.isExternalStorageManager();
+        }
+        return ctx.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** Открывает системный экран «Доступ ко всем файлам» для этого приложения. */
+    static void requestAllFilesAccess(Activity activity) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.setData(Uri.parse("package:" + activity.getPackageName()));
+                activity.startActivity(intent);
+                return;
+            } catch (Exception e) {
+                Log.w(TAG, "per-app all-files screen unavailable: " + e.getMessage());
+            }
+            try {
+                activity.startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            } catch (Exception e) {
+                Log.e(TAG, "all-files settings unavailable", e);
+            }
+        } else {
+            activity.requestPermissions(
+                new String[] { android.Manifest.permission.WRITE_EXTERNAL_STORAGE }, 42002);
+        }
+    }
+
     static File externalBase(Context ctx) {
+        if (hasAllFilesAccess(ctx)) {
+            File pub = publicBase();
+            try {
+                if (pub.isDirectory() || pub.mkdirs()) return pub;
+            } catch (Exception e) {
+                Log.w(TAG, "public dir unavailable: " + e.getMessage());
+            }
+        }
         File media = mediaBase(ctx);
         try {
             if (media.isDirectory() || media.mkdirs()) return media;
@@ -263,43 +330,69 @@ public class LauncherActivity extends Activity {
     }
 
     /**
-     * Однократный перенос старых данных из Android/data/&lt;pkg&gt;/files в
-     * постоянную Android/media/&lt;pkg&gt;/files, чтобы обновление не потеряло
-     * уже скачанные ресурсы, миры и настройки. Частичный перенос безопасен:
-     * файл удаляется из старой папки только после успешной проверки размера.
+     * Переносит уже скачанные данные из старых папок (Android/data и
+     * Android/media) в текущую рабочую (/sdcard/Horizon после выдачи
+     * разрешения). Частичный перенос безопасен: исходный файл удаляется
+     * только после успешной проверки размера.
      */
     static void migrateLegacyData(Context ctx) {
         try {
-            File legacy = ctx.getExternalFilesDir(null);
-            File target = mediaBase(ctx);
-            if (legacy == null || !legacy.isDirectory()) return;
-            if (legacy.getCanonicalPath().equals(target.getCanonicalPath())) return;
+            File target = externalBase(ctx);
+            File[] sources = new File[] { ctx.getExternalFilesDir(null), mediaBase(ctx) };
+            String targetPath = target.getCanonicalPath();
             if (!target.isDirectory() && !target.mkdirs()) return;
-            File[] children = legacy.listFiles();
-            if (children == null) return;
-            for (File src : children) {
-                File dst = new File(target, src.getName());
-                if (dst.exists()) {
-                    if (dirSize(src) == dirSize(dst) && dirSize(src) >= 0) deleteRecursive(src);
-                    continue;
-                }
-                boolean moved = src.renameTo(dst);
-                if (!moved) {
-                    try {
-                        copyTree(src, dst);
-                        moved = dirSize(src) == dirSize(dst) && dirSize(src) >= 0;
-                    } catch (Exception e) {
-                        Log.e(TAG, "migrate copy failed: " + src.getName(), e);
+            for (File source : sources) {
+                if (source == null || !source.isDirectory()) continue;
+                if (source.getCanonicalPath().equals(targetPath)) continue;
+                File[] children = source.listFiles();
+                if (children == null) continue;
+                for (File src : children) {
+                    File dst = new File(target, src.getName());
+                    if (dst.exists()) {
+                        if (dirSize(src) == dirSize(dst) && dirSize(src) >= 0) deleteRecursive(src);
+                        continue;
                     }
-                }
-                if (moved) {
-                    if (src.exists()) deleteRecursive(src);
-                    Log.i(TAG, "migrated " + src.getName() + " to media dir");
+                    boolean moved = src.renameTo(dst);
+                    if (!moved) {
+                        try {
+                            copyTree(src, dst);
+                            moved = dirSize(src) == dirSize(dst) && dirSize(src) >= 0;
+                        } catch (Exception e) {
+                            Log.e(TAG, "migrate copy failed: " + src.getName(), e);
+                        }
+                    }
+                    if (moved) {
+                        if (src.exists()) deleteRecursive(src);
+                        Log.i(TAG, "migrated " + src.getName() + " to " + targetPath);
+                    }
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "media migration failed", e);
+            Log.e(TAG, "data migration failed", e);
         }
+    }
+
+    static class StorageAllowListener implements DialogInterface.OnClickListener {
+        private final LauncherActivity activity;
+        StorageAllowListener(LauncherActivity activity) { this.activity = activity; }
+        @Override
+        public void onClick(DialogInterface d, int w) {
+            requestAllFilesAccess(activity);
+        }
+    }
+
+    /** Объясняет, зачем нужен доступ к файлам, и ведёт на системный экран. */
+    private void askForFilesAccess() {
+        new AlertDialog.Builder(this)
+            .setTitle("Доступ к файлам")
+            .setMessage("Ресурсы игры, миры и настройки будут лежать в папке "
+                + publicBase().getAbsolutePath()
+                + " и не пропадут при обновлении или удалении приложения.\n\n"
+                + "На следующем экране включите «Разрешить управление всеми файлами» "
+                + "для Horizon Minecraft 26.3 и вернитесь назад.")
+            .setPositiveButton("Разрешить", new StorageAllowListener(this))
+            .setNegativeButton("Позже", null)
+            .show();
     }
 
     static boolean deleteRecursive(File f) {
@@ -535,6 +628,16 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    /** Вызов системного экрана «Доступ ко всем файлам» из UI-потока. */
+    static class FilesAccessTask implements Runnable {
+        private final Activity activity;
+        FilesAccessTask(Activity activity) { this.activity = activity; }
+        @Override
+        public void run() {
+            requestAllFilesAccess(activity);
+        }
+    }
+
     // ============================================================
 
     // static: d8 8.2.2 + javac 21 cannot dex non-static inner classes
@@ -638,6 +741,18 @@ public class LauncherActivity extends Activity {
         @JavascriptInterface
         public String getFilesPath() {
             return baseDir().getAbsolutePath();
+        }
+
+        /** Выдано ли разрешение «Доступ ко всем файлам» (/sdcard/Horizon). */
+        @JavascriptInterface
+        public boolean hasFilesAccess() {
+            return hasAllFilesAccess(activity);
+        }
+
+        /** Открывает системный экран выдачи «Доступа ко всем файлам». */
+        @JavascriptInterface
+        public void requestFilesAccess() {
+            activity.runOnUiThread(new FilesAccessTask(activity));
         }
 
         @JavascriptInterface

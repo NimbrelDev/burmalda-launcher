@@ -8,20 +8,30 @@
 
 ## Где лежат данные игры
 
-`/sdcard/Android/media/org.horizon.client/files` — постоянная media-папка
-приложения. Она переживает и обновление APK, и переустановку (в отличие от
-`/sdcard/Android/data/<pkg>`, которую Android стирает при удалении), и не
-требует разрешения на доступ к файлам. Этот путь задан в трёх местах:
-`lib.rs` (`android_main`, cwd движка), `mobile.rs` (`resources_dir()` и
-кандидаты `controls.json`) и в лаунчере (`externalBase`/`mediaBase` в
-`LauncherActivity.java`). При смене пути менять все три синхронно.
+`/sdcard/Horizon` — обычная видимая папка на общей памяти. Она не принадлежит
+приложению, поэтому переживает и обновление APK, и полное удаление. Для записи
+по обычному пути на Android 11+ лаунчер запрашивает «Доступ ко всем файлам»
+(MANAGE_EXTERNAL_STORAGE): сначала свой диалог, затем системный экран
+«Разрешить управление всеми файлами».
+
+Пока разрешение не выдано, всё пишется в запасную app-specific папку
+`/sdcard/Android/media/<pkg>/files` (она работает без разрешений, но Android
+удаляет её вместе с приложением; при первом запуске после выдачи разрешения
+данные автоматически переезжают в `/sdcard/Horizon`).
+
+Путь задан в четырёх местах, менять синхронно:
+`lib.rs` (`android_main` → `mobile::android_home()`),
+`mobile.rs` (`android_home`, `resources_dir`, кандидаты `controls.json`)
+и в лаунчере (`publicBase`/`mediaBase`/`externalBase` в
+`LauncherActivity.java`); сам выбор папки делает `android_home()` в движке
+и `externalBase()` в Java — по проверке записи.
 
 ## Базовый коммит
 
 Патч сделан от базового коммита **`7c83966`** (полный sha
 `7c839665283157c1ada904d2a10867e52e3443b3`) — это исходники
 **Horizon 26.3** («Initial commit of Horizon 26.3 Rust client engine source»).
-Наш HEAD движка — `292d488` (`292d488ae677527985d0a5518d9978dc9c87b4fa`,
+Наш HEAD движка — `50a65eb` (`50a65eb50259c1d09df204678098f6825aba6e1e`,
 локальная ветка `master` рабочего клона).
 
 Патч = `git diff 7c83966 HEAD -- crates/` (изменения только внутри `crates/`,

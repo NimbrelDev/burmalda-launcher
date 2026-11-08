@@ -1,9 +1,10 @@
 // Android WebView Bridge for Horizon / Burmalda Launcher
 // All native work goes through window.AndroidLauncher (LauncherBridge in
 // LauncherActivity.java). Every file path used here is relative to the app's
-// data dir: /sdcard/Android/media/org.horizon.client/files  (the persistent
-// per-app media folder: it survives app updates and reinstalls, unlike
-// /sdcard/Android/data/<pkg>, and needs no storage permission)
+// data dir: /sdcard/Horizon  (a visible folder on shared storage: it survives
+// app updates and even a full uninstall; the app asks for the "All files
+// access" permission on first start). Until that permission is granted the
+// launcher falls back to /sdcard/Android/media/<pkg>/files.
 //
 // Engine conventions (see horizon-client sources):
 //   - cwd of the game = the files dir above
