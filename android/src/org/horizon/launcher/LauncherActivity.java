@@ -70,9 +70,13 @@ public class LauncherActivity extends Activity {
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         );
 
+        // Keep the game and its downloads across updates/reinstalls: move any
+        // data left in the old Android/data/<pkg>/files into the persistent
+        // Android/media/<pkg>/files once, before the WebView reads paths.
+        migrateLegacyData(this);
+
         webView = new WebView(this);
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
+        WebSettings settings = webView.getSettings();        settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
@@ -232,10 +236,128 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    /**
+     * Рабочая папка лаунчера и игры: /sdcard/Android/media/&lt;pkg&gt;/files.
+     *
+     * Почему не getExternalFilesDir (Android/data/&lt;pkg&gt;): Android удаляет
+     * Android/data/&lt;pkg&gt; при удалении приложения, а Android/media/&lt;pkg&gt;
+     * переживает и обновление, и переустановку — это «медиа»-папка приложения
+     * (как WhatsApp/Media). Разрешение на файлы при этом не нужно вообще:
+     * приложение всегда имеет полный доступ к своей media-папке, а при ручном
+     * копировании/бэкапе она видна через файловый менеджер.
+     */
+    static File mediaBase(Context ctx) {
+        return new File("/sdcard/Android/media/" + ctx.getPackageName() + "/files");
+    }
+
     static File externalBase(Context ctx) {
+        File media = mediaBase(ctx);
+        try {
+            if (media.isDirectory() || media.mkdirs()) return media;
+        } catch (Exception e) {
+            Log.w(TAG, "media dir unavailable: " + e.getMessage());
+        }
         File dir = ctx.getExternalFilesDir(null);
         if (dir == null) dir = ctx.getFilesDir();
         return dir;
+    }
+
+    /**
+     * Однократный перенос старых данных из Android/data/&lt;pkg&gt;/files в
+     * постоянную Android/media/&lt;pkg&gt;/files, чтобы обновление не потеряло
+     * уже скачанные ресурсы, миры и настройки. Частичный перенос безопасен:
+     * файл удаляется из старой папки только после успешной проверки размера.
+     */
+    static void migrateLegacyData(Context ctx) {
+        try {
+            File legacy = ctx.getExternalFilesDir(null);
+            File target = mediaBase(ctx);
+            if (legacy == null || !legacy.isDirectory()) return;
+            if (legacy.getCanonicalPath().equals(target.getCanonicalPath())) return;
+            if (!target.isDirectory() && !target.mkdirs()) return;
+            File[] children = legacy.listFiles();
+            if (children == null) return;
+            for (File src : children) {
+                File dst = new File(target, src.getName());
+                if (dst.exists()) {
+                    if (dirSize(src) == dirSize(dst) && dirSize(src) >= 0) deleteRecursive(src);
+                    continue;
+                }
+                boolean moved = src.renameTo(dst);
+                if (!moved) {
+                    try {
+                        copyTree(src, dst);
+                        moved = dirSize(src) == dirSize(dst) && dirSize(src) >= 0;
+                    } catch (Exception e) {
+                        Log.e(TAG, "migrate copy failed: " + src.getName(), e);
+                    }
+                }
+                if (moved) {
+                    if (src.exists()) deleteRecursive(src);
+                    Log.i(TAG, "migrated " + src.getName() + " to media dir");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "media migration failed", e);
+        }
+    }
+
+    static boolean deleteRecursive(File f) {
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File c : children) {
+                    if (!deleteRecursive(c)) return false;
+                }
+            }
+        }
+        return f.delete();
+    }
+
+    static void copyTree(File src, File dst) throws Exception {
+        if (src.isDirectory()) {
+            if (!dst.isDirectory() && !dst.mkdirs()) throw new Exception("mkdirs " + dst);
+            File[] children = src.listFiles();
+            if (children != null) {
+                for (File c : children) copyTree(c, new File(dst, c.getName()));
+            }
+            return;
+        }
+        File parent = dst.getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) throw new Exception("mkdirs " + parent);
+        FileInputStream in = new FileInputStream(src);
+        try {
+            FileOutputStream out = new FileOutputStream(dst);
+            try {
+                byte[] buf = new byte[262144];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                out.flush();
+            } finally {
+                out.close();
+            }
+        } finally {
+            in.close();
+        }
+        dst.setLastModified(src.lastModified());
+    }
+
+    /** Total byte size of a file tree, or -1 when some file cannot be read. */
+    static long dirSize(File f) {
+        if (f.isFile()) {
+            long len = f.length();
+            return len;
+        }
+        if (!f.isDirectory()) return -1;
+        File[] children = f.listFiles();
+        if (children == null) return -1;
+        long total = 0;
+        for (File c : children) {
+            long s = dirSize(c);
+            if (s < 0) return -1;
+            total += s;
+        }
+        return total;
     }
 
     static String jsonStr(String s) {

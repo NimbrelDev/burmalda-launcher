@@ -136,7 +136,18 @@ with zipfile.ZipFile(apk_path, 'a', compression=zipfile.ZIP_DEFLATED) as z:
 # Release builds: point ANDROID_KEYSTORE at a keystore kept OUTSIDE the repo, e.g.:
 #   export ANDROID_KEYSTORE="$HOME/проекты/burmalda-launcher-secrets/release.keystore"
 #   export ANDROID_KEYSTORE_PASS=... ANDROID_KEY_ALIAS=... [ANDROID_KEY_PASS=...]
-# Fallback (local dev): auto-generate a debug keystore in android/build/.
+# Fallback: the persistent release key in ~/проекты/burmalda-launcher-secrets/
+# (if it exists), and only then an auto-generated debug key in android/build/.
+# The key must stay the same between builds: a different signature makes
+# Android refuse to update the installed app (INSTALL_FAILED_UPDATE_INCOMPATIBLE)
+# and the user's data has to be wiped.
+PERSISTENT_KEYSTORE="$HOME/проекты/burmalda-launcher-secrets/release.keystore"
+if [ -z "${ANDROID_KEYSTORE:-}" ] && [ -f "$PERSISTENT_KEYSTORE" ]; then
+    ANDROID_KEYSTORE="$PERSISTENT_KEYSTORE"
+    ANDROID_KEYSTORE_PASS="${ANDROID_KEYSTORE_PASS:-horizon2026}"
+    ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-horizon}"
+    ANDROID_KEY_PASS="${ANDROID_KEY_PASS:-$ANDROID_KEYSTORE_PASS}"
+fi
 KEYSTORE="${ANDROID_KEYSTORE:-$WORK_DIR/debug.keystore}"
 KEYSTORE_PASS="${ANDROID_KEYSTORE_PASS:-android}"
 KEY_ALIAS="${ANDROID_KEY_ALIAS:-androiddebugkey}"

@@ -3,14 +3,25 @@
 Патч с мобильным (Android) слоем движка Horizon: весь наш код живёт в
 `crates/horizon-client/src/mobile.rs`, а в upstream-файлах остаются только
 `pub(crate)`-модификаторы видимости, хуки (`draw_mobile_hud`,
-`handle_mobile_touch`, `tick_mobile`) и однострочные делегаты.
+`handle_mobile_touch`, `tick_mobile`), однострочные делегаты и один
+однострочный хук пути данных (`android_main` в `lib.rs`).
+
+## Где лежат данные игры
+
+`/sdcard/Android/media/org.horizon.client/files` — постоянная media-папка
+приложения. Она переживает и обновление APK, и переустановку (в отличие от
+`/sdcard/Android/data/<pkg>`, которую Android стирает при удалении), и не
+требует разрешения на доступ к файлам. Этот путь задан в трёх местах:
+`lib.rs` (`android_main`, cwd движка), `mobile.rs` (`resources_dir()` и
+кандидаты `controls.json`) и в лаунчере (`externalBase`/`mediaBase` в
+`LauncherActivity.java`). При смене пути менять все три синхронно.
 
 ## Базовый коммит
 
 Патч сделан от базового коммита **`7c83966`** (полный sha
 `7c839665283157c1ada904d2a10867e52e3443b3`) — это исходники
 **Horizon 26.3** («Initial commit of Horizon 26.3 Rust client engine source»).
-Наш HEAD движка — `0c69195` (`0c69195ba93fd6adef7f5e19577b8afe6d7ae1dc`,
+Наш HEAD движка — `292d488` (`292d488ae677527985d0a5518d9978dc9c87b4fa`,
 локальная ветка `master` рабочего клона).
 
 Патч = `git diff 7c83966 HEAD -- crates/` (изменения только внутри `crates/`,

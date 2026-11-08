@@ -1384,7 +1384,7 @@ index 6480738..1286a93 100644
      }
      fn sort_input(&mut self, name: &str) -> bool {
 diff --git a/crates/horizon-client/src/lib.rs b/crates/horizon-client/src/lib.rs
-index 312cec3..b760ba6 100644
+index 312cec3..428a9b9 100644
 --- a/crates/horizon-client/src/lib.rs
 +++ b/crates/horizon-client/src/lib.rs
 @@ -1,6 +1,7 @@
@@ -1423,7 +1423,7 @@ index 312cec3..b760ba6 100644
  pub mod offline_name;
  pub mod options_file;
  pub mod options_fixes;
-@@ -211,3 +218,39 @@ pub use horizon_items::enchant;
+@@ -211,3 +218,42 @@ pub use horizon_items::enchant;
  pub use horizon_items::item_data;
  pub use horizon_items::items;
  pub use horizon_items::random_sequences;
@@ -1432,7 +1432,10 @@ index 312cec3..b760ba6 100644
 +#[allow(unsafe_code)]
 +#[unsafe(no_mangle)]
 +fn android_main(app: android_activity::AndroidApp) {
-+    let home = std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files");
++    // Persistent per-app media folder: survives app updates and reinstalls
++    // (unlike Android/data/<pkg>, which the system wipes on uninstall) and
++    // requires no storage permission.
++    let home = std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files");
 +    let _ = std::fs::create_dir_all(&home);
 +    let _ = std::env::set_current_dir(&home);
 +    crate::logging::init(&home, "Render thread");
@@ -1479,10 +1482,10 @@ index 8d03455..5c23cd5 100644
  /// to read without running it (`horizon_mods::api_level::MARK`). `main`
 diff --git a/crates/horizon-client/src/mobile.rs b/crates/horizon-client/src/mobile.rs
 new file mode 100644
-index 0000000..79f860f
+index 0000000..9958caa
 --- /dev/null
 +++ b/crates/horizon-client/src/mobile.rs
-@@ -0,0 +1,2812 @@
+@@ -0,0 +1,2816 @@
 +#![cfg(target_os = "android")]
 +//! Android mobile touch controls: virtual joystick, camera look swipe,
 +//! minimal HUD buttons (joystick, jump, inventory, chat, keyboard), gesture
@@ -1696,6 +1699,8 @@ index 0000000..79f860f
 +    let candidates = [
 +        std::path::PathBuf::from("controls.json"),
 +        std::path::PathBuf::from("files/controls.json"),
++        std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files/controls.json"),
++        std::path::PathBuf::from("/storage/emulated/0/Android/media/org.horizon.client/files/controls.json"),
 +        std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files/controls.json"),
 +        std::path::PathBuf::from("/storage/emulated/0/Android/data/org.horizon.client/files/controls.json"),
 +    ];
@@ -3604,9 +3609,11 @@ index 0000000..79f860f
 +}
 +
 +/// Where `Options::read` finds the installed resources on Android: the
-+/// launcher's copy on the shared storage (`files/resources`).
++/// launcher's copy on the shared storage (`files/resources`), in the app's
++/// persistent media folder (`Android/media`), which survives updates and
++/// reinstalls and needs no storage permission.
 +pub(crate) fn resources_dir() -> std::path::PathBuf {
-+    std::path::PathBuf::from("/sdcard/Android/data/org.horizon.client/files/resources")
++    std::path::PathBuf::from("/sdcard/Android/media/org.horizon.client/files/resources")
 +}
 +
 +/// The Android app handle `android_main` received, for the event loop
