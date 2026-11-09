@@ -4325,10 +4325,10 @@ index 0000000..f828de0
 +}
 diff --git a/crates/horizon-client/src/official_install.rs b/crates/horizon-client/src/official_install.rs
 new file mode 100644
-index 0000000..4d193c3
+index 0000000..d8314c7
 --- /dev/null
 +++ b/crates/horizon-client/src/official_install.rs
-@@ -0,0 +1,561 @@
+@@ -0,0 +1,570 @@
 +#![cfg(target_os = "android")]
 +//! On-device installation of the official Minecraft resources from Mojang's
 +//! HTTPS endpoints, triggered on demand by the launcher through a flag file
@@ -4886,7 +4886,16 @@ index 0000000..4d193c3
 +        destination.display()
 +    );
 +
-+    // Housekeeping: the verified downloads are no longer needed.
++    // The install is effectively complete now: resources are activated and
++    // readable. Report success and consume the flag BEFORE the housekeeping
++    // below, so a kill during cache cleanup (thousands of files, slow on
++    // battery saver / Doze) cannot leave the launcher waiting on "finalize"
++    // with a fully working resources tree.
++    progress.report("done", 1, 1);
++    let _ = fs::remove_file(home.join(FLAG_FILE));
++
++    // Housekeeping: the verified downloads are no longer needed. Best-effort,
++    // never fails the install.
 +    let _ = fs::remove_dir_all(&cache);
 +    Ok(())
 +}

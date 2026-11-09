@@ -31,7 +31,7 @@
 Патч сделан от базового коммита **`7c83966`** (полный sha
 `7c839665283157c1ada904d2a10867e52e3443b3`) — это исходники
 **Horizon 26.3** («Initial commit of Horizon 26.3 Rust client engine source»).
-Наш HEAD движка — `50a65eb` (`50a65eb50259c1d09df204678098f6825aba6e1e`,
+Наш HEAD движка — `a57fe70` (`a57fe701227b150c82476cd2ed0e48de18f2856a`,
 локальная ветка `master` рабочего клона).
 
 Патч = `git diff 7c83966 HEAD -- crates/` (изменения только внутри `crates/`,
