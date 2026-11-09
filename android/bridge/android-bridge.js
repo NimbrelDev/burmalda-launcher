@@ -491,7 +491,7 @@
           await new Promise(res => setTimeout(res, 500));
           const p = readInstallProgress();
           if (!p.installing) {
-            if (p.done && resourcesInstalled()) {
+            if (resourcesInstalled()) {
               emit(100, p.status || 'Minecraft-ресурсы установлены');
               return { success: true, tag: BUNDLED_ENGINE_TAG };
             }
@@ -505,6 +505,10 @@
           emit(p.percent, p.status || 'Установка Minecraft-ресурсов...');
           // the engine process died mid-install (flag + stale progress left)
           if (Date.now() - started > 10000 && !a.isGameRunning()) {
+            if (resourcesInstalled()) {
+              emit(100, 'Minecraft-ресурсы установлены');
+              return { success: true, tag: BUNDLED_ENGINE_TAG };
+            }
             return failWith('Движок завершился во время установки ресурсов. Последний статус: ' + lastStatus);
           }
           // old .so: the engine ignores the flag and just runs the game
