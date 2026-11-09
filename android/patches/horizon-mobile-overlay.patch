@@ -4325,10 +4325,10 @@ index 0000000..f828de0
 +}
 diff --git a/crates/horizon-client/src/official_install.rs b/crates/horizon-client/src/official_install.rs
 new file mode 100644
-index 0000000..d8314c7
+index 0000000..6bed34b
 --- /dev/null
 +++ b/crates/horizon-client/src/official_install.rs
-@@ -0,0 +1,570 @@
+@@ -0,0 +1,595 @@
 +#![cfg(target_os = "android")]
 +//! On-device installation of the official Minecraft resources from Mojang's
 +//! HTTPS endpoints, triggered on demand by the launcher through a flag file
@@ -4630,6 +4630,12 @@ index 0000000..d8314c7
 +        }
 +        let path = destination.join(name);
 +        fs::create_dir_all(path.parent().ok_or("Missing resource parent")?)?;
++        // Resume: an interrupted run may have already written this entry.
++        if path.is_file() && fs::metadata(&path).map(|m| m.len()).unwrap_or(0) == entry.size() {
++            let mut sink = std::io::sink();
++            let _ = std::io::copy(&mut entry, &mut sink);
++            continue;
++        }
 +        std::io::copy(&mut entry, &mut fs::File::create(path)?)?;
 +    }
 +    Ok(())
@@ -4678,6 +4684,13 @@ index 0000000..d8314c7
 +            "This engine implements Horizon resources for Minecraft {version} only (requested: {requested})"
 +        )
 +        .into());
++    }
++
++    // Resume: if a previous run already activated a complete resources tree,
++    // there is nothing to do.
++    if resources_ready(home) {
++        log::info!("Official resources already present at {}", home.join("resources").display());
++        return Ok(());
 +    }
 +
 +    progress.report("metadata", 0, 0);
@@ -4830,10 +4843,19 @@ index 0000000..d8314c7
 +    // atomically: engine tables from the bundle, vanilla `assets/` + `data/`
 +    // from the verified client jar, and the asset objects under `assets/`.
 +    let staging = home.join(".resources-install-partial");
++    let version_marker = staging.join(".install-version");
 +    if staging.exists() {
-+        fs::remove_dir_all(&staging)?;
++        let stale = fs::read_to_string(&version_marker)
++            .map(|v| v.trim() != version)
++            .unwrap_or(true);
++        if stale {
++            let _ = fs::remove_dir_all(&staging);
++        }
 +    }
-+    fs::create_dir(&staging)?;
++    if !staging.exists() {
++        fs::create_dir(&staging)?;
++    }
++    let _ = fs::write(&version_marker, &version);
 +    let result = (|| -> Result<()> {
 +        extract_zip_into(
 +            fs::File::open(&staged_tables)?,
@@ -4848,6 +4870,9 @@ index 0000000..d8314c7
 +        for (name, from) in assets {
 +            let path = staging.join("assets").join(relative(name)?);
 +            fs::create_dir_all(path.parent().ok_or("Missing asset parent")?)?;
++            if path.is_file() && fs::metadata(&path).map(|m| m.len()).unwrap_or(0) == from.metadata().map(|m| m.len()).unwrap_or(u64::MAX) {
++                continue;
++            }
 +            fs::copy(from, path)?;
 +        }
 +        if !staging.join("horizon-resources.json").is_file() {
