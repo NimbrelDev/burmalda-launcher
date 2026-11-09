@@ -3,12 +3,21 @@ package org.horizon.launcher;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.Vibrator;
 import android.util.Log;
 import android.webkit.ConsoleMessage;
@@ -20,10 +29,12 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.View;
 import android.view.WindowManager;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -44,10 +55,22 @@ import java.util.zip.ZipFile;
 
 public class LauncherActivity extends Activity {
     private static final String TAG = "LauncherActivity";
+    /** Minecraft version of the bundled engine (research-lock.json). */
+    static final String BUNDLED_MC_VERSION = "26.3";
     private WebView webView;
     private LauncherBridge bridge;
     /** Путь рабочей папки, с которым загружен WebView (см. onResume). */
     private String lastBase;
+    /**
+     * Выбранная рабочая папка. Проверка записи делается один раз, а не на
+     * каждый вызов exists/write из WebView (это были бы тысячи лишних
+     * операций ввода-вывода). Сбрасывается в onResume, когда пользователь
+     * мог вернуться с экрана разрешений.
+     */
+    private static volatile File sBaseCache;
+    /** Держат установку живой, пока экран выключен или лаунчер свёрнут. */
+    private static PowerManager.WakeLock sInstallWakeLock;
+    private static WifiManager.WifiLock sInstallWifiLock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +98,7 @@ public class LauncherActivity extends Activity {
         // Keep the game and its downloads across updates: the working folder is
         // /sdcard/Horizon once "All files access" is granted, otherwise the
         // app-private media dir. Move whatever earlier builds left behind.
+        invalidateBaseCache();
         lastBase = externalBase(this).getAbsolutePath();
         migrateLegacyData(this);
 
@@ -133,8 +157,15 @@ public class LauncherActivity extends Activity {
         // Тогда переносим данные в /sdcard/Horizon и перезагружаем WebView,
         // чтобы все пути в интерфейсе указывали в новую папку.
         try {
+            invalidateBaseCache();
             String base = externalBase(this).getAbsolutePath();
             if (lastBase != null && !base.equals(lastBase)) {
+                // The engine may still be installing into the old folder; let
+                // it stop before its files are moved, otherwise the resumed
+                // install would keep writing to the old location.
+                try {
+                    if (bridge != null && bridge.isGameRunning()) bridge.killGameProcess();
+                } catch (Exception ignored) {}
                 lastBase = base;
                 migrateLegacyData(this);
                 if (webView != null) webView.reload();
@@ -310,23 +341,231 @@ public class LauncherActivity extends Activity {
     }
 
     static File externalBase(Context ctx) {
-        if (hasAllFilesAccess(ctx)) {
-            File pub = publicBase();
+        File cached = sBaseCache;
+        if (cached != null && cached.isDirectory()) return cached;
+        synchronized (LauncherActivity.class) {
+            cached = sBaseCache;
+            if (cached != null && cached.isDirectory()) return cached;
+            File chosen = chooseBase(ctx);
+            sBaseCache = chosen;
+            return chosen;
+        }
+    }
+
+    /** Forget the cached working folder (permission may have changed). */
+    static void invalidateBaseCache() {
+        sBaseCache = null;
+    }
+
+    /**
+     * Picks /sdcard/Horizon only when it is actually writable. After a full
+     * reinstall the folder still exists but MANAGE_EXTERNAL_STORAGE is reset;
+     * without this check the launcher would choose an unwritable folder and
+     * every download would fail instead of using the media fallback.
+     *
+     * The order matches the engine (mobile.rs::android_home) exactly: the
+     * launcher and the engine must always agree on the game folder, otherwise
+     * the engine would install resources into one directory while the UI
+     * checks another and the install would look endlessly unfinished.
+     */
+    private static File chooseBase(Context ctx) {
+        File pub = publicBase();
+        if (isWritableDir(pub)) return pub;
+        File media = mediaBase(ctx);
+        if (isWritableDir(media)) return media;
+        File dir = ctx.getExternalFilesDir(null);
+        if (isWritableDir(dir)) return dir;
+        File files = ctx.getFilesDir();
+        if (files != null) {
+            if (!files.isDirectory()) files.mkdirs();
+            return files;
+        }
+        return media;
+    }
+
+    /** Creates the directory if needed and checks that it can be written to. */
+    static boolean isWritableDir(File dir) {
+        if (dir == null) return false;
+        try {
+            if (!dir.isDirectory() && !dir.mkdirs()) return false;
+            File probe = new File(dir, ".horizon-write-test");
+            FileOutputStream out = new FileOutputStream(probe);
             try {
-                if (pub.isDirectory() || pub.mkdirs()) return pub;
-            } catch (Exception e) {
-                Log.w(TAG, "public dir unavailable: " + e.getMessage());
+                out.write(new byte[] { 'o', 'k' });
+                out.flush();
+            } finally {
+                out.close();
+            }
+            probe.delete();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Stamp of the installed APK. The bundled engine tables are re-extracted
+     * whenever it changes, so an app update can never reuse tables from the
+     * previous build (even when their files are the same size).
+     */
+    static String apkStamp(Context ctx) {
+        try {
+            android.content.pm.PackageInfo info =
+                ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
+            return info.lastUpdateTime + ":" + info.versionCode + ":" + BUNDLED_MC_VERSION;
+        } catch (Exception e) {
+            return "0";
+        }
+    }
+
+    /**
+     * A zip is usable only when its central directory can be read and it
+     * contains the resources marker the installer requires at the root.
+     * Catches a copy interrupted by a full disk or a killed process.
+     */
+    static boolean isCompleteZip(File file) {
+        if (file == null || !file.isFile() || file.length() < 22) return false;
+        ZipFile zip = null;
+        try {
+            zip = new ZipFile(file);
+            return zip.getEntry("horizon-resources.json") != null;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (zip != null) {
+                try { zip.close(); } catch (Exception ignored) {}
             }
         }
-        File media = mediaBase(ctx);
+    }
+
+    /** SHA-1 of a file as lowercase hex; null when it cannot be read. */
+    static String sha1Hex(File file) {
+        FileInputStream in = null;
         try {
-            if (media.isDirectory() || media.mkdirs()) return media;
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-1");
+            in = new FileInputStream(file);
+            byte[] buffer = new byte[262144];
+            int read;
+            while ((read = in.read(buffer)) > 0) digest.update(buffer, 0, read);
+            byte[] sum = digest.digest();
+            StringBuilder sb = new StringBuilder(sum.length * 2);
+            for (byte b : sum) sb.append(String.format("%02x", b & 0xff));
+            return sb.toString();
         } catch (Exception e) {
-            Log.w(TAG, "media dir unavailable: " + e.getMessage());
+            Log.w(TAG, "sha1Hex failed: " + file, e);
+            return null;
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Exception ignored) {}
+            }
         }
-        File dir = ctx.getExternalFilesDir(null);
-        if (dir == null) dir = ctx.getFilesDir();
-        return dir;
+    }
+
+    static String readSmallText(File file) {        if (file == null || !file.isFile() || file.length() > 4096) return "";
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            try {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                return sb.toString().trim();
+            } finally {
+                reader.close();
+            }
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    static boolean writeSmallText(File file, String text) {
+        try {
+            File parent = file.getParentFile();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return false;
+            FileWriter writer = new FileWriter(file);
+            try {
+                writer.write(text);
+                writer.flush();
+            } finally {
+                writer.close();
+            }
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "writeSmallText failed: " + file, e);
+            return false;
+        }
+    }
+
+    /** Both markers must exist (see official_install.rs resources_ready). */
+    static boolean resourcesReady(File home) {
+        File resources = new File(home, "resources");
+        return new File(resources, "horizon-resources.json").isFile()
+            && new File(resources, "asset-index.json").isFile();
+    }
+
+    // ------------------------------------------------------------
+    // Installation keep-alive: a foreground service in the :game process
+    // (the one that actually downloads) plus wake/wifi locks, so Android
+    // does not freeze the installer when the screen turns off.
+    // ------------------------------------------------------------
+
+    static boolean acquireInstallWakeLock(Context ctx) {
+        try {
+            if (sInstallWakeLock == null) {
+                PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+                if (pm == null) return false;
+                sInstallWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "horizon:install");
+                sInstallWakeLock.setReferenceCounted(false);
+            }
+            if (!sInstallWakeLock.isHeld()) sInstallWakeLock.acquire();
+            if (sInstallWifiLock == null) {
+                WifiManager wm = (WifiManager) ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                if (wm != null) {
+                    sInstallWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "horizon:install-wifi");
+                    sInstallWifiLock.setReferenceCounted(false);
+                }
+            }
+            if (sInstallWifiLock != null && !sInstallWifiLock.isHeld()) sInstallWifiLock.acquire();
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "acquireInstallWakeLock failed", e);
+            return false;
+        }
+    }
+
+    static void releaseInstallWakeLock() {
+        try {
+            if (sInstallWakeLock != null && sInstallWakeLock.isHeld()) sInstallWakeLock.release();
+        } catch (Exception e) {
+            Log.w(TAG, "releaseInstallWakeLock failed", e);
+        }
+        try {
+            if (sInstallWifiLock != null && sInstallWifiLock.isHeld()) sInstallWifiLock.release();
+        } catch (Exception e) {
+            Log.w(TAG, "releaseInstallWifiLock failed", e);
+        }
+    }
+
+    static boolean startInstallService(Context ctx) {
+        try {
+            Intent intent = new Intent(ctx, InstallService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ctx.startForegroundService(intent);
+            } else {
+                ctx.startService(intent);
+            }
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "startInstallService failed", e);
+            return false;
+        }
+    }
+
+    static void stopInstallService(Context ctx) {
+        try {
+            ctx.stopService(new Intent(ctx, InstallService.class));
+        } catch (Exception e) {
+            Log.w(TAG, "stopInstallService failed", e);
+        }
     }
 
     /**
@@ -722,6 +961,140 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    /**
+     * Foreground service in the :game process (the process running the
+     * engine installer). Keeps Android from freezing/killing the download
+     * when the screen turns off or the launcher is swiped away, and shows a
+     * normal ongoing notification. It stops itself as soon as the install
+     * flag is gone, i.e. after "done"/"error" or a killed engine.
+     */
+    public static class InstallService extends Service {
+        private static final String CHANNEL_ID = "horizon-install";
+        private static final int NOTIFICATION_ID = 4210;
+        private volatile boolean stopping;
+
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
+
+        @Override
+        public void onCreate() {
+            super.onCreate();
+            boolean foregroundStarted = false;
+            try {
+                NotificationManager nm =
+                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationChannel channel = new NotificationChannel(
+                        CHANNEL_ID,
+                        "Установка Minecraft",
+                        NotificationManager.IMPORTANCE_LOW);
+                    channel.setDescription("Загрузка ресурсов Minecraft " + BUNDLED_MC_VERSION);
+                    channel.setShowBadge(false);
+                    nm.createNotificationChannel(channel);
+                }
+                Intent open = new Intent(this, LauncherActivity.class);
+                open.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                PendingIntent pending = PendingIntent.getActivity(
+                    this, 0, open,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                Notification.Builder builder;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    builder = new Notification.Builder(this, CHANNEL_ID);
+                } else {
+                    builder = new Notification.Builder(this);
+                }
+                builder.setSmallIcon(android.R.drawable.stat_sys_download)
+                    .setContentTitle("Minecraft " + BUNDLED_MC_VERSION)
+                    .setContentText("Установка ресурсов…")
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setContentIntent(pending);
+                Notification notification = builder.build();
+                if (Build.VERSION.SDK_INT >= 29) {
+                    startForeground(NOTIFICATION_ID, notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+                } else {
+                    startForeground(NOTIFICATION_ID, notification);
+                }
+                foregroundStarted = true;
+            } catch (Exception e) {
+                // Without startForeground the system would report a broken
+                // service; stop cleanly instead. The install itself is not
+                // affected (the launcher-side wake lock still applies).
+                Log.e(TAG, "InstallService startForeground failed", e);
+            }
+            if (!foregroundStarted) {
+                stopSelf();
+                return;
+            }
+            acquireInstallWakeLock(this);
+            new Thread(new InstallPollTask(this), "horizon-install-service").start();
+        }
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            return START_NOT_STICKY;
+        }
+
+        @Override
+        public void onDestroy() {
+            stopping = true;
+            releaseInstallWakeLock();
+            try {
+                stopForeground(true);
+            } catch (Exception ignored) {}
+            super.onDestroy();
+        }
+
+        void finishService() {
+            stopping = true;
+            releaseInstallWakeLock();
+            try {
+                stopForeground(true);
+            } catch (Exception ignored) {}
+            stopSelf();
+        }
+    }
+
+    /** Watches the install flag so the service dies with the installation. */
+    static class InstallPollTask implements Runnable {
+        private final InstallService service;
+        InstallPollTask(InstallService service) {
+            this.service = service;
+        }
+        @Override
+        public void run() {
+            long started = System.currentTimeMillis();
+            while (!service.stopping) {
+                try {
+                    File home = externalBase(service);
+                    File flag = new File(home, "install-assets.flag");
+                    if (!flag.isFile()) {
+                        // "done"/"error" is written before the flag is removed;
+                        // either way the launcher now owns the result.
+                        service.finishService();
+                        return;
+                    }
+                    // Guard against a lost flag/engine and an endlessly
+                    // visible notification; the launcher's own watchdog
+                    // reports the error long before this.
+                    if (System.currentTimeMillis() - started > 3L * 60L * 60L * 1000L) {
+                        service.finishService();
+                        return;
+                    }
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    return;
+                } catch (Exception e) {
+                    Log.w(TAG, "install service poll failed", e);
+                }
+                if (service.stopping) return;
+            }
+        }
+    }
+
     public static class LauncherBridge {
         private final Activity activity;
         private final HashMap<String, String> sHttpCache = new HashMap<>();
@@ -1105,27 +1478,109 @@ public class LauncherActivity extends Activity {
         // (official_install.rs) prefers a launcher-supplied bundle at
         // <files>/engine-data-<mc>.zip over the APK asset, so we materialize
         // the bundled asset into the files dir before requesting an install.
+        //
+        // The copy is atomic (".part" + rename) and stamped with the APK's
+        // lastUpdateTime: an update replaces the tables, while retries reuse
+        // them without another 14 MB copy. A truncated zip is never accepted.
         // ------------------------------------------------------------
 
+        private static final String ENGINE_ASSET = "engine-data.zip";
+        private static final String ENGINE_ZIP = "engine-data-" + BUNDLED_MC_VERSION + ".zip";
+
         @JavascriptInterface
-        public boolean prepareEngineData() {
-            // The pinned Minecraft version of the bundled engine is 26.3
-            // (research-lock.json); the installer expects engine-data-<mc>.zip.
-            File dest = safeResolve(activity, "engine-data-26.3.zip");
-            if (dest == null) return false;
-            if (dest.isFile() && dest.length() > 0) return true;
-            try (InputStream in = activity.getAssets().open("engine-data.zip");
-                 FileOutputStream out = new FileOutputStream(dest)) {
-                byte[] buf = new byte[65536];
-                int n;
-                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                out.flush();
-                Log.i(TAG, "engine-data-26.3.zip staged: " + dest.length() + " bytes");
+        public boolean prepareEngineData(String engineTag) {
+            try {
+                File dest = safeResolve(activity, ENGINE_ZIP);
+                if (dest == null) return false;
+                File stampFile = new File(dest.getAbsolutePath() + ".stamp");
+                String apk = apkStamp(activity);
+                if (dest.isFile() && dest.length() > 0 && isCompleteZip(dest)) {
+                    String stored = readSmallText(stampFile);
+                    int separator = stored.lastIndexOf(':');
+                    if (separator > 0 && stored.substring(0, separator).equals(apk)) {
+                        String expected = stored.substring(separator + 1);
+                        String actual = sha1Hex(dest);
+                        if (actual != null && actual.equals(expected)) {
+                            Log.i(TAG, "engine-data already staged (" + engineTag + ")");
+                            return true;
+                        }
+                    }
+                    // A zip can still open (its central directory is intact)
+                    // while an entry inside is damaged. Reusing it would make
+                    // every retry fail at extraction, so the hash above sends
+                    // us back to the known-good APK asset.
+                    Log.w(TAG, "staged engine-data is stale or damaged; recopying");
+                }
+                File part = new File(dest.getAbsolutePath() + ".part");
+                try {
+                    part.delete();
+                    InputStream in = activity.getAssets().open(ENGINE_ASSET);
+                    FileOutputStream out = new FileOutputStream(part);
+                    try {
+                        byte[] buf = new byte[262144];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        out.flush();
+                        try { out.getFD().sync(); } catch (Exception ignored) {}
+                    } finally {
+                        out.close();
+                        in.close();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "engine-data copy failed", e);
+                    part.delete();
+                    return false;
+                }
+                if (!isCompleteZip(part)) {
+                    Log.e(TAG, "bundled " + ENGINE_ASSET + " is missing or truncated");
+                    part.delete();
+                    return false;
+                }
+                boolean moved = part.renameTo(dest);
+                if (!moved) {
+                    dest.delete();
+                    moved = part.renameTo(dest);
+                }
+                if (!moved) {
+                    Log.e(TAG, "cannot activate " + dest);
+                    part.delete();
+                    return false;
+                }
+                // Written last: while the stamp is absent a later run simply
+                // validates and reuses the file instead of trusting it.
+                String hash = sha1Hex(dest);
+                if (hash == null) {
+                    Log.e(TAG, "cannot hash staged " + dest);
+                    dest.delete();
+                    return false;
+                }
+                writeSmallText(stampFile, apk + ":" + hash);
+                Log.i(TAG, "engine-data staged: " + dest.length() + " bytes");
                 return dest.length() > 0;
             } catch (Exception e) {
                 Log.e(TAG, "prepareEngineData failed", e);
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public boolean acquireInstallWakeLock() {
+            return LauncherActivity.acquireInstallWakeLock(activity);
+        }
+
+        @JavascriptInterface
+        public void releaseInstallWakeLock() {
+            LauncherActivity.releaseInstallWakeLock();
+        }
+
+        @JavascriptInterface
+        public boolean startInstallService() {
+            return LauncherActivity.startInstallService(activity);
+        }
+
+        @JavascriptInterface
+        public void stopInstallService() {
+            LauncherActivity.stopInstallService(activity);
         }
 
         @JavascriptInterface
@@ -1153,22 +1608,18 @@ public class LauncherActivity extends Activity {
                 } catch (Exception ignored) {}
             }
 
-            // If resources are already present, ensure no leftover install-assets.flag causes a black screen
-            File resMeta = new File(new File(baseDir(), "resources"), "horizon-resources.json");
-            if (resMeta.isFile()) {
-                File flag = new File(baseDir(), "install-assets.flag");
-                if (flag.exists()) flag.delete();
-                File prog = new File(baseDir(), "install-progress.txt");
-                if (prog.exists()) prog.delete();
-            }
-
             // Asset-install runs (install-assets.flag present) show a plain
             // black engine window while the resources download from Mojang.
             // The engine needs its window created to get through startup, so
             // let it run in the foreground until it reports progress, then
             // bring the launcher WebView back on top: the user watches the
             // launcher progress bar instead of the black engine window.
+            //
+            // The flag is owned by the JS bridge: it also covers "resume after
+            // the app was killed", so this method must never delete it here
+            // (an old install may have only horizon-resources.json).
             boolean installing = new File(baseDir(), "install-assets.flag").isFile();
+            if (installing) LauncherActivity.startInstallService(activity);
 
             // The engine reads the install flag only at process start and
             // exits when done, so every launch must run in a fresh :game

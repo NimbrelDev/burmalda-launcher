@@ -13,6 +13,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Установка ресурсов идёт несколько минут: удерживаем процесс и Wi-Fi
+         живыми, пока экран выключен или лаунчер свёрнут. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Игровые данные живут в видимой папке /sdcard/Horizon: она переживает
          и обновление, и удаление приложения. На Android 11+ для записи по
          обычному пути нужно разрешение «Доступ ко всем файлам» (запрашивается
@@ -58,5 +64,14 @@
                 android:name="android.app.lib_name"
                 android:value="horizon_client" />
         </activity>
+
+        <!-- Живёт в том же :game процессе, что и движок, поэтому установка
+             ресурсов продолжается при выключенном экране и не убивается
+             системой вместе со свёрнутым лаунчером. -->
+        <service
+            android:name="org.horizon.launcher.LauncherActivity$InstallService"
+            android:exported="false"
+            android:process=":game"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

@@ -36,7 +36,7 @@
         name: 'Ванилла',
         version: '26.3',
         isDefault: true,
-        description: 'Чистый официальный клиент Horizon 0.2.97 (Rust Client)',
+        description: 'Чистый официальный клиент Horizon 26.3 (Rust Client)',
         mods: [],
         texturepacks: [],
         shaders: []
@@ -229,10 +229,14 @@
   const BUNDLED_MC_VERSION = '26.3';
 
   // The engine installs/prepares resources into files/resources (horizon-prepare
-  // structure); they are shared between all engine versions.
+  // structure); they are shared between all engine versions. Both files are
+  // written by the engine into the staging folder before its atomic activation,
+  // so either both exist (complete install) or neither does.
   function resourcesInstalled() {
     const a = A();
-    return Boolean(a && a.exists('resources/asset-index.json'));
+    return Boolean(a
+      && a.exists('resources/horizon-resources.json')
+      && a.exists('resources/asset-index.json'));
   }
 
   // ------------------------------------------------------------
@@ -243,27 +247,93 @@
   const INSTALL_FLAG = 'install-assets.flag';
   const INSTALL_PROGRESS = 'install-progress.txt';
 
+  // Turn raw engine/OS errors (usually English) into something a player can
+  // act on. The raw text is still logged and kept in rawStatus for debugging.
+  function friendlyInstallError(raw) {
+    let text = String(raw == null ? '' : raw).trim();
+    // Engine format: "error <message> 0 0"; strip the marker and counters.
+    text = text.replace(/^error\s+/i, '').replace(/\s+0\s+0$/, '').trim();
+    if (!text) {
+      return 'Неизвестная ошибка установки. Нажмите «Скачать» ещё раз — установка продолжится с места остановки.';
+    }
+    const low = text.toLowerCase();
+    if (/no space left|enospc|disk full|not enough space/.test(low)) {
+      return 'Не хватает свободного места на устройстве. Освободите место и нажмите «Скачать» ещё раз — установка продолжится с места остановки.';
+    }
+    if (/permission denied|eacces|operation not permitted|read-only file system/.test(low)) {
+      return 'Нет доступа к папке игры. Выдайте разрешение «Доступ ко всем файлам» и повторите — установка продолжится с места остановки.';
+    }
+    if (/network|connection|timed out|timeout|dns|tcp|tls|failed to connect|connection reset|broken pipe|unexpected eof/.test(low)) {
+      return 'Нет связи с сервером Mojang. Проверьте интернет и нажмите «Скачать» ещё раз — уже скачанное сохранится.';
+    }
+    if (/checksum|sha-?1|hash|size mismatch|corrupt|invalid zip|zip error/.test(low)) {
+      return 'Скачанный файл повреждён. Нажмите «Скачать» ещё раз — повреждённый файл будет скачан заново, остальное сохранится.';
+    }
+    if (/could not activate/.test(low)) {
+      return 'Не удалось заменить папку ресурсов. Закройте игру и повторите — старая копия сохранена.';
+    }
+    if (/status code \d|http status|http \d{3}/.test(low)) {
+      return 'Сервер Mojang временно недоступен. Проверьте интернет и нажмите «Скачать» ещё раз — скачанное сохранится.';
+    }
+    if (/no engine-data|apk has no|engine tables bundle has no/.test(low)) {
+      return 'В приложении нет таблиц движка. Переустановите APK и повторите.';
+    }
+    if (/устаревшая версия игры|не умеет скачивать/.test(low)) {
+      return 'Этот движок не поддерживает установку ресурсов. Переустановите APK последней версии.';
+    }
+    if (/client jar differs|implements horizon resources|pinned version/.test(low)) {
+      return 'Этот движок не поддерживает установленную версию Minecraft. Обновите APK.';
+    }
+    if (/internal installation error/.test(low)) {
+      return 'Внутренняя ошибка установки. Нажмите «Скачать» ещё раз — установка продолжится с места остановки.';
+    }
+    if (/не двигается уже 20 минут|зависла/.test(low)) {
+      return 'Установка зависла. Нажмите «Скачать» ещё раз — скачанное сохранится, установка продолжится с места остановки.';
+    }
+    if (/прервалась|завершился во время установки/.test(low)) {
+      return 'Установка прервалась. Нажмите «Скачать» ещё раз — она продолжится с места остановки. Если повторяется, проверьте свободное место и интернет.';
+    }
+    return 'Ошибка установки: ' + text.slice(0, 300);
+  }
+
+  // Errors that a retry cannot fix (wrong APK/engine), unlike network, disk
+  // or process-death errors which are worth retrying automatically.
+  function isFatalInstallError(raw) {
+    const low = String(raw == null ? '' : raw).toLowerCase();
+    return /no engine-data|apk has no|engine tables bundle has no|client jar differs|implements horizon resources|pinned version|устаревшая версия игры|не умеет скачивать/.test(low);
+  }
+
   function readInstallProgress() {
     const a = A();
-    if (!a) return { installing: false };
-    if (!a.exists(INSTALL_FLAG)) return { installing: false, done: true };
+    if (!a) return { installing: false, failed: false, done: false, percent: 0, status: 'Мост недоступен' };
+    const flag = a.exists(INSTALL_FLAG);
     const text = a.readFileText(INSTALL_PROGRESS) || '';
     let percent = 0;
-    let status = 'Ожидание движка...';
+    let status = flag ? 'Ожидание движка...' : 'Нет данных об установке';
+    let last = '';
     if (text.trim().length > 0) {
-      const doneRe = /^(done|complete)\b|\bdone 1 1\b/i;
-      const errRe = /^error\b/i;
       const lines = text.trim().split('\n').filter(l => l.trim().length > 0);
-      status = lines[lines.length - 1].slice(0, 200);
-      // Engine format (official_install.rs): "stage percent total" per line,
-      // "done 1 1" on success, "error <message> 0 0" on failure.
-      if (errRe.test(status)) {
-        return { installing: false, failed: true, status: status.replace(/^error\s*/i, 'Ошибка движка: ').slice(0, 200) };
-      }
-      if (doneRe.test(status)) {
-        return { installing: false, done: true, percent: 100, status: 'Ресурсы установлены' };
-      }
-      const stage = status.match(/^([a-z_]+)\s+(\d{1,3})(?:[.,]\d+)?\s+\d+/i);
+      last = lines.length ? lines[lines.length - 1].trim() : '';
+    }
+    // The engine writes "error <message> 0 0" and then removes the flag. The
+    // error must be read BEFORE the missing flag is interpreted as success,
+    // otherwise the launcher would silently lose the reason.
+    if (/^error\b/i.test(last)) {
+      const raw = last.replace(/^error\s*/i, '').replace(/\s+0\s+0$/, '').trim();
+      return {
+        installing: false,
+        failed: true,
+        done: false,
+        percent: 0,
+        status: friendlyInstallError(raw),
+        rawStatus: raw,
+      };
+    }
+    if (/^(done|complete)\b/i.test(last)) {
+      return { installing: false, failed: false, done: true, percent: 100, status: 'Ресурсы установлены' };
+    }
+    if (last) {
+      const stage = last.match(/^([a-z_]+)\s+(\d{1,3})(?:[.,]\d+)?\s+\d+/i);
       if (stage) {
         const stageNames = {
           preparing: 'Подготовка...',
@@ -272,19 +342,40 @@
           extract: 'Сборка ресурсов...',
           finalize: 'Завершение...'
         };
-        percent = Math.min(99, parseInt(stage[2], 10) || 0);
-        status = (stageNames[stage[1].toLowerCase()] || stage[1]) + (percent > 0 ? ' ' + percent + '%' : '');
+        const name = stage[1].toLowerCase();
+        const raw = Math.min(100, parseInt(stage[2], 10) || 0);
+        // One monotonically growing scale: downloading fills 5..85%, then
+        // assembling the files continues 85..99%. Without this the bar would
+        // fall back to 0% when the engine moves from download to extract.
+        if (name === 'download') {
+          percent = Math.round(5 + raw * 0.80);
+        } else if (name === 'extract') {
+          percent = Math.round(85 + raw * 0.14);
+        } else if (name === 'finalize') {
+          percent = 99;
+        } else {
+          percent = Math.min(4, raw);
+        }
+        percent = Math.max(1, Math.min(99, percent));
+        status = (stageNames[name] || stage[1]) + (percent > 1 ? ' ' + percent + '%' : '');
       } else {
-        const m = status.match(/(\d{1,3})(?:[.,]\d+)?\s*%/);
+        const m = last.match(/(\d{1,3})(?:[.,]\d+)?\s*%/);
         if (m) {
           percent = Math.min(99, parseInt(m[1], 10));
         } else {
-          const anyNum = status.match(/\b(\d{1,3})\b/);
+          const anyNum = last.match(/\b(\d{1,3})\b/);
           percent = anyNum ? Math.min(50, parseInt(anyNum[1], 10)) : 1; // indeterminate crawl
         }
+        status = last.slice(0, 200);
       }
     }
-    return { installing: true, percent, status };
+    if (flag) {
+      return { installing: true, failed: false, done: false, percent, status };
+    }
+    // The flag is gone but the last record is neither "done" nor "error":
+    // the engine was killed or exited without finishing. Never report success
+    // here; the caller checks resourcesInstalled() itself and retries.
+    return { installing: false, failed: false, done: false, percent, status };
   }
 
   // ------------------------------------------------------------
@@ -416,7 +507,7 @@
       const versions = [{
         id: BUNDLED_ENGINE_TAG,
         tag: BUNDLED_ENGINE_TAG,
-        name: 'Horizon — встроен в приложение',
+        name: 'Horizon 26.3',
         prerelease: false,
         channel: 'stable',
         status: 'Встроен',
@@ -427,12 +518,23 @@
         isActive: true,
         assets: [],
       }];
+      const install = readInstallProgress();
       return {
         minecraftVersions: supported.map(v => ({ id: v, name: 'Minecraft ' + v, description: 'Версия Minecraft встроенного движка' })),
         selectedMcVersion: activeMc,
         activeVersion: BUNDLED_ENGINE_TAG,
         latestStableTag: BUNDLED_ENGINE_TAG,
         versions,
+        // Used by the renderer to resume an interrupted installation on app
+        // start instead of making the player press "Скачать" again.
+        installInProgress: !resourcesInstalled() && Boolean(install.installing),
+        installStatus: install.status || '',
+        installPercent: install.percent || 0,
+        // A failure that happened while the launcher was closed has no flag
+        // left, so "installInProgress" is false and the user would otherwise
+        // never see the reason. Surface it on the next start.
+        installFailed: !resourcesInstalled() && Boolean(install.failed),
+        installError: install.failed ? (install.status || '') : '',
       };
     },
 
@@ -447,77 +549,177 @@
     downloadVersion: async (tag) => {
       const a = A();
       if (!a) return { success: false, error: 'Мост недоступен' };
+      const emit = (percent, status) => versionProgressCbs.forEach(cb => {
+        try { cb({ tag: BUNDLED_ENGINE_TAG, percent, status }); } catch (e) {}
+      });
+      const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+      // killProcess() is asynchronous: the old engine may still be writing
+      // its progress/flag for a moment. Wait for it to actually disappear so
+      // a retry cannot read the previous run's "error" line.
+      const killEngineAndWait = async () => {
+        try { a.killGameProcess(); } catch (e) {}
+        for (let i = 0; i < 20; i++) {
+          let running = false;
+          try { running = a.isGameRunning(); } catch (e) { running = false; }
+          if (!running) return true;
+          await sleep(250);
+        }
+        return false;
+      };
+      let wakeLock = false;
+      const acquireWakeLock = () => {
+        try {
+          if (typeof a.acquireInstallWakeLock === 'function') {
+            wakeLock = Boolean(a.acquireInstallWakeLock());
+          }
+        } catch (e) {}
+      };
+      const releaseWakeLock = () => {
+        if (!wakeLock) return;
+        wakeLock = false;
+        try {
+          if (typeof a.releaseInstallWakeLock === 'function') a.releaseInstallWakeLock();
+        } catch (e) {}
+      };
       try {
-        const emit = (percent, status) => versionProgressCbs.forEach(cb => {
-          try { cb({ tag: BUNDLED_ENGINE_TAG, percent, status }); } catch (e) {}
-        });
-
         if (resourcesInstalled()) {
           emit(100, 'Minecraft-ресурсы уже установлены');
           return { success: true, tag: BUNDLED_ENGINE_TAG };
         }
 
-        emit(2, 'Запрос установки Minecraft-ресурсов (Minecraft ' + BUNDLED_MC_VERSION + ')...');
-        // The installer prefers a launcher-supplied bundle over the APK asset
-        // (some engine builds cannot open large APK assets directly).
-        if (a.prepareEngineData && !a.prepareEngineData()) {
-          return { success: false, error: 'В APK нет таблиц движка (engine-data.zip): переустановите приложение.' };
-        }
-        if (!a.writeFileText(INSTALL_FLAG, '', false)) {
-          return { success: false, error: 'Не удалось создать файл-флаг установки' };
-        }
-        // Remove the previous run's progress: otherwise the first poll reads
-        // the stale error and kills the freshly started engine instantly.
-        a.deletePath(INSTALL_PROGRESS);
+        acquireWakeLock();
+        // The :game foreground service is the keep-alive that survives the
+        // launcher being backgrounded/swiped away. launchGame() also starts it
+        // when the flag is present; doing it here covers the attached case.
+        try { if (typeof a.startInstallService === 'function') a.startInstallService(); } catch (e) {}
+        const MAX_ATTEMPTS = 3;
+        let lastError = '';
 
-        // The engine reads the flag only at process start: a leftover engine
-        // (e.g. black-screened from a previous failed run) must die first.
-        try { a.killGameProcess(); } catch (e) {}
-        await new Promise(res => setTimeout(res, 500));
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          // An installation can outlive the launcher WebView (the engine runs
+          // in :game). If it is still alive, attach to it instead of killing
+          // it and starting over.
+          const attached = a.exists(INSTALL_FLAG) && a.isGameRunning();
+          if (!attached) {
+            // The flag is read only at process start, so kill the old engine
+            // BEFORE touching the tables/flag; otherwise it could consume the
+            // fresh flag while shutting down or read a half-written zip.
+            await killEngineAndWait();
+            if (!a.prepareEngineData || !a.prepareEngineData(BUNDLED_ENGINE_TAG)) {
+              try { a.deletePath(INSTALL_FLAG); } catch (e) {}
+              return { success: false, error: 'Не удалось подготовить таблицы движка (engine-data.zip): проверьте свободное место и доступ к папке игры, при повторе — переустановите APK.' };
+            }
+            try { a.deletePath(INSTALL_PROGRESS); } catch (e) {}
+            // Never let the poll loop read the previous run's error before
+            // the new engine has written its first line.
+            if (!a.writeFileText(INSTALL_PROGRESS, 'preparing 0 0\n', false)) {
+              try { a.deletePath(INSTALL_FLAG); } catch (e) {}
+              return { success: false, error: 'Не удалось записать файл прогресса установки. Проверьте доступ к папке игры.' };
+            }
+            if (!a.writeFileText(INSTALL_FLAG, '', false)) {
+              try { a.deletePath(INSTALL_FLAG); } catch (e) {}
+              return { success: false, error: 'Не удалось создать файл-флаг установки. Проверьте доступ к папке игры.' };
+            }
+            // The engine processes the flag on start, installs and exits.
+            const s = getStoredSettings();
+            const nick = (s.nickname && s.nickname.trim()) || 'Player';
+            a.launchGame(nick);
+          }
 
-        // the engine processes the flag on start, installs and exits
-        const s = getStoredSettings();
-        const nick = (s.nickname && s.nickname.trim()) || 'Player';
-        a.launchGame(nick);
+          // Started only after launchGame() returns (it may wait several
+          // seconds for the engine window); otherwise the watchdog below
+          // would count that time as a dead engine.
+          const started = Date.now();
+          let lastStatus = attached ? 'Продолжение установки...' : 'Ожидание движка...';
+          let lastPercent = -1;
+          let lastProgressAt = Date.now();
+          let attemptError = null;
+          let attemptFatal = false;
+          // The bridge pre-writes exactly this line before launching. If it
+          // is still untouched after 90 s while the engine is running, the
+          // installed .so ignores the flag (an old build): report it instead
+          // of waiting for a 20-minute timeout.
+          const handshakeText = attached ? '' : 'preparing 0 0';
 
-        const started = Date.now();
-        let lastStatus = 'Ожидание движка...';
-        const failWith = (error) => {
-          try { a.killGameProcess(); } catch (e) {}
-          try { a.deletePath(INSTALL_FLAG); } catch (e) {}
-          return { success: false, error };
-        };
-        while (true) {
-          await new Promise(res => setTimeout(res, 500));
-          const p = readInstallProgress();
-          if (!p.installing) {
+          while (true) {
+            await sleep(500);
+            const p = readInstallProgress();
+            // Check resources first: the engine reports "done" just before it
+            // removes the flag and exits, and a killed cleaner process must
+            // not turn a complete install into a failure.
             if (resourcesInstalled()) {
               emit(100, p.status || 'Minecraft-ресурсы установлены');
               return { success: true, tag: BUNDLED_ENGINE_TAG };
             }
             if (p.failed) {
-              return failWith('Установка Minecraft-ресурсов прервана: ' + (p.status || 'ошибка движка'));
+              attemptError = p.status || friendlyInstallError(p.rawStatus || '');
+              attemptFatal = isFatalInstallError(p.rawStatus || p.status || '');
+              break;
             }
-            // the engine consumed the flag without an explicit error record
-            return failWith('Установка Minecraft-ресурсов не удалась: ' + lastStatus);
-          }
-          lastStatus = p.status || lastStatus;
-          emit(p.percent, p.status || 'Установка Minecraft-ресурсов...');
-          // the engine process died mid-install (flag + stale progress left)
-          if (Date.now() - started > 10000 && !a.isGameRunning()) {
-            if (resourcesInstalled()) {
-              emit(100, 'Minecraft-ресурсы установлены');
-              return { success: true, tag: BUNDLED_ENGINE_TAG };
+            if (!p.installing) {
+              attemptError = friendlyInstallError('Установка прервалась: ' + (p.status || lastStatus));
+              break;
             }
-            return failWith('Движок завершился во время установки ресурсов. Последний статус: ' + lastStatus);
+            if (p.status) lastStatus = p.status;
+            emit(p.percent, p.status || 'Установка Minecraft-ресурсов...');
+            if (p.percent !== lastPercent) {
+              lastPercent = p.percent;
+              lastProgressAt = Date.now();
+            }
+
+            const now = Date.now();
+            if (!a.isGameRunning()) {
+              // Give a just-started process time to appear in the process list.
+              if (now - started > 15000) {
+                attemptError = friendlyInstallError(
+                  'Движок завершился во время установки ресурсов. Последний статус: ' + lastStatus);
+                break;
+              }
+            } else {
+              if (handshakeText && now - started > 90000) {
+                const current = String(a.readFileText(INSTALL_PROGRESS) || '').trim();
+                if (current === handshakeText) {
+                  attemptError = 'Установленный движок не умеет скачивать Minecraft-ресурсы (устаревшая версия игры). Обновите APK.';
+                  attemptFatal = true;
+                  break;
+                }
+              }
+              if (now - lastProgressAt > 20 * 60 * 1000) {
+                attemptError = friendlyInstallError(
+                  'Установка не двигается уже 20 минут. Последний статус: ' + lastStatus);
+                break;
+              }
+            }
           }
-          // old .so: the engine ignores the flag and just runs the game
-          if (Date.now() - started > 15000 && !a.exists(INSTALL_PROGRESS)) {
-            return failWith('Установленный движок не умеет скачивать Minecraft-ресурсы (устаревшая версия игры). Обновите APK.');
+
+          // A failed attempt: stop the engine, consume the flag and retry.
+          // The download cache and the staging folder stay on disk, so the
+          // next attempt continues from the current byte/file, not from zero.
+          await killEngineAndWait();
+          try { a.deletePath(INSTALL_FLAG); } catch (e) {}
+          try { if (a.stopInstallService) a.stopInstallService(); } catch (e) {}
+          lastError = attemptError || 'Неизвестная ошибка установки. Попробуйте ещё раз.';
+          if (attemptFatal || isFatalInstallError(attemptError || '')) {
+            return { success: false, error: lastError };
           }
+          if (attempt < MAX_ATTEMPTS) {
+            emit(1, 'Повторная попытка ' + attempt + '/' + (MAX_ATTEMPTS - 1) + ': ' + lastError);
+            await sleep(1500);
+            continue;
+          }
+          return { success: false, error: lastError };
         }
+        return { success: false, error: lastError || 'Установка не удалась' };
       } catch (err) {
-        return { success: false, error: err && err.message };
+        await killEngineAndWait();
+        try { a.deletePath(INSTALL_FLAG); } catch (e) {}
+        try { if (a.stopInstallService) a.stopInstallService(); } catch (e) {}
+        return { success: false, error: friendlyInstallError(err && (err.message || err)) };
+      } finally {
+        releaseWakeLock();
+        // The service is only a keep-alive for this download; it must not
+        // outlive the attempt even if the engine ignored the flag.
+        try { if (typeof a.stopInstallService === 'function') a.stopInstallService(); } catch (e) {}
       }
     },
 
@@ -623,6 +825,14 @@
       const s = getStoredSettings();
       const nick = (s && s.nickname && s.nickname.trim().length > 0) ? s.nickname.trim() : 'Player';
       if (a) {
+        // If the resources are already complete, a leftover install flag is
+        // not a new request: drop the stale handshake before launching.
+        if (resourcesInstalled()) {
+          try {
+            if (a.exists(INSTALL_FLAG)) a.deletePath(INSTALL_FLAG);
+            if (a.exists(INSTALL_PROGRESS)) a.deletePath(INSTALL_PROGRESS);
+          } catch (e) {}
+        }
         // never start the game while the engine is installing resources
         const install = readInstallProgress();
         if (install.installing) {
@@ -632,8 +842,12 @@
           return { success: false, error: 'Ресурсы игры не установлены. Откройте выбор версии и нажмите «Скачать».' };
         }
         try { a.vibrate(60); } catch (e) {}
-        syncActiveModpack(); // active modpack must be in place before the engine reads it
-        a.launchGame(nick);
+        try {
+          syncActiveModpack(); // active modpack must be in place before the engine reads it
+          a.launchGame(nick);
+        } catch (e) {
+          return { success: false, error: 'Не удалось запустить Minecraft: ' + (e && (e.message || e) || 'неизвестная ошибка') };
+        }
       } else {
         alert('Запуск игры: ' + nick);
       }

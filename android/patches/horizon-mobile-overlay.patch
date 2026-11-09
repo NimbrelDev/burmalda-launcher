@@ -4325,10 +4325,10 @@ index 0000000..f828de0
 +}
 diff --git a/crates/horizon-client/src/official_install.rs b/crates/horizon-client/src/official_install.rs
 new file mode 100644
-index 0000000..6bed34b
+index 0000000..14c264f
 --- /dev/null
 +++ b/crates/horizon-client/src/official_install.rs
-@@ -0,0 +1,595 @@
+@@ -0,0 +1,766 @@
 +#![cfg(target_os = "android")]
 +//! On-device installation of the official Minecraft resources from Mojang's
 +//! HTTPS endpoints, triggered on demand by the launcher through a flag file
@@ -4387,10 +4387,15 @@ index 0000000..6bed34b
 +
 +/// Whether the engine's regular resource lookup would find a usable
 +/// `files/resources` installation.
++///
++/// Both markers are written by [`install_inner`] into the staging folder
++/// before it is activated with one atomic rename, so they are either all
++/// present (a complete install) or all absent. Requiring both keeps a
++/// half-written tree from being mistaken for a working installation.
 +pub fn resources_ready(home: &Path) -> bool {
-+    home.join("resources")
-+        .join("horizon-resources.json")
-+        .is_file()
++    let resources = home.join("resources");
++    resources.join("horizon-resources.json").is_file()
++        && resources.join("asset-index.json").is_file()
 +}
 +
 +/// Whether the launcher requested an installation run.
@@ -4465,6 +4470,24 @@ index 0000000..6bed34b
 +    Ok(format!("{:x}", digest.finalize()))
 +}
 +
++/// Reader wrapper that reports every received byte to the download counter.
++/// Progress therefore moves while a large file is still downloading, not only
++/// when it is complete: the launcher watchdog stays quiet on slow links.
++struct CountingReader<'a, R> {
++    inner: R,
++    counter: Option<&'a AtomicU64>,
++}
++
++impl<R: Read> Read for CountingReader<'_, R> {
++    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
++        let read = self.inner.read(buffer)?;
++        if let Some(counter) = self.counter {
++            counter.fetch_add(read as u64, Ordering::Relaxed);
++        }
++        Ok(read)
++    }
++}
++
 +struct Download {
 +    url: String,
 +    sha1: String,
@@ -4492,29 +4515,42 @@ index 0000000..6bed34b
 +
 +    /// Downloads (or reuses) the file, verifying size and SHA-1. Retries
 +    /// three times; a failed attempt leaves the partial file removed so the
-+    /// next run starts clean.
-+    fn get(&self) -> Result<()> {
-+        if self.path.is_file()
-+            && fs::metadata(&self.path)?.len() == self.size
-+            && hash(&self.path)? == self.sha1
-+        {
-+            return Ok(());
++    /// next run starts clean. Received bytes are reported to `progress`
++    /// (shared with the launcher-facing byte counter).
++    fn get(&self, progress: Option<&AtomicU64>) -> Result<()> {
++        if self.path.is_file() {
++            let valid = fs::metadata(&self.path)?.len() == self.size
++                && hash(&self.path).map(|h| h == self.sha1).unwrap_or(false);
++            if valid {
++                if let Some(counter) = progress {
++                    counter.fetch_add(self.size, Ordering::Relaxed);
++                }
++                return Ok(());
++            }
++            // A truncated/corrupted cache entry must be replaced, not trusted;
++            // otherwise a previous crash could poison every later attempt.
++            log::warn!("Discarding invalid cached download {}", self.path.display());
++            let _ = fs::remove_file(&self.path);
 +        }
 +        fs::create_dir_all(self.path.parent().ok_or("Missing download directory")?)?;
 +        let partial = self.path.with_extension("partial");
 +        for attempt in 0..3 {
 +            let result = (|| -> Result<()> {
-+                let mut input = agent()
-+                    .get(&self.url)
-+                    .call()?
-+                    .into_reader()
-+                    .take(self.size + 1);
++                let response = agent().get(&self.url).call()?.into_reader();
++                let mut input = CountingReader {
++                    inner: response.take(self.size + 1),
++                    counter: progress,
++                };
 +                let mut output = fs::File::create(&partial)?;
 +                let count = std::io::copy(&mut input, &mut output)?;
 +                output.flush()?;
 +                drop(output);
 +                if count != self.size || hash(&partial)? != self.sha1 {
-+                    return Err("Mojang file checksum or size mismatch".into());
++                    return Err(format!(
++                        "Mojang file checksum or size mismatch for {}",
++                        self.url
++                    )
++                    .into());
 +                }
 +                fs::rename(&partial, &self.path)?;
 +                Ok(())
@@ -4575,6 +4611,18 @@ index 0000000..6bed34b
 +        self.flush();
 +    }
 +
++    /// Long extraction/copy loops: update the counters and rewrite the
++    /// progress file at most twice a second. Keeps the launcher's progress
++    /// bar moving (and its watchdog quiet) during the several-minute
++    /// assembly step without thousands of tiny writes.
++    fn step(&mut self, done: u64, total: u64) {
++        self.done = done;
++        self.total = total;
++        if self.written.elapsed() >= Duration::from_millis(500) {
++            self.flush();
++        }
++    }
++
 +    /// Download progress hot path: only rewrite every 500 ms (or on stage
 +    /// change), always in whole-line atomically replaced writes.
 +    fn download(&mut self, done: u64, total: u64) {
@@ -4604,13 +4652,30 @@ index 0000000..6bed34b
 +    }
 +}
 +
++/// Removes a file or a directory tree, tolerating an already missing path.
++/// `fs::remove_dir_all` fails on a plain file and vice versa; the install
++/// folder can be either after a user poked around with a file manager.
++fn remove_any(path: &Path) -> std::io::Result<()> {
++    match fs::symlink_metadata(path) {
++        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(path),
++        Ok(_) => fs::remove_file(path),
++        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
++        Err(error) => Err(error),
++    }
++}
++
 +fn extract_zip_into<R: Read + std::io::Seek>(
 +    archive: R,
 +    destination: &Path,
 +    root_prefixes: &[&str],
++    progress: &mut Progress,
++    done: &mut u64,
++    total: u64,
 +) -> Result<()> {
 +    let mut zip = zip::ZipArchive::new(archive)?;
 +    for i in 0..zip.len() {
++        *done += 1;
++        progress.step(*done, total);
 +        let mut entry = zip.by_index(i)?;
 +        if entry.is_dir() {
 +            continue;
@@ -4646,17 +4711,41 @@ index 0000000..6bed34b
 +pub fn install(home: &Path, app: &android_activity::AndroidApp) -> Result<()> {
 +    let _guard = INSTALLATION.lock().unwrap_or_else(|e| e.into_inner());
 +    let mut progress = Progress::new(home);
-+    let result = install_inner(home, app, &mut progress);
++    // A panic anywhere in the installer (a bug, a broken zip reader, an
++    // arithmetic edge case) must still produce a readable error for the
++    // launcher and consume the flag, otherwise the UI would wait forever.
++    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        install_inner(home, app, &mut progress)
++    }))
++    .unwrap_or_else(|panic| {
++        let message = panic_message(panic);
++        log::error!("Official resources installation panicked: {message}");
++        Err(format!("Internal installation error: {message}").into())
++    });
 +    match &result {
 +        Ok(()) => progress.report("done", 1, 1),
 +        Err(error) => {
-+            log::error!("Official resources installation failed: {error}");
-+            progress.report(&format!("error {}", error), 0, 0);
++            // The progress file is line-oriented; a raw OS error never contains
++            // a newline, but a panic message or a path might. Keep one line so
++            // the launcher reads the complete reason.
++            let text = error.to_string().replace('\n', " ").replace('\r', " ");
++            log::error!("Official resources installation failed: {text}");
++            progress.report(&format!("error {text}"), 0, 0);
 +        }
 +    }
 +    // The flag is consumed either way: the launcher decides on a retry.
 +    let _ = fs::remove_file(home.join(FLAG_FILE));
 +    result
++}
++
++fn panic_message(panic: Box<dyn std::any::Any + Send>) -> String {
++    if let Some(text) = panic.downcast_ref::<&str>() {
++        (*text).to_string()
++    } else if let Some(text) = panic.downcast_ref::<String>() {
++        text.clone()
++    } else {
++        "unknown panic".to_string()
++    }
 +}
 +
 +fn install_inner(
@@ -4687,9 +4776,17 @@ index 0000000..6bed34b
 +    }
 +
 +    // Resume: if a previous run already activated a complete resources tree,
-+    // there is nothing to do.
++    // there is nothing to do. Housekeeping may have been interrupted by a
++    // kill (the flag is consumed after activation), so finish it here: a
++    // leftover `resources.previous` is a full extra tree of disk space.
 +    if resources_ready(home) {
 +        log::info!("Official resources already present at {}", home.join("resources").display());
++        let backup = home.join("resources.previous");
++        if backup.exists() {
++            let _ = remove_any(&backup);
++        }
++        let _ = remove_any(&home.join(".local/downloads").join(&version));
++        let _ = remove_any(&home.join(".resources-install-partial"));
 +        return Ok(());
 +    }
 +
@@ -4698,8 +4795,11 @@ index 0000000..6bed34b
 +    fs::create_dir_all(&cache)?;
 +
 +    // Engine tables: prefer a launcher-supplied bundle, else the APK asset.
++    // Always replace the staged copy: a killed previous run may have left a
++    // truncated zip that would otherwise be extracted as if it were valid.
 +    let staged_tables = cache.join("engine-data.zip");
 +    let launcher_bundle = home.join(format!("engine-data-{version}.zip"));
++    remove_any(&staged_tables)?;
 +    if launcher_bundle.is_file() {
 +        fs::copy(&launcher_bundle, &staged_tables)?;
 +    } else {
@@ -4756,14 +4856,16 @@ index 0000000..6bed34b
 +    if client.sha1 != pinned_client {
 +        return Err("Minecraft client jar differs from this engine's pinned version".into());
 +    }
-+    client.get()?;
++    client.get(None)?;
 +
 +    // The asset index lists every vanilla asset object (textures, sounds,
 +    // translations) with per-file SHA-1s. Mojang republishes it freely; the
 +    // objects themselves are all individually verified on download.
 +    let index = Download::from(&manifest["assetIndex"], cache.join("asset-index.json"))?;
-+    index.get()?;
-+    let index: serde_json::Value = serde_json::from_reader(fs::File::open(&index.path)?)?;
++    index.get(None)?;
++    let index_path = index.path.clone();
++    let index_sha1 = index.sha1.clone();
++    let index: serde_json::Value = serde_json::from_reader(fs::File::open(&index_path)?)?;
 +    let objects = index["objects"]
 +        .as_object()
 +        .ok_or("Missing asset objects")?;
@@ -4808,22 +4910,38 @@ index 0000000..6bed34b
 +    std::thread::scope(|scope| -> Result<()> {
 +        for _ in 0..8 {
 +            scope.spawn(|| {
-+                loop {
-+                    if error.lock().unwrap().is_some() {
-+                        break;
++                // A panic in a worker must become a normal install error.
++                // Without this the main loop below would wait forever for a
++                // byte count that can never arrive.
++                let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                    loop {
++                        if error.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
++                            break;
++                        }
++                        let i = next.fetch_add(1, Ordering::Relaxed);
++                        let Some(file) = files.get(i) else { break };
++                        // get() itself reports bytes as they arrive, so even a
++                        // single very large file keeps the progress moving.
++                        if let Err(e) = file.get(Some(&tick)) {
++                            *error.lock().unwrap_or_else(|e| e.into_inner()) = Some(e.to_string());
++                            break;
++                        }
 +                    }
-+                    let i = next.fetch_add(1, Ordering::Relaxed);
-+                    let Some(file) = files.get(i) else { break };
-+                    if let Err(e) = file.get() {
-+                        *error.lock().unwrap() = Some(e.to_string());
-+                        break;
++                }));
++                if let Err(panic) = outcome {
++                    // Keep the first error; later ones are consequences.
++                    let mut slot = error.lock().unwrap_or_else(|e| e.into_inner());
++                    if slot.is_none() {
++                        *slot = Some(format!(
++                            "Internal download error: {}",
++                            panic_message(panic)
++                        ));
 +                    }
-+                    let _ = tick.fetch_add(file.size, Ordering::Relaxed);
 +                }
 +            });
 +        }
 +        loop {
-+            if let Some(e) = error.lock().unwrap().as_ref() {
++            if let Some(e) = error.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
 +                return Err(e.clone().into());
 +            }
 +            let current = tick.load(Ordering::Relaxed);
@@ -4834,40 +4952,67 @@ index 0000000..6bed34b
 +            std::thread::sleep(Duration::from_millis(120));
 +        }
 +    })?;
-+    if let Some(e) = error.into_inner().unwrap() {
++    if let Some(e) = error.into_inner().unwrap_or_else(|e| e.into_inner()) {
 +        return Err(e.into());
 +    }
-+    progress.report("extract", 0, 0);
-+
 +    // Assemble the resources root in a staging directory, then activate it
 +    // atomically: engine tables from the bundle, vanilla `assets/` + `data/`
 +    // from the verified client jar, and the asset objects under `assets/`.
++    let engine_zip_len =
++        zip::ZipArchive::new(fs::File::open(&staged_tables)?)?.len() as u64;
++    let client_zip_len =
++        zip::ZipArchive::new(fs::File::open(&client.path)?)?.len() as u64;
++    let extract_total = engine_zip_len + client_zip_len + assets.len() as u64;
++    progress.report("extract", 0, extract_total);
++
 +    let staging = home.join(".resources-install-partial");
 +    let version_marker = staging.join(".install-version");
++    // The engine tables can change between app updates even for the same
++    // Minecraft version; including their hash makes sure an interrupted
++    // staging tree from an older APK is rebuilt instead of silently mixing
++    // two table sets (same-size files would be skipped by the resume check).
++    let tables_hash = hash(&staged_tables)?;
++    let staging_marker = format!("{version} {tables_hash} {index_sha1}");
 +    if staging.exists() {
 +        let stale = fs::read_to_string(&version_marker)
-+            .map(|v| v.trim() != version)
++            .map(|v| v.trim() != staging_marker)
 +            .unwrap_or(true);
 +        if stale {
-+            let _ = fs::remove_dir_all(&staging);
++            // A previous attempt for another version (or a half-created
++            // folder). Do not silently mix the two trees: reset it, and if
++            // even that is impossible, report a real error instead of
++            // producing a corrupt "successful" install.
++            remove_any(&staging).map_err(|e| {
++                format!(
++                    "Could not reset the interrupted installation folder {}: {e}",
++                    staging.display()
++                )
++            })?;
 +        }
 +    }
-+    if !staging.exists() {
-+        fs::create_dir(&staging)?;
-+    }
-+    let _ = fs::write(&version_marker, &version);
++    fs::create_dir_all(&staging)?;
++    fs::write(&version_marker, &staging_marker)?;
++    let mut extract_done = 0u64;
 +    let result = (|| -> Result<()> {
 +        extract_zip_into(
 +            fs::File::open(&staged_tables)?,
 +            &staging,
 +            &[],
++            progress,
++            &mut extract_done,
++            extract_total,
 +        )?;
 +        extract_zip_into(
 +            fs::File::open(&client.path)?,
 +            &staging,
 +            &["assets/", "data/"],
++            progress,
++            &mut extract_done,
++            extract_total,
 +        )?;
 +        for (name, from) in assets {
++            extract_done += 1;
++            progress.step(extract_done, extract_total);
 +            let path = staging.join("assets").join(relative(name)?);
 +            fs::create_dir_all(path.parent().ok_or("Missing asset parent")?)?;
 +            if path.is_file() && fs::metadata(&path).map(|m| m.len()).unwrap_or(0) == from.metadata().map(|m| m.len()).unwrap_or(u64::MAX) {
@@ -4879,26 +5024,49 @@ index 0000000..6bed34b
 +            return Err("Engine tables bundle has no horizon-resources.json".into());
 +        }
 +        // The runtime reads the asset index next to the tables (same file the
-+        // PC preparation writes), decoded from the verified download.
-+        fs::write(
-+            staging.join("asset-index.json"),
-+            serde_json::to_vec(&index)?,
-+        )?;
++        // PC preparation writes). Copy the verified download byte-for-byte
++        // instead of re-serializing the parsed JSON: same result with no
++        // extra tens-of-megabytes memory spike on a phone.
++        fs::copy(&index_path, staging.join("asset-index.json"))?;
++        progress.report("extract", extract_total, extract_total);
 +        Ok(())
 +    })();
 +    if let Err(e) = result {
-+        let _ = fs::remove_dir_all(&staging);
++        // Keep the staging tree: files already copied are verified by size on
++        // the next run, so a retry (after freeing space / reconnecting)
++        // continues instead of starting the several-hundred-MB copy over.
++        log::warn!(
++            "Resource assembly failed; keeping {} for resume: {e}",
++            staging.display()
++        );
 +        return Err(e);
 +    }
 +
-+    progress.report("finalize", 0, 0);
++    progress.report("finalize", 99, 100);
 +    let destination = home.join("resources");
 +    let backup = home.join("resources.previous");
++
++    // If a previous activation was interrupted after the old tree was moved
++    // aside, restore it first: there must always be a usable copy on disk.
++    if !destination.exists() && backup.exists() {
++        fs::rename(&backup, &destination).map_err(|e| {
++            format!(
++                "Could not restore the previous resources from {}: {e}",
++                backup.display()
++            )
++        })?;
++    }
 +    if backup.exists() {
-+        fs::remove_dir_all(&backup)?;
++        remove_any(&backup).map_err(|e| {
++            format!(
++                "Could not remove the stale resources backup {}: {e}",
++                backup.display()
++            )
++        })?;
 +    }
 +    if destination.exists() {
-+        fs::rename(&destination, &backup)?;
++        fs::rename(&destination, &backup)
++            .map_err(|e| format!("Could not move the old resources aside: {e}"))?;
 +    }
 +    if let Err(error) = fs::rename(&staging, &destination) {
 +        if backup.exists() {
@@ -4906,6 +5074,9 @@ index 0000000..6bed34b
 +        }
 +        return Err(format!("Could not activate installed resources: {error}").into());
 +    }
++    // The activated tree is complete; the old copy is only a safety net until
++    // this point. Dropping it frees a full resources tree of disk space.
++    let _ = remove_any(&backup);
 +    log::info!(
 +        "Official resources for Minecraft {version} installed to {}",
 +        destination.display()
@@ -4921,6 +5092,6 @@ index 0000000..6bed34b
 +
 +    // Housekeeping: the verified downloads are no longer needed. Best-effort,
 +    // never fails the install.
-+    let _ = fs::remove_dir_all(&cache);
++    let _ = remove_any(&cache);
 +    Ok(())
 +}

@@ -127,6 +127,28 @@ async function initApp() {
   // Load Versions
   await refreshVersions();
 
+  // Resume an installation interrupted by closing the launcher or the whole
+  // app: the engine's request flag is still present, so continue automatically
+  // (attach to a live engine, or relaunch it — its cache/staging resume).
+  if (currentVersionsData && currentVersionsData.installInProgress) {
+    setTimeout(() => {
+      try {
+        Promise.resolve(startVersionDownload(currentVersionsData.activeVersion || 'v0.2.97'))
+          .catch((err) => console.error('auto-resume install failed:', err));
+      } catch (err) {
+        console.error('auto-resume install failed:', err);
+      }
+    }, 400);
+  } else if (currentVersionsData && currentVersionsData.installFailed) {
+    // The engine failed while the launcher was closed and removed its flag.
+    // Show the stored reason instead of silently offering another download.
+    setTimeout(() => {
+      alert('Установка ресурсов не завершилась.\n\n'
+        + (currentVersionsData.installError || 'Неизвестная ошибка.')
+        + '\n\nНажмите «Скачать» — установка продолжится с места остановки.');
+    }, 600);
+  }
+
   // Pre-load Touch Controls
   await loadTouchSettingsUI();
 

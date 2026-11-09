@@ -9,7 +9,7 @@ function getModpacks() {
       name: 'Ванилла Rust',
       version: '26.3',
       isDefault: true,
-      description: 'Чистый официальный клиент Horizon 0.2.97 (Rust Client)',
+      description: 'Чистый официальный клиент Horizon 26.3 (Rust Client)',
       mods: [],
       texturepacks: [],
       shaders: []

@@ -18,7 +18,12 @@ async function triggerPlayAction(targetServer = null) {
   const ver = getCurrentVersionObj();
 
   if (isRunning) {
-    await window.api.killGame();
+    // Always return the button to "PLAY", even if the :game process died
+    // before the 1.5 s exit poll could observe it (a crash right after
+    // launch). Otherwise the button would stay in "CLOSE GAME" forever.
+    try { await window.api.killGame(); } catch (_) {}
+    isRunning = false;
+    updateDockForVersion(getCurrentVersionObj());
     return;
   }
 
@@ -60,10 +65,15 @@ async function launchGame(targetServer = null) {
   isRunning = true;
   updateDockForVersion(getCurrentVersionObj());
 
-  const res = await window.api.launchGame(targetServer);
-  if (!res.success) {
+  let res = { success: false, error: 'Неизвестная ошибка запуска' };
+  try {
+    res = await window.api.launchGame(targetServer);
+  } catch (err) {
+    res = { success: false, error: (err && (err.message || err)) || 'Неизвестная ошибка запуска' };
+  }
+  if (!res || !res.success) {
     isRunning = false;
-    alert(`Ошибка запуска Minecraft: ${res.error}`);
+    alert(`Ошибка запуска Minecraft: ${res && res.error ? res.error : 'неизвестная ошибка'}`);
     updateDockForVersion(getCurrentVersionObj());
   }
 }

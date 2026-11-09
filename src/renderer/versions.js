@@ -1,10 +1,10 @@
-// --- TWO-TIER VERSIONS (MINECRAFT 26.3 & HORIZON 0.2.97 STRICTLY) ---
+// --- TWO-TIER VERSIONS (MINECRAFT 26.3 & HORIZON 26.3 STRICTLY) ---
 let selectedMcVersion = '26.3';
 let selectedEngineTag = 'v0.2.97';
 
 function getCurrentVersionObj() {
   const activeTag = selectedEngineTag || currentVersionsData?.activeVersion || 'v0.2.97';
-  const fallback = { tag: 'v0.2.97', name: 'Horizon 0.2.97', status: 'Релиз', supportedMcVersions: ['26.3'], defaultMcVersion: '26.3', isInstalled: false, isActive: true };
+  const fallback = { tag: 'v0.2.97', name: 'Horizon 26.3', status: 'Релиз', supportedMcVersions: ['26.3'], defaultMcVersion: '26.3', isInstalled: false, isActive: true };
   if (!currentVersionsData || !currentVersionsData.versions) {
     return fallback;
   }
@@ -109,7 +109,7 @@ function renderEngineVersionDropdown() {
   const activeVer = getCurrentVersionObj();
 
   if (selectedEngineVersionLabel) {
-    selectedEngineVersionLabel.textContent = activeVer?.name || (selectedEngineTag ? `Horizon ${selectedEngineTag}` : 'Horizon 0.2.97');
+    selectedEngineVersionLabel.textContent = 'Horizon 26.3';
   }
 
   versions.forEach((ver) => {
@@ -125,7 +125,7 @@ function renderEngineVersionDropdown() {
         <span style="font-size:12px; font-weight:700; color:#f8fafc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
           ${escapeHtml(ver.name || ver.tag)}
         </span>
-        <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(ver.tag)}</span>
+        <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Minecraft ${escapeHtml(ver.defaultMcVersion || '26.3')}</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span style="font-size:9px; font-weight:800; color:${badgeColor}; background:rgba(0,0,0,0.35); padding:2px 6px; border-radius:4px; letter-spacing:0.5px;">
@@ -164,7 +164,7 @@ function updateDockForVersion(ver) {
     dockVersionBadgeName.textContent = ver.name || 'Horizon 26.3 Mobile';
   }
   if (dockVersionBadgeTag && ver) {
-    dockVersionBadgeTag.textContent = ver.tag || 'v0.2.97';
+    dockVersionBadgeTag.textContent = ver.defaultMcVersion || '26.3';
   }
 
   if (!btnHeroAction) return;
@@ -205,11 +205,19 @@ async function startVersionDownload(tag) {
     heroBtnText.textContent = 'ЗАГРУЗКА...';
   }
 
-  const res = await window.api.downloadVersion(tag);
-  isDownloading = false;
-  if (btnHeroAction) btnHeroAction.disabled = false;
+  let res = { success: false, error: 'Неизвестная ошибка установки' };
+  try {
+    res = await window.api.downloadVersion(tag);
+  } catch (err) {
+    // The bridge normally returns {success:false}, but a WebView/Java
+    // exception must never leave the download button permanently disabled.
+    res = { success: false, error: (err && (err.message || err)) || 'Неизвестная ошибка установки' };
+  } finally {
+    isDownloading = false;
+    if (btnHeroAction) btnHeroAction.disabled = false;
+  }
 
-  if (res.success) {
+  if (res && res.success) {
     if (downloadStripStatus) downloadStripStatus.textContent = 'Установка завершена!';
     if (downloadStripPercent) downloadStripPercent.textContent = '100%';
     if (downloadStripFill) downloadStripFill.style.width = '100%';
@@ -218,12 +226,16 @@ async function startVersionDownload(tag) {
       if (downloadProgressStrip) downloadProgressStrip.style.display = 'none';
     }, 1500);
 
-    await window.api.setVersion(tag, '26.3');
-    await refreshVersions();
+    try {
+      await window.api.setVersion(tag, '26.3');
+      await refreshVersions();
+    } catch (err) {
+      console.error('refresh after install failed:', err);
+    }
   } else {
-    alert(`Ошибка загрузки версии: ${res.error}`);
+    alert(`Ошибка загрузки версии: ${res && res.error ? res.error : 'неизвестная ошибка'}`);
     if (downloadProgressStrip) downloadProgressStrip.style.display = 'none';
-    await refreshVersions();
+    try { await refreshVersions(); } catch (err) { console.error('refresh after error failed:', err); }
   }
 }
 
